@@ -1,0 +1,140 @@
+.homepage-container {
+  padding: 24px;
+  background-color: #f5f5f5;
+  min-height: calc(100vh - 64px);
+}
+
+.welcome-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.welcome-card .ant-card-body {
+  background: transparent;
+  color: white;
+}
+
+.welcome-card h2 {
+  color: white !important;
+}
+
+.quick-action-card {
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.quick-action-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.quick-action-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.quick-action-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.quick-action-text {
+  flex: 1;
+}
+
+.recent-activities {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.activity-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-time {
+  font-size: 12px;
+  color: #999;
+  white-space: nowrap;
+  min-width: 40px;
+}
+
+.activity-content {
+  flex: 1;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .homepage-container {
+    padding: 16px;
+  }
+  
+  .quick-action-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+  }
+  
+  .quick-action-icon {
+    margin: 0 auto;
+  }
+}
+
+/* 卡片标题样式 */
+.ant-card-head-title {
+  font-weight: 600;
+  color: #262626;
+}
+
+/* 统计卡片样式 */
+.ant-statistic-title {
+  font-size: 14px;
+  color: #8c8c8c;
+  margin-bottom: 4px;
+}
+
+.ant-statistic-content {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+/* 按钮组样式 */
+.ant-space-item .ant-btn {
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+/* 滚动条样式 */
+.recent-activities::-webkit-scrollbar {
+  width: 4px;
+}
+
+.recent-activities::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 2px;
+}
+
+.recent-activities::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 2px;
+}
+
+.recent-activities::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

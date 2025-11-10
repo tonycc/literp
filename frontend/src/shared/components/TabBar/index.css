@@ -1,0 +1,147 @@
+/* 强制 ProLayout header 底部对齐 */
+
+.ant-pro-layout .ant-layout-header .ant-pro-global-header {
+  display: flex !important;
+  align-items: flex-end !important;
+  height: 100% !important;
+}
+
+
+/* TabBar 容器继承 header 高度 */
+.header-tab-bar {
+  flex: 1;
+  margin: 0 35px;
+  min-width: 0;
+  height: 100%;
+  display: flex !important;
+  align-items: flex-end !important;   /* 底部对齐 */
+  position: relative;
+}
+
+.header-tab-bar .ant-tabs {
+  margin: 0;
+  margin-top: auto !important;  /* 强制推到底部 */
+  height: auto;
+  width: 100%;
+}
+
+.header-tab-bar .ant-tabs-nav {
+  margin: 0;
+  background: transparent;
+  height: auto;
+}
+
+.header-tab-bar .ant-tabs-nav-wrap {
+  padding: 0 !important;
+  height: auto !important;
+  display: flex !important;
+  align-items: flex-end !important;
+}
+
+.header-tab-bar .ant-tabs-nav-list {
+  height: auto !important;
+  display: flex !important;
+  align-items: flex-end !important;
+}
+
+/* 标签本身使用自然高度，保持内边距，文本垂直居中 */
+.header-tab-bar .ant-tabs-tab {
+  padding: 8px 12px;
+  margin: 0 2px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  height: auto;
+  display: flex;
+  align-items: center;    /* 文本垂直居中 */
+  background: rgba(255, 255, 255, 0.8);
+  
+}
+
+.header-tab-bar .ant-tabs-tab:hover {
+  background: rgba(24, 144, 255, 0.04);
+ 
+}
+
+.header-tab-bar .ant-tabs-tab-active {
+  background: rgba(24, 144, 255, 0.1);
+  color: #1890ff;
+  
+}
+
+.tab-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 150px;
+}
+
+.tab-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.tab-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.tab-close-btn {
+  margin-left: 4px;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.tab-close-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.tab-close-btn .anticon {
+  font-size: 10px;
+}
+
+/* 标签页关闭按钮和内容样式 */
+.header-tab-bar .ant-tabs-tab-remove {
+  margin-left: 8px;
+  color: #999;
+  font-size: 12px;
+  opacity: 0.6;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+}
+
+.header-tab-bar .ant-tabs-tab-remove:hover {
+  color: #ff4d4f;
+  background: rgba(255, 77, 79, 0.1);
+  opacity: 1;
+}
+
+.header-tab-bar .ant-tabs-tab .ant-tabs-tab-btn {
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.header-tab-bar .ant-tabs-ink-bar {
+  display: none;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .tab-label {
+    max-width: 100px;
+  }
+  
+  .tab-text {
+    font-size: 11px;
+  }
+}

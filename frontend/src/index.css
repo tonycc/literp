@@ -1,0 +1,118 @@
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+  width: 100%;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+
+
+
+/* Remove all padding and margin from PageContainer and its children 
+.no-content-padding,
+.no-content-padding > *,
+.no-content-padding [class*="ant-pro"],
+.no-content-padding [class*="pro-layout"],
+.no-content-padding [class*="page-container"] {
+  padding: 0 !important;
+  margin: 0 !important;
+}*/
+.no-content-padding [class*="page-container"] {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Target common PageContainer internal classes 
+.ant-pro-page-container-children-content,
+.ant-pro-grid-content,
+.ant-pro-page-container-content {
+  padding: 0 !important;
+  margin: 0 !important;
+}*/
+
+/* 垂直菜单样式 
+.ant-pro-sider-menu .ant-menu-vertical .ant-menu-submenu {
+  position: relative;
+}
+
+.ant-pro-sider-menu .ant-menu-vertical .ant-menu-submenu-popup {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  min-width: 200px;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  background: #fff;
+  z-index: 1050;
+}
+
+.ant-pro-sider-menu .ant-menu-vertical .ant-menu-submenu-popup .ant-menu {
+  border: none;
+  box-shadow: none;
+}*/
+
+/* 确保子菜单项样式正常 
+.ant-pro-sider-menu .ant-menu-vertical .ant-menu-submenu-popup .ant-menu-item {
+  padding-left: 24px !important;
+  margin: 0;
+  height: 40px;
+  line-height: 40px;
+}
+
+.ant-pro-sider-menu .ant-menu-vertical .ant-menu-submenu-popup .ant-menu-item:hover {
+  background-color: #f5f5f5;
+}*/
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}

@@ -1,0 +1,773 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String             @id @default(cuid())
+  username           String             @unique
+  email              String             @unique
+  phone              String?            @unique
+  password           String
+  avatar             String?
+  isActive           Boolean            @default(true)
+  lastLoginAt        DateTime?
+  departmentId       String?
+  userType           String             @default("INTERNAL")
+  externalCode       String?
+  externalId         String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  announcementReads  AnnouncementRead[]
+  auditLogs          AuditLog[]
+  managedDepartments Department[]       @relation("DepartmentManager")
+  sentMessages       Message[]          @relation("MessageSender")
+  receivedMessages   Message[]          @relation("MessageReceiver")
+  notifications      Notification[]
+  updatedBomItems    ProductBomItem[]   @relation("ProductBomItemUpdator")
+  createdBomItems    ProductBomItem[]   @relation("ProductBomItemCreator")
+  approvedBoms       ProductBom[]       @relation("ProductBomApprover")
+  updatedBoms        ProductBom[]       @relation("ProductBomUpdator")
+  createdBoms        ProductBom[]       @relation("ProductBomCreator")
+  refreshTokens      RefreshToken[]
+  updatedRoutings    Routing[]          @relation("RoutingUpdator")
+  createdRoutings    Routing[]          @relation("RoutingCreator")
+  systemLogs         SystemLog[]
+  userDepartments    UserDepartment[]
+  userRoles          UserRole[]
+  managedWorkcenters Workcenter[]       @relation("WorkcenterManager") // 管理的工作中心
+  department         Department?        @relation(fields: [departmentId], references: [id])
+  updatedWorkcenters Workcenter[]       @relation("WorkcenterUpdator")
+  createdWorkcenters Workcenter[]       @relation("WorkcenterCreator")
+  updatedOperations  Operation[]        @relation("OperationUpdator")
+  createdOperations  Operation[]        @relation("OperationCreator")
+
+  @@map("users")
+}
+
+model Role {
+  id              String           @id @default(cuid())
+  name            String           @unique
+  code            String?          @unique
+  description     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id              String           @id @default(cuid())
+  name            String
+  code            String           @unique
+  description     String?
+  resource        String
+  action          String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  id     String @id @default(cuid())
+  userId String
+  roleId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model Department {
+  id              String           @id @default(cuid())
+  name            String
+  code            String?          @unique
+  description     String?
+  parentId        String?
+  managerId       String?
+  level           Int              @default(1)
+  sort            Int              @default(0)
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  parent          Department?      @relation("DepartmentHierarchy", fields: [parentId], references: [id])
+  children        Department[]     @relation("DepartmentHierarchy")
+  manager         User?            @relation("DepartmentManager", fields: [managerId], references: [id])
+  userDepartments UserDepartment[]
+  users           User[]
+
+  @@map("departments")
+}
+
+model UserDepartment {
+  id           String     @id @default(cuid())
+  userId       String
+  departmentId String
+  position     String
+  isMain       Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, departmentId])
+  @@map("user_departments")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model SystemSettings {
+  id                      String   @id @default(cuid())
+  siteName                String   @default("Fennec 管理系统")
+  siteDescription         String?  @default("基于 React 19 的现代化管理系统")
+  enableRegistration      Boolean  @default(false)
+  enableEmailNotification Boolean  @default(true)
+  sessionTimeout          Int      @default(30)
+  maxLoginAttempts        Int      @default(5)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+model SystemLog {
+  id        String   @id @default(cuid())
+  level     String
+  message   String
+  module    String?
+  action    String?
+  details   String?
+  userId    String?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@map("system_logs")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  resource   String
+  resourceId String?
+  oldValues  String?
+  newValues  String?
+  userId     String?
+  ip         String?
+  userAgent  String?
+  success    Boolean  @default(true)
+  errorMsg   String?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  type      String
+  title     String
+  content   String
+  priority  String    @default("MEDIUM")
+  data      String?
+  userId    String
+  isRead    Boolean   @default(false)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model Message {
+  id         String    @id @default(cuid())
+  title      String
+  content    String
+  type       String    @default("normal")
+  senderId   String?
+  receiverId String
+  isRead     Boolean   @default(false)
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  sender     User?     @relation("MessageSender", fields: [senderId], references: [id])
+  receiver   User      @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+model Announcement {
+  id          String             @id @default(cuid())
+  title       String
+  content     String
+  type        String             @default("info")
+  priority    String             @default("normal")
+  isActive    Boolean            @default(true)
+  publishAt   DateTime           @default(now())
+  expireAt    DateTime?
+  targetUsers String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  reads       AnnouncementRead[]
+
+  @@map("announcements")
+}
+
+model AnnouncementRead {
+  id             String       @id @default(cuid())
+  announcementId String
+  userId         String
+  readAt         DateTime     @default(now())
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+  @@map("announcement_reads")
+}
+
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  subject   String
+  content   String
+  variables String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("email_templates")
+}
+
+model EmailLog {
+  id         String    @id @default(cuid())
+  to         String
+  subject    String
+  content    String
+  templateId String?
+  status     String    @default("pending")
+  error      String?
+  sentAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@map("email_logs")
+}
+
+model EmailQueue {
+  id             String    @id @default(cuid())
+  to             String
+  subject        String
+  content        String
+  templateId     String?
+  templateData   String?
+  priority       String    @default("normal")
+  maxRetries     Int       @default(3)
+  currentRetries Int       @default(0)
+  scheduledAt    DateTime  @default(now())
+  status         String    @default("pending")
+  error          String?
+  sentAt         DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("email_queue")
+}
+
+model ProductCategory {
+  id          String            @id @default(cuid())
+  name        String
+  code        String            @unique
+  description String?
+  sortOrder   Int               @default(0)
+  isActive    Boolean           @default(true)
+  parentCode  String?
+  level       Int               @default(1)
+  path        String?
+  createdBy   String
+  updatedBy   String
+  version     Int               @default(1)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  parent      ProductCategory?  @relation("ProductCategoryHierarchy", fields: [parentCode], references: [code])
+  children    ProductCategory[] @relation("ProductCategoryHierarchy")
+  products    Product[]
+
+  @@index([parentCode])
+  @@index([level])
+  @@index([sortOrder])
+  @@index([isActive])
+  @@index([code])
+  @@map("product_categories")
+}
+
+model Unit {
+  id                      String                   @id @default(cuid())
+  name                    String                   @unique
+  symbol                  String
+  category                String
+  baseUnitId              String?
+  conversionRate          Float?
+  precision               Int                      @default(2)
+  isActive                Boolean                  @default(true)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  productAlternativeUnits ProductAlternativeUnit[]
+  bomItemUnits            ProductBomItem[]         @relation("BomItemUnit")
+  bomBaseUnits            ProductBom[]             @relation("BomBaseUnit")
+  products                Product[]                @relation("ProductUnit")
+  baseUnit                Unit?                    @relation("UnitConversion", fields: [baseUnitId], references: [id])
+  derivedUnits            Unit[]                   @relation("UnitConversion")
+  productStocks           ProductStock[]
+  salesOrderItems         SalesOrderItem[]         @relation("SalesOrderItemUnit")
+
+  @@index([name])
+  @@index([symbol])
+  @@index([category])
+  @@map("units")
+}
+
+model Warehouse {
+  id        String         @id @default(cuid())
+  code      String         @unique
+  name      String
+  type      String
+  address   String?
+  managerId String?
+  isActive  Boolean        @default(true)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  products  Product[]      @relation("ProductWarehouse")
+  stocks    ProductStock[]
+  salesOrderItems SalesOrderItem[] @relation("SalesOrderItemWarehouse")
+
+  @@index([code])
+  @@index([name])
+  @@index([type])
+  @@map("warehouses")
+}
+
+model Product {
+  id                 String                   @id @default(cuid())
+  code               String                   @unique
+  name               String
+  type               String
+  categoryId         String?
+  specification      String?
+  unitId             String
+  model              String?
+  barcode            String?
+  qrCode             String?
+  acquisitionMethod  String?
+  defaultWarehouseId String?
+  standardCost       Float?
+  averageCost        Float?
+  latestCost         Float?
+  safetyStock        Float?
+  safetyStockMin     Float?
+  safetyStockMax     Float?
+  minStock           Float?
+  maxStock           Float?
+  reorderPoint       Float?
+  status             String                   @default("draft")
+  isActive           Boolean                  @default(true)
+  description        String?
+  remark             String?
+  createdBy          String
+  updatedBy          String
+  version            Int                      @default(1)
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  alternativeUnits   ProductAlternativeUnit[]
+  bomItems           ProductBomItem[]         @relation("BomItemMaterial")
+  boms               ProductBom[]             @relation("ProductBom")
+  documents          ProductDocument[]
+  images             ProductImage[]
+  specifications     ProductSpecification[]
+  stocks             ProductStock[]
+  salesOrderItems    SalesOrderItem[]         @relation("SalesOrderItemProduct")
+  category           ProductCategory?         @relation(fields: [categoryId], references: [id])
+  unit               Unit                     @relation("ProductUnit", fields: [unitId], references: [id])
+  defaultWarehouse   Warehouse?               @relation("ProductWarehouse", fields: [defaultWarehouseId], references: [id])
+
+  @@index([code])
+  @@index([name])
+  @@index([type])
+  @@index([categoryId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("products")
+}
+
+model ProductSpecification {
+  id        String   @id @default(cuid())
+  productId String
+  name      String
+  value     String
+  unit      String?
+  type      String
+  options   String?
+  required  Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([name])
+  @@index([sortOrder])
+  @@map("product_specifications")
+}
+
+model ProductAlternativeUnit {
+  id             String   @id @default(cuid())
+  productId      String
+  unitId         String
+  conversionRate Float
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  unit           Unit     @relation(fields: [unitId], references: [id])
+
+  @@unique([productId, unitId])
+  @@index([productId])
+  @@index([unitId])
+  @@map("product_alternative_units")
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  url       String
+  altText   String?
+  sortOrder Int      @default(0)
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([sortOrder])
+  @@map("product_images")
+}
+
+model ProductDocument {
+  id        String   @id @default(cuid())
+  productId String
+  name      String
+  url       String
+  type      String?
+  size      Int?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([type])
+  @@index([sortOrder])
+  @@map("product_documents")
+}
+
+/// 产品库存
+model ProductStock {
+  id               String     @id @default(cuid())
+  productId        String
+  warehouseId      String?
+  unitId           String?
+  quantity         Float      @default(0)
+  reservedQuantity Float      @default(0)
+  updatedAt        DateTime   @updatedAt
+  createdAt        DateTime   @default(now())
+  product          Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouse        Warehouse? @relation(fields: [warehouseId], references: [id])
+  unit             Unit?      @relation(fields: [unitId], references: [id])
+
+  @@unique([productId])
+  @@index([productId])
+  @@index([warehouseId])
+  @@map("product_stocks")
+}
+
+model ProductBom {
+  id            String           @id @default(cuid())
+  code          String           @unique
+  name          String
+  productId     String
+  type          String
+  version       String
+  status        String           @default("draft")
+  isDefault     Boolean          @default(false)
+  baseQuantity  Float            @default(1)
+  baseUnitId    String
+  routingId     String?
+  effectiveDate DateTime
+  expiryDate    DateTime?
+  description   String?
+  remark        String?
+  approvedBy    String?
+  approvedAt    DateTime?
+  createdBy     String
+  updatedBy     String
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime
+  childBomItems ProductBomItem[] @relation("BomItemChildBom")
+  items         ProductBomItem[]
+  approver      User?            @relation("ProductBomApprover", fields: [approvedBy], references: [id])
+  updator       User             @relation("ProductBomUpdator", fields: [updatedBy], references: [id])
+  creator       User             @relation("ProductBomCreator", fields: [createdBy], references: [id])
+  routing       Routing?         @relation("BomRouting", fields: [routingId], references: [id])
+  baseUnit      Unit             @relation("BomBaseUnit", fields: [baseUnitId], references: [id])
+  product       Product          @relation("ProductBom", fields: [productId], references: [id])
+
+  @@index([productId])
+  @@index([type])
+  @@index([status])
+  @@index([effectiveDate])
+  @@index([createdBy])
+  @@index([createdAt])
+  @@index([routingId])
+  @@map("product_boms")
+}
+
+model ProductBomItem {
+  id                String      @id @default(cuid())
+  bomId             String
+  materialId        String
+  quantity          Float
+  unitId            String
+  childBomId        String?
+  sequence          Int         @default(10)
+  requirementType   String      @default("fixed")
+  isKey             Boolean     @default(false)
+  isPhantom         Boolean     @default(false)
+  substitutionRatio Float       @default(1)
+  priority          Int         @default(0)
+  isPreferred       Boolean     @default(false)
+  processInfo       String?
+  effectiveDate     DateTime?
+  expiryDate        DateTime?
+  unitCost          Float?
+  totalCost         Float?
+  remark            String?
+  createdBy         String
+  updatedBy         String
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  updator           User        @relation("ProductBomItemUpdator", fields: [updatedBy], references: [id])
+  creator           User        @relation("ProductBomItemCreator", fields: [createdBy], references: [id])
+  childBom          ProductBom? @relation("BomItemChildBom", fields: [childBomId], references: [id])
+  unit              Unit        @relation("BomItemUnit", fields: [unitId], references: [id])
+  material          Product     @relation("BomItemMaterial", fields: [materialId], references: [id])
+  bom               ProductBom  @relation(fields: [bomId], references: [id], onDelete: Cascade)
+
+  @@index([bomId])
+  @@index([materialId])
+  @@index([childBomId])
+  @@index([sequence])
+  @@index([createdBy])
+  @@index([createdAt])
+  @@map("product_bom_items")
+}
+
+model Routing {
+  id          String              @id @default(cuid())
+  name        String
+  code        String              @unique
+  active      Boolean             @default(true)
+  description String?
+  companyId   String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime
+  createdBy   String
+  updatedBy   String
+  boms        ProductBom[]        @relation("BomRouting")
+  operations  RoutingWorkcenter[] @relation("RoutingOperations")
+  updator     User                @relation("RoutingUpdator", fields: [updatedBy], references: [id])
+  creator     User                @relation("RoutingCreator", fields: [createdBy], references: [id])
+
+  @@index([code])
+  @@index([createdAt])
+  @@map("routings")
+}
+
+model RoutingWorkcenter {
+  id              String      @id @default(cuid())
+  routingId       String? // 工艺路线ID（可选）
+  workcenterId    String? // 工作中心ID（可选）
+  operationId     String // 工序ID（必需）
+  name            String // 工序名称
+  sequence        Int         @default(10) // 序号
+  timeMode        String      @default("manual") // 时间模式
+  timeCycleManual Float       @default(0) // 手动周期时间
+  batch           Boolean     @default(false) // 是否批量
+  batchSize       Float       @default(1) // 批量大小
+  worksheetType   String? // 工单类型
+  worksheetLink   String? // 工单链接
+  description     String? // 描述
+  workcenter      Workcenter? @relation(fields: [workcenterId], references: [id]) // 关联工作中心（可选）
+  routing         Routing?    @relation("RoutingOperations", fields: [routingId], references: [id], onDelete: Cascade) // 关联工艺路线（可选）
+  operation       Operation   @relation(fields: [operationId], references: [id]) // 关联工序（必需）
+
+  @@index([routingId])
+  @@index([workcenterId])
+  @@index([operationId])
+  @@index([sequence])
+  @@map("routing_workcenters")
+}
+
+model Workcenter {
+  id          String  @id @default(cuid())
+  code        String  @unique // 工作中心编码
+  name        String // 工作中心名称
+  type        String? // 类型：TEAM(车间)/EQUIPMENT(设备)/PRODUCTION_LINE(生产线)
+  active      Boolean @default(true) // 启用状态
+  description String? // 描述
+  companyId   String? // 公司ID
+
+  // 通用资源字段
+  capacity          Int   @default(1) // 产能
+  timeEfficiency    Float @default(100) // 时间效率
+  oeeTarget         Float @default(90) // OEE目标
+  timeStart         Float @default(0) // 开始时间
+  timeStop          Float @default(0) // 停止时间
+  costsHour         Float @default(0) // 每小时成本
+  costsHourEmployee Float @default(0) // 每小时员工成本
+
+  // 车间特有字段
+  teamSize      Int? // 车间人数
+  skillLevel    String? // 技能等级
+  shiftPattern  String? // 班次模式
+  teamMembers   String? // 车间成员列表(JSON)
+  shiftSchedule String? // 排班信息(JSON)
+  managerId     String? // 车间长ID
+
+  // 设备特有字段
+  equipmentId      String? // 关联设备ID
+  maintenanceCycle Int? // 维护周期(小时)
+
+  // 层级关系字段
+  parentId String? // 父级工作中心ID
+
+  // 时间戳字段
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String
+  updatedBy String
+
+  // 关联关系
+  manager    User?               @relation("WorkcenterManager", fields: [managerId], references: [id], onDelete: SetNull) // 关联车间长
+  parent     Workcenter?         @relation("WorkcenterHierarchy", fields: [parentId], references: [id])
+  children   Workcenter[]        @relation("WorkcenterHierarchy")
+  operations RoutingWorkcenter[] // 关联的工艺路线作业
+  updator    User                @relation("WorkcenterUpdator", fields: [updatedBy], references: [id])
+  creator    User                @relation("WorkcenterCreator", fields: [createdBy], references: [id])
+
+  @@index([code])
+  @@index([type])
+  @@index([createdAt])
+  @@map("workcenters")
+}
+
+model Operation {
+  id           String   @id @default(cuid())
+  name         String   @unique // 工序名称
+  code         String   @unique // 工序编码
+  description  String? // 描述
+  standardTime Float    @default(0) // 标准工时
+  wageRate     Float    @default(0) // 工价费率
+  costPerHour  Float    @default(0) // 每小时成本
+  unit         String? // 工价单位
+  isActive     Boolean  @default(true) // 是否激活
+  createdAt    DateTime @default(now()) // 创建时间
+  updatedAt    DateTime @updatedAt // 更新时间
+  createdBy    String // 创建人
+  updatedBy    String // 更新人
+
+  // 关联关系
+  creator User @relation("OperationCreator", fields: [createdBy], references: [id])
+  updator User @relation("OperationUpdator", fields: [updatedBy], references: [id])
+
+  // 反向关联
+  routingWorkcenters RoutingWorkcenter[] // 在工艺路线中使用的工序记录
+
+  @@index([code])
+  @@index([createdAt])
+  @@map("operations")
+}
+
+/// 销售订单
+model SalesOrder {
+  id          String          @id @default(cuid())
+  orderNo     String          @unique
+  customerName String?
+  status      String          @default("draft") // draft/confirmed/shipped/completed/canceled
+  orderDate   DateTime        @default(now())
+  totalAmount Float           @default(0)
+  currency    String          @default("CNY")
+  remark      String?
+  createdBy   String
+  updatedBy   String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  items       SalesOrderItem[]
+
+  @@index([status])
+  @@index([orderDate])
+  @@map("sales_orders")
+}
+
+/// 销售订单明细
+model SalesOrderItem {
+  id          String     @id @default(cuid())
+  orderId     String
+  productId   String
+  unitId      String?
+  warehouseId String?
+  quantity    Float      @default(1)
+  price       Float      @default(0)
+  amount      Float      @default(0)
+  remark      String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  order       SalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product    @relation("SalesOrderItemProduct", fields: [productId], references: [id])
+  unit        Unit?      @relation("SalesOrderItemUnit", fields: [unitId], references: [id])
+  warehouse   Warehouse? @relation("SalesOrderItemWarehouse", fields: [warehouseId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("sales_order_items")
+}

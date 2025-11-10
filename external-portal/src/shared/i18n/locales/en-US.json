@@ -1,0 +1,155 @@
+{
+  "common": {
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "reset": "Reset",
+    "submit": "Submit",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "loading": "Loading...",
+    "noData": "No Data",
+    "operation": "Operation",
+    "status": "Status",
+    "createTime": "Create Time",
+    "updateTime": "Update Time",
+    "total": "Total {{count}} records",
+    "settings": "Settings",
+    "to": "to",
+    "close": "Close"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "username": "Username",
+    "password": "Password",
+    "rememberMe": "Remember Me",
+    "forgotPassword": "Forgot Password",
+    "loginSuccess": "Login Successful",
+    "logoutSuccess": "Logout Successful",
+    "loginFailed": "Login Failed",
+    "invalidCredentials": "Invalid username or password",
+    "welcome": "ZYERP"
+  },
+  "menu": {
+    "dashboard": "Dashboard",
+    "purchaseOrders": "Purchase Orders",
+    "statements": "Statements",
+    "inventory": "Inventory",
+    "orderQuery": "Order Query",
+    "profile": "Profile",
+    "finance": "Finance",
+    "permissions": "Permissions"
+  },
+  "purchaseOrders": {
+    "title": "Purchase Order Management",
+    "orderNo": "Order No.",
+    "orderDate": "Order Date",
+    "supplier": "Supplier",
+    "totalAmount": "Total Amount",
+    "status": "Status",
+    "description": "Description",
+    "pending": "Pending",
+    "processing": "Processing",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
+  },
+  "statements": {
+    "title": "Supplier Statements",
+    "description": "View and download your statement information",
+    "status": {
+      "pending": "Pending",
+      "partial": "Partial Payment",
+      "paid": "Paid"
+    },
+    "downloadSuccess": "Downloading statement {{statementNo}}",
+    "table": {
+      "statementNo": "Statement No.",
+      "period": "Period",
+      "dateRange": "Date Range",
+      "orderCount": "Order Count",
+      "orders": "orders",
+      "totalAmount": "Total Amount",
+      "paidAmount": "Paid Amount",
+      "unpaidAmount": "Unpaid Amount",
+      "status": "Status",
+      "dueDate": "Due Date",
+      "actions": "Actions"
+    },
+    "actions": {
+      "viewDetail": "View Details",
+      "download": "Download Statement"
+    },
+    "stats": {
+      "totalCount": "Total Statements",
+      "countSuffix": "items",
+      "totalAmount": "Total Amount",
+      "paidAmount": "Paid Amount",
+      "unpaidAmount": "Unpaid Amount"
+    },
+    "filter": {
+      "title": "Filter Conditions",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "clear": "Clear Filter"
+    },
+    "pagination": {
+      "total": "Total {{total}} records"
+    },
+    "modal": {
+      "title": "Statement Details - {{statementNo}}",
+      "period": "Period",
+      "status": "Status",
+      "totalAmount": "Total Amount",
+      "dueDate": "Due Date",
+      "orderDetails": "Order Details"
+    },
+    "orderDetail": {
+      "orderNo": "Order No.",
+      "orderDate": "Order Date",
+      "description": "Description",
+      "amount": "Amount",
+      "status": "Status"
+    }
+  },
+  "inventory": {
+    "title": "Inventory Query",
+    "productName": "Product Name",
+    "sku": "SKU",
+    "category": "Category",
+    "stock": "Stock",
+    "unit": "Unit",
+    "location": "Location"
+  },
+  "orders": {
+    "title": "Order Query",
+    "orderNo": "Order No.",
+    "orderDate": "Order Date",
+    "customer": "Customer",
+    "amount": "Amount",
+    "status": "Status"
+  },
+  "profile": {
+    "title": "Profile",
+    "basicInfo": "Basic Information",
+    "contactInfo": "Contact Information",
+    "companyInfo": "Company Information"
+  },
+  "permissions": {
+    "title": "Permissions Demo",
+    "currentUser": "Current User Info",
+    "userPermissions": "User Permissions",
+    "systemPermissions": "System Permissions",
+    "testAccounts": "Test Accounts"
+  },
+  "language": {
+    "switch": "Switch Language",
+    "chinese": "中文",
+    "english": "English"
+  }
+}
