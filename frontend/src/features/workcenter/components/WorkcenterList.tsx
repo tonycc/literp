@@ -5,7 +5,8 @@ import { Button, Space, Tag, Popconfirm } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { WorkcenterInfo } from '@zyerp/shared';
 import { workcenterService } from '../services/workcenter.service';
-import { useMessage } from '../../../shared/hooks';
+import { useMessage } from '@/shared/hooks';
+import { normalizeTableParams } from '@/shared/utils/normalizeTableParams';
 
 interface WorkcenterListProps {
   // 使用 ReturnType<typeof useRef<...>> 规避 React 19 中 MutableRefObject 的弃用提示
@@ -181,11 +182,14 @@ const WorkcenterList: React.FC<WorkcenterListProps> = ({ actionRef, onEdit, onAd
   const fetchData: ProTableProps<WorkcenterInfo, WorkcenterTableParams>['request'] = async (params, sort) => {
     try {
       const sortEntries = Object.entries(sort || {});
-      const [sortBy, sortOrderRaw] = sortEntries.length ? sortEntries[0] : [undefined, undefined];
-      const sortOrder = sortOrderRaw === 'ascend' ? 'asc' : sortOrderRaw === 'descend' ? 'desc' : undefined;
+      const [sortByFromArg, sortOrderRaw] = sortEntries.length ? sortEntries[0] : [undefined, undefined];
+      const sortOrderFromArg = sortOrderRaw === 'ascend' ? 'asc' : sortOrderRaw === 'descend' ? 'desc' : undefined;
+      const base = normalizeTableParams(params);
+      const sortBy = sortByFromArg || base.sortField;
+      const sortOrder = (sortOrderFromArg || base.sortOrder) as ('asc' | 'desc' | undefined);
       const response = await workcenterService.getList({
-        page: params.current,
-        pageSize: params.pageSize,
+        page: base.page,
+        pageSize: base.pageSize,
         keyword: params.keyword as string,
         active: params.active !== undefined ? params.active === 'true' : undefined,
         type: type || params.type as string,

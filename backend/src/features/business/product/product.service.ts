@@ -1,12 +1,11 @@
 /**
  * 产品服务
- */
+ *///
 
 import { 
   ProductInfo, 
   ProductFormData,
   ProductQueryParams,
-  ProductListResponse,
   ProductSpecification,
   SpecificationType,
   ProductImage,
@@ -14,18 +13,21 @@ import {
 } from '@zyerp/shared';
 import { AppError } from '../../../shared/middleware/error';
 import { BaseService } from '../../../shared/services/base.service';
+import type { Express } from 'express';
 
 export class ProductService extends BaseService {
   /**
    * 创建产品
    */
   async createProduct(data: ProductFormData, createdBy: string): Promise<ProductInfo> {
-    const { 
-      name, 
-      code, 
-      description, 
-      categoryId, 
-      unitId, 
+    const productData = { ...data };
+
+    const {
+      name,
+      code,
+      description,
+      categoryId,
+      unitId,
       defaultWarehouseId,
       type,
       status,
@@ -48,7 +50,7 @@ export class ProductService extends BaseService {
       images,
       documents,
       alternativeUnits
-    } = data;
+    } = productData;
   
     // 验证产品编码唯一性
     if (code) {
@@ -85,13 +87,9 @@ export class ProductService extends BaseService {
         standardCost,
         averageCost,
         latestCost,
-        safetyStock,
-        safetyStockMin,
-        safetyStockMax,
-        minStock,
-        maxStock,
-        reorderPoint,
         remark,
+        
+        
         createdBy,
         updatedBy: createdBy,
         // 创建规格参数
@@ -100,7 +98,7 @@ export class ProductService extends BaseService {
             name: spec.name,
             value: spec.value,
             unit: spec.unit,
-            type: 'text', // 默认为文本类型
+            type: spec.type, // 使用传入的类型
             sortOrder: spec.sortOrder || 0
           }))
         } : undefined,
@@ -143,10 +141,67 @@ export class ProductService extends BaseService {
           include: {
             unit: true
           }
-        }
+        },
+        productVariants: true
       }
     });
-   
+    const genRaw = (data as any)?.variantGenerateAttributes
+    let hasVariantAttrs = false
+    if (Array.isArray(genRaw)) {
+      for (const item of genRaw) {
+        const vals = Array.isArray(item?.values) ? item.values : []
+        if (vals.length > 0) { hasVariantAttrs = true; break }
+      }
+    } else if (genRaw && typeof genRaw === 'object') {
+      const entries = Object.entries(genRaw)
+      for (const [, v] of entries) {
+        const vals = Array.isArray(v) ? v : []
+        if (vals.length > 0) { hasVariantAttrs = true; break }
+      }
+    }
+    const autoCreate = String(process.env.AUTO_CREATE_FIRST_VARIANT || 'true') === 'true' && !hasVariantAttrs
+    if (autoCreate) {
+      const baseCode = `${product.code}-BASE`
+      await this.prisma.productVariant.upsert({
+        where: { code: baseCode },
+        update: {},
+        create: { productId: product.id, code: baseCode, name: `${product.name} - BASE`, variantHash: 'BASE', isActive: true },
+      })
+    }
+
+    const attributeLines = (data as any)?.attributeLines as Array<{ attributeName: string; values: string[] }> | undefined
+    if (Array.isArray(attributeLines) && attributeLines.length > 0) {
+      for (const item of attributeLines) {
+        const codeStr = String(item.attributeName || '').trim().toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '')
+        let attribute = await this.prisma.attribute.findUnique({ where: { code: codeStr } })
+        if (!attribute) {
+          attribute = await this.prisma.attribute.create({ data: { name: item.attributeName, code: codeStr } })
+        }
+        let line = await this.prisma.productAttributeLine.findUnique({ where: { productId_attributeId: { productId: product.id, attributeId: attribute.id } } })
+        if (!line) {
+          line = await this.prisma.productAttributeLine.create({ data: { productId: product.id, attributeId: attribute.id } })
+        }
+        const existing = await this.prisma.productAttributeLineValue.findMany({ where: { lineId: line.id } })
+        const existingIds = new Set(existing.map(e => e.attributeValueId))
+        const targetIds: string[] = []
+        for (const v of item.values || []) {
+          let val = await this.prisma.attributeValue.findFirst({ where: { attributeId: attribute.id, name: v } })
+          if (!val) {
+            val = await this.prisma.attributeValue.create({ data: { attributeId: attribute.id, name: v } })
+          }
+          targetIds.push(val.id)
+          if (!existingIds.has(val.id)) {
+            await this.prisma.productAttributeLineValue.create({ data: { lineId: line.id, attributeValueId: val.id } })
+          }
+        }
+        for (const e of existing) {
+          if (!targetIds.includes(e.attributeValueId)) {
+            await this.prisma.productAttributeLineValue.delete({ where: { id: e.id } })
+          }
+        }
+      }
+    }
+
     const formattedProduct = this.formatProduct(product);
     return formattedProduct;
   }
@@ -154,99 +209,77 @@ export class ProductService extends BaseService {
   /**
    * 获取产品列表
    */
-  async getProducts(params: ProductQueryParams): Promise<ProductListResponse> {
-    const { page, pageSize, keyword, name, type, categoryId, status, defaultWarehouseId } = params;
-    const { skip, take } = this.getPaginationConfig(page, pageSize);
-
-    // 构建查询条件
-    const where: any = {};
-
-    if (keyword) {
-      where.OR = [
-        { name: { contains: keyword } },
-        { code: { contains: keyword } },
-        { description: { contains: keyword } }
-      ];
-    }
-
-    // 产品名称筛选
-    if (name) {
-      where.name = { contains: name };
-    }
-
-    // 产品类型筛选
-    if (type) {
-      where.type = type;
-    }
-
-    if (categoryId) {
-      // categoryId 实际上是 category code，需要转换为实际的 ID
-      const category = await this.prisma.productCategory.findUnique({
-        where: { code: categoryId }
-      });
+  async getProducts(params: ProductQueryParams): Promise<{
+    data: ProductInfo[];
+    pagination: {
+      page: number;
+      pageSize: number;
+      total: number;
+      totalPages: number;
+    };
+  }> {
+    const {
+      page,
+      pageSize,
+      sortField,
+      sortOrder,
+      code,
+      name,
+      type,
+      status,
+      isActive,
       
-      if (category) {
-        where.categoryId = category.id;
-      } else {
-        // 如果找不到对应的类目，设置一个不存在的ID，确保查询结果为空
-        where.categoryId = 'non-existent-category-id';
-      }
-    }
+    } = params;
 
-    if (status) {
-      where.status = status;
-    }
+    const { skip, take, page: currentPage, pageSize: currentPageSize } = this.getPaginationConfig(page, pageSize);
 
-    if (defaultWarehouseId) {
-      where.defaultWarehouseId = defaultWarehouseId;
-    }
-
-    // 构建排序条件
-    const orderBy: any = {
-      createdAt: 'desc'
+    const where: any = {
+      ...(code && { code: { contains: code, mode: 'insensitive' } }),
+      ...(name && { name: { contains: name, mode: 'insensitive' } }),
+      ...(type && { type }),
+      ...(status && { status }),
+      ...(isActive !== undefined && { isActive }),
+      
     };
 
-    // 查询数据
-    const [products, total] = await Promise.all([
+    const orderBy = this.getOrderBy(sortField, sortOrder);
+
+    const [products, total] = await this.prisma.$transaction([
       this.prisma.product.findMany({
         where,
-        skip,
-        take,
-        orderBy,
         include: {
           category: true,
           unit: true,
           defaultWarehouse: true,
-          specifications: true,
-          images: true,
-          documents: true,
-          alternativeUnits: {
-            include: {
-              unit: true
-            }
-          }
-        }
+          
+        },
+        skip,
+        take,
+        orderBy,
       }),
-      this.prisma.product.count({ where })
+      this.prisma.product.count({ where }),
     ]);
+    const ids = products.map(p => p.id)
+    const variantCounts = await this.prisma.productVariant.groupBy({
+      by: ['productId'],
+      where: { productId: { in: ids } },
+      _count: { productId: true },
+    })
+    const countMap = new Map<string, number>(variantCounts.map(v => [v.productId, v._count.productId]))
+    const formattedProducts = products.map(this.formatProduct).map(p => ({ ...p, variantCount: countMap.get(p.id) || 0 }))
+    return this.buildPaginatedResponse(formattedProducts, total, currentPage, currentPageSize);
+  }
 
-    const formattedProducts = products.map(product => this.formatProduct(product));
+  /**
+   * 获取排序参数
+   */
+  private getOrderBy(sortField?: string, sortOrder?: 'asc' | 'desc' | 'ascend' | 'descend'): any {
+    if (!sortField || !sortOrder) {
+      return { createdAt: 'desc' };
+    }
 
-    // 使用getPaginationConfig返回的正确页码和页面大小
-    const { page: currentPage, pageSize: currentPageSize } = this.getPaginationConfig(page, pageSize);
-    const paginationResult = this.buildPaginatedResponse(
-      formattedProducts,
-      total,
-      currentPage,
-      currentPageSize
-    );
-    return {
-      success: true,
-      data: paginationResult.data,
-      pagination: paginationResult.pagination,
-      message: 'Products retrieved successfully',
-      timestamp: new Date()
-    };
+    const order = sortOrder === 'ascend' ? 'asc' : sortOrder === 'descend' ? 'desc' : sortOrder;
+    return { [sortField]: order };
   }
 
   /**
@@ -260,17 +293,18 @@ export class ProductService extends BaseService {
         unit: true,
         defaultWarehouse: true,
         specifications: true,
+        alternativeUnits: { include: { unit: true } },
         images: true,
         documents: true,
-        alternativeUnits: {
-          include: {
-            unit: true
-          }
-        }
-      }
+        productVariants: true,
+      },
     });
 
-    return product ? this.formatProduct(product) : null;
+    if (!product) {
+      return null;
+    }
+
+    return this.formatProduct(product);
   }
 
   /**
@@ -320,14 +354,25 @@ export class ProductService extends BaseService {
       }
     }
 
-    // 验证关联数据
+    // 验证并规范化关联外键为实际ID
+    let normalizedCategoryId: string | undefined
+    let normalizedUnitId: string | undefined
+    let normalizedWarehouseId: string | undefined
     if (data.categoryId || data.unitId || data.defaultWarehouseId) {
-      await this.validateRelatedData(data.categoryId, data.unitId, data.defaultWarehouseId);
+      const ids = await this.validateRelatedData(data.categoryId, data.unitId, data.defaultWarehouseId)
+      normalizedCategoryId = ids.categoryId
+      normalizedUnitId = ids.unitId
+      normalizedWarehouseId = ids.warehouseId
     }
 
     // 更新产品基本信息
     const updateData: any = {
-      ...this.cleanUndefined(data),
+      ...this.cleanUndefined({
+        ...data,
+        ...(normalizedCategoryId ? { categoryId: normalizedCategoryId } : {}),
+        ...(normalizedUnitId ? { unitId: normalizedUnitId } : {}),
+        ...(normalizedWarehouseId ? { defaultWarehouseId: normalizedWarehouseId } : {}),
+      }),
       updatedBy,
       updatedAt: new Date()
     };
@@ -363,6 +408,8 @@ export class ProductService extends BaseService {
    * 删除产品
    */
   async deleteProduct(id: string, deletedBy?: string): Promise<void> {
+    // 显式标记参数使用以消除未使用变量诊断
+    void deletedBy;
     const product = await this.prisma.product.findUnique({
       where: { id }
     });
@@ -475,16 +522,17 @@ export class ProductService extends BaseService {
     const result: { categoryId?: string; unitId?: string; warehouseId?: string } = {};
     
     if (categoryId) {
-      const category = await this.prisma.productCategory.findUnique({
-        where: { code: categoryId }
-      });
+      let category = await this.prisma.productCategory.findUnique({ where: { id: categoryId } });
+      if (!category) {
+        category = await this.prisma.productCategory.findUnique({ where: { code: categoryId } });
+      }
       if (!category) {
         throw new AppError('Product category not found', 404, 'CATEGORY_NOT_FOUND');
       }
       if (!category.isActive) {
         throw new AppError('Product category is inactive', 400, 'CATEGORY_INACTIVE');
       }
-      result.categoryId = category.id; // 返回实际的ID而不是code
+      result.categoryId = category.id; // 返回实际的ID
     }
 
     // unitId 是必需的
@@ -803,6 +851,8 @@ export class ProductService extends BaseService {
    * 导入产品数据
    */
   async importProducts(file: Express.Multer.File): Promise<{ success: number; failed: number; errors: string[] }> {
+    // 显式标记参数使用以消除未使用变量诊断
+    void file;
     // 这里应该解析上传的文件（Excel 或 CSV）
     // 为了演示，返回一个模拟结果
     return {
@@ -909,6 +959,8 @@ export class ProductService extends BaseService {
       description: product.description,
       remark: product.remark,
       isActive: product.isActive,
+      
+      
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
       createdBy: product.createdBy,
@@ -952,6 +1004,22 @@ export class ProductService extends BaseService {
         updatedBy: product.category.updatedBy,
         version: product.category.version
       } : undefined,
+      variants: product.productVariants?.map((v: any) => ({
+        id: v.id,
+        code: v.code,
+        name: v.name,
+        type: product.type,
+        categoryId: product.categoryId,
+        unitId: product.unitId,
+        defaultWarehouseId: product.defaultWarehouseId,
+        status: product.status,
+        acquisitionMethod: product.acquisitionMethod,
+        isActive: v.isActive,
+        createdAt: v.createdAt,
+        updatedAt: v.updatedAt,
+        version: product.version,
+        parentId: product.id,
+      })),
       specifications: product.specifications?.map((spec: any) => ({
         id: spec.id,
         productId: spec.productId,
@@ -1005,6 +1073,397 @@ export class ProductService extends BaseService {
         createdAt: doc.createdAt,
         updatedAt: doc.updatedAt
       }))
+    };
+  }
+
+  // ==================== 产品变体管理方法 ====================
+  /**
+   * 获取产品选项（用于下拉选择）
+   */
+  async getProductOptions(params: { keyword?: string; categoryId?: string; activeOnly?: boolean }): Promise<Array<{ id: string; code: string; name: string; specification?: string; unit?: { name: string; symbol: string }; primaryImageUrl?: string }>> {
+    const where: any = {
+      ...(params.keyword ? { OR: [
+        { name: { contains: params.keyword, mode: 'insensitive' } },
+        { code: { contains: params.keyword, mode: 'insensitive' } },
+        { specification: { contains: params.keyword, mode: 'insensitive' } },
+      ] } : {}),
+      ...(params.categoryId ? { categoryId: params.categoryId } : {}),
+      ...(params.activeOnly !== undefined ? { isActive: params.activeOnly } : {}),
+    };
+    const rows = await this.prisma.product.findMany({
+      where,
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        specification: true,
+        unit: { select: { name: true, symbol: true } },
+        images: { where: { isPrimary: true }, select: { url: true }, take: 1 },
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 100,
+    });
+    return rows.map(r => ({
+      id: r.id,
+      code: r.code,
+      name: r.name,
+      specification: r.specification || undefined,
+      unit: r.unit ? { name: r.unit.name, symbol: r.unit.symbol } : undefined,
+      primaryImageUrl: r.images?.[0]?.url,
+    }));
+  }
+  
+
+  /**
+   * 获取产品的变体列表（兼容适配重命名）
+   */
+  async getProductVariants(productId: string, params?: {
+    page?: number;
+    pageSize?: number;
+    isActive?: boolean;
+  }): Promise<{ data: ProductInfo[]; total: number }> {
+    const { page = 1, pageSize = 20, isActive } = params || {};
+    const total = await this.prisma.productVariant.count({ where: { productId, ...(isActive !== undefined ? { isActive } : {}) } });
+    const items = await this.prisma.productVariant.findMany({ where: { productId, ...(isActive !== undefined ? { isActive } : {}) }, skip: (page - 1) * pageSize, take: pageSize, orderBy: { updatedAt: 'desc' } });
+    const baseProduct = await this.prisma.product.findUnique({ where: { id: productId } });
+    const data = items.map(v => ({
+      id: v.id,
+      code: v.code,
+      name: v.name,
+      type: baseProduct!.type,
+      categoryId: baseProduct!.categoryId,
+      unitId: baseProduct!.unitId,
+      defaultWarehouseId: baseProduct!.defaultWarehouseId || undefined,
+      status: baseProduct!.status,
+      acquisitionMethod: baseProduct!.acquisitionMethod,
+      isActive: v.isActive,
+      createdAt: v.createdAt,
+      updatedAt: v.updatedAt,
+      version: baseProduct!.version ?? 1,
+      parentId: baseProduct!.id,
+    } as ProductInfo))
+    return { data, total };
+  }
+
+  /**
+   * 批量创建变体
+   */
+  
+
+  /**
+   * 按产品创建批量变体（兼容适配重命名）
+   */
+  async createVariantsBatchByProduct(
+    productId: string,
+    variants: Array<{
+      name: string;
+      code: string;
+      variantAttributes: any[];
+      priceAdjustment?: any;
+      barcode?: string;
+    }>,
+  ): Promise<{ success: number; failed: number; variants: ProductInfo[] }> {
+    const base = await this.prisma.product.findUnique({ where: { id: productId } });
+    if (!base) {
+      throw new AppError('Product not found', 404, 'PRODUCT_NOT_FOUND');
+    }
+    const results = { success: 0, failed: 0, variants: [] as ProductInfo[] };
+    for (const variantData of variants) {
+      try {
+        const attrsNorm = (Array.isArray(variantData.variantAttributes) ? variantData.variantAttributes : [])
+          .map((a: any) => ({ name: String(a?.name || ''), value: String(a?.value || '') }))
+          .filter((a: any) => a.name && a.value)
+        const suffixName = attrsNorm.map((a: any) => a.value).join(' ')
+        const suffixCode = attrsNorm.map((a: any) => a.value).join('-')
+        const hash = attrsNorm
+          .slice()
+          .sort((a: any, b: any) => a.name.localeCompare(b.name))
+          .map((a: any) => `${a.name}=${a.value}`)
+          .join('|') || 'BASE'
+        const codeInput = String(variantData.code || '').trim()
+        const code = codeInput || `${base.code}-${suffixCode || 'BASE'}`.toUpperCase()
+        const nameInput = String(variantData.name || '').trim()
+        const name = nameInput || `${base.name} - ${suffixName || 'BASE'}`
+        const existByHash = await this.prisma.productVariant.findFirst({ where: { productId, variantHash: hash } })
+        if (existByHash) { results.failed++; continue }
+        const existByCode = await this.prisma.productVariant.findFirst({ where: { code } })
+        if (existByCode) { results.failed++; continue }
+        const variant = await this.prisma.productVariant.create({ data: { productId, code, name, variantHash: hash, isActive: true } })
+        for (const a of attrsNorm) {
+          const raw = a.name.trim()
+          let attrCode = raw.toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '')
+          if (!attrCode) attrCode = raw || 'ATTR'
+          let attr = await this.prisma.attribute.findFirst({ where: { OR: [ { code: attrCode }, { AND: [{ name: raw }, { NOT: { code: '' } }] } ] } })
+          if (!attr) {
+            // 兼容历史存在 code 为空但同名的记录
+            attr = await this.prisma.attribute.findFirst({ where: { name: raw } })
+          }
+          if (!attr) {
+            attr = await this.prisma.attribute.create({ data: { name: raw || '属性', code: attrCode } })
+          }
+          let val = await this.prisma.attributeValue.findFirst({ where: { attributeId: attr.id, name: a.value } })
+          if (!val) {
+            val = await this.prisma.attributeValue.create({ data: { attributeId: attr.id, name: a.value } })
+          }
+          await this.prisma.variantAttributeValue.upsert({
+            where: { variantId_attributeId: { variantId: variant.id, attributeId: attr.id } },
+            update: { attributeValueId: val.id },
+            create: { variantId: variant.id, attributeId: attr.id, attributeValueId: val.id },
+          })
+        }
+        results.variants.push({
+          id: variant.id,
+          code: variant.code,
+          name: variant.name,
+          type: base.type as any,
+          categoryId: base.categoryId as any,
+          unitId: base.unitId as any,
+          defaultWarehouseId: base.defaultWarehouseId || undefined,
+          status: base.status as any,
+          acquisitionMethod: base.acquisitionMethod as any,
+          isActive: variant.isActive,
+          createdAt: variant.createdAt,
+          updatedAt: variant.updatedAt,
+          version: base.version ?? 1,
+          parentId: base.id,
+        } as ProductInfo);
+        results.success++;
+      } catch (error) {
+        console.error('Error creating variant:', error);
+        results.failed++;
+      }
+    }
+    return results;
+  }
+
+  /**
+   * 预览变体组合
+   */
+  
+
+  /**
+   * 预览产品变体组合（兼容适配重命名）
+   */
+  async previewVariantCombinationsByProduct(
+    productId: string,
+    attributes: {
+      [name: string]: {
+        type: string;
+        values: string[];
+      };
+    }
+  ): Promise<{ combinations: any[]; total: number }> {
+    const base = await this.prisma.product.findUnique({ where: { id: productId } });
+    if (!base) {
+      throw new AppError('Product not found', 404, 'PRODUCT_NOT_FOUND');
+    }
+    const attributeNames = Object.keys(attributes);
+    const attributeValues = attributeNames.map(name => attributes[name].values);
+    const combinations = this.generateCombinations(attributeValues);
+    const results = combinations.map(combination => {
+      const variantAttributes = combination.map((value, index) => ({
+        name: attributeNames[index],
+        value: value,
+        type: attributes[attributeNames[index]].type
+      }));
+      const variantName = `${base.name} - ${variantAttributes.map(a => a.value).join(' ')}`;
+      const variantCode = `${base.code}-${variantAttributes.map(a => a.value.toUpperCase().replace(/\s+/g, '')).join('-')}`;
+      return { attributes: variantAttributes, name: variantName, code: variantCode, exists: false };
+    });
+    return { combinations: results, total: results.length };
+  }
+
+  /**
+   * 生成笛卡尔积组合
+   */
+  private generateCombinations(arrays: string[][]): string[][] {
+    if (arrays.length === 0) return [[]];
+    if (arrays.length === 1) return arrays[0].map(item => [item]);
+
+    const [first, ...rest] = arrays;
+    const restCombinations = this.generateCombinations(rest);
+
+    return first.flatMap(item =>
+      restCombinations.map(combination => [item, ...combination])
+    );
+  }
+
+  /**
+   * 批量更新产品状态
+   */
+  async batchUpdateStatus(
+    productIds: string[],
+    status: 'active' | 'inactive'
+  ): Promise<{ success: number; failed: number }> {
+    const results = {
+      success: 0,
+      failed: 0
+    };
+
+    for (const productId of productIds) {
+      try {
+        const product = await this.prisma.product.findUnique({
+          where: { id: productId }
+        });
+
+        if (!product) {
+          results.failed++;
+          continue;
+        }
+
+        await this.prisma.product.update({
+          where: { id: productId },
+          data: {
+            status,
+            updatedAt: new Date()
+          }
+        });
+
+        results.success++;
+      } catch (error) {
+        console.error(`Error updating product ${productId}:`, error);
+        results.failed++;
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * 批量删除产品
+   */
+  async batchDelete(productIds: string[]): Promise<{ success: number; failed: number }> {
+    const results = {
+      success: 0,
+      failed: 0
+    };
+
+    for (const productId of productIds) {
+      try {
+        const product = await this.prisma.product.findUnique({
+          where: { id: productId }
+        });
+
+        if (!product) {
+          results.failed++;
+          continue;
+        }
+
+        // 检查是否有关联变体
+        const variantsCount = await this.prisma.productVariant.count({ where: { productId } })
+        if (variantsCount > 0) {
+          console.warn(`Product ${productId} has variants, skipping deletion`);
+          results.failed++;
+          continue;
+        }
+
+        await this.prisma.product.delete({
+          where: { id: productId }
+        });
+
+        results.success++;
+      } catch (error) {
+        console.error(`Error deleting product ${productId}:`, error);
+        results.failed++;
+      }
+    }
+
+    return results;
+  }
+
+  async createProductWithVariants(
+    data: any,
+    createdBy: string
+  ): Promise<{ product: any; variants: any[] }> {
+    const product = await this.createProduct(data, createdBy);
+    const variantsCreated: any[] = [];
+    const gen = data?.variantGenerateAttributes;
+    if (gen && product?.id) {
+      let attributesMap: Record<string, string[]> | null = null;
+      if (Array.isArray(gen)) {
+        attributesMap = {};
+        for (const item of gen) {
+          const k = String(item?.attributeName || '').trim();
+          const vals = Array.isArray(item?.values) ? item.values.map((v: any) => String(v)) : [];
+          if (k && vals.length) attributesMap[k] = vals;
+        }
+      } else if (typeof gen === 'object' && gen) {
+        attributesMap = Object.fromEntries(Object.entries(gen).map(([k, v]) => [String(k), (Array.isArray(v) ? v : []).map((x) => String(x))]));
+      }
+      if (attributesMap && Object.keys(attributesMap).length > 0) {
+        const pv = new (require('../product-variants/product-variants.service').ProductVariantsService)();
+        const created = await pv.generateVariants(product.id, attributesMap, createdBy);
+        variantsCreated.push(...created);
+      }
+    }
+    const manual = Array.isArray(data?.variants) ? data.variants : [];
+    if (manual.length && product?.id) {
+      const result = await this.createVariantsBatchByProduct(product.id, manual as any);
+      variantsCreated.push(...(result?.variants || []));
+    }
+    return { product, variants: variantsCreated };
+  }
+
+  /**
+   * 格式化产品响应数据
+   */
+  private formatProductResponse(product: any): ProductInfo {
+    return this.formatProduct(product);
+  }
+
+  /**
+   * 清理未定义的属性
+   */
+  protected cleanUndefined(obj: any): any {
+    const cleaned: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        cleaned[key] = value;
+      }
+    }
+    return cleaned;
+  }
+
+  /**
+   * 获取分页配置
+   */
+  public getPaginationConfig(page?: number, pageSize?: number): { skip: number; take: number; page: number; pageSize: number } {
+    const currentPage = Math.max(1, Number(page) || 1);
+    const currentPageSize = Math.min(100, Math.max(1, Number(pageSize) || 20));
+    const skip = (currentPage - 1) * currentPageSize;
+
+    return {
+      skip,
+      take: currentPageSize,
+      page: currentPage,
+      pageSize: currentPageSize
+    };
+  }
+
+  /**
+   * 构建分页响应
+   */
+  public buildPaginatedResponse<T>(data: T[], total: number, page: number, pageSize: number): {
+    data: T[];
+    pagination: {
+      page: number;
+      pageSize: number;
+      total: number;
+      totalPages: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+    };
+  } {
+    return {
+      data,
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+        hasNext: page * pageSize < total,
+        hasPrev: page > 1
+      }
     };
   }
 }

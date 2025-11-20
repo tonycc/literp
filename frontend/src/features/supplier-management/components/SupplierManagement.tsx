@@ -1,16 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Button,
-  Space,
-  Tag,
-  Rate,
-  Tooltip,
-  Modal,
-  Row,
-  Col
-} from 'antd';
+import React, { useState, useRef } from 'react';
+import { Button, Space, Tag, Tooltip, Row, Col, Modal } from 'antd';
 import { ProTable } from '@ant-design/pro-components';
-import type { ProColumns } from '@ant-design/pro-components';
+import type { ProColumns, ActionType } from '@ant-design/pro-components';
 import {
   PlusOutlined,
   EditOutlined,
@@ -19,161 +10,55 @@ import {
   ImportOutlined,
   EyeOutlined
 } from '@ant-design/icons';
-import { useMessage } from '../../../shared/hooks/useMessage';
-import type {
-  Supplier,
-  SupplierQueryParams,
-  SupplierFormData
-} from '../types';
-import {
-  SupplierStatus,
-  SupplierType,
-  SupplierLevel
-} from '../types';
-import SupplierForm from './SupplierForm';
+import { useMessage } from '@/shared/hooks/useMessage';
+import { useModal } from '@/shared/hooks/useModal';
+import type { Supplier } from '@zyerp/shared';
+import { SupplierStatus, SupplierCategory } from '@zyerp/shared';
+import { SUPPLIER_STATUS_VALUE_ENUM_PRO, SUPPLIER_CATEGORY_VALUE_ENUM_PRO } from '@/shared/constants/supplier';
+import { supplierService } from '../services/supplier.service';
+import { useSupplier } from '../hooks/useSupplier';
+// 迁移到共享类型，移除本地类型与枚举
+import SupplierForm from './SupplierFormPro';
 
 const SupplierManagement: React.FC = () => {
   // 状态管理
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [loading, setLoading] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [queryParams, setQueryParams] = useState<SupplierQueryParams>({
-    page: 1,
-    pageSize: 10
-  });
   
   // 弹窗状态
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [viewingSupplier, setViewingSupplier] = useState<Supplier | null>(null);
   const [formModalVisible, setFormModalVisible] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const actionRef = useRef<ActionType | undefined>(undefined);
 
   // 使用 message hook
   const message = useMessage();
+  const modal = useModal();
+  const { handleCreate, handleUpdate, handleDelete } = useSupplier();
 
-  // 模拟数据
-  const mockSuppliers: Supplier[] = [
-    {
-      id: '1',
-      code: 'SUP001',
-      name: '深圳市科技有限公司',
-      shortName: '深圳科技',
-      type: SupplierType.MANUFACTURER,
-      level: SupplierLevel.A,
-      status: SupplierStatus.ACTIVE,
-      contactPerson: '张经理',
-      contactPhone: '13800138001',
-      contactEmail: 'zhang@example.com',
-      website: 'www.example.com',
-      address: '深圳市南山区科技园',
-      city: '深圳',
-      province: '广东',
-      country: '中国',
-      postalCode: '518000',
-      taxNumber: '91440300123456789X',
-      bankName: '中国银行',
-      bankAccount: '1234567890123456',
-      paymentTerms: '月结30天',
-      creditLimit: 1000000,
-      mainProducts: '电子元器件',
-      businessScope: '电子产品研发、生产、销售',
-      certifications: ['ISO9001', 'ISO14001'],
-      qualityRating: 4.5,
-      deliveryRating: 4.2,
-      serviceRating: 4.8,
-      overallRating: 4.5,
-      remark: '优质供应商',
-      createdAt: new Date('2024-01-01'),
-      updatedAt: new Date('2024-01-15'),
-      createdBy: 'admin',
-      updatedBy: 'admin'
-    },
-    {
-      id: '2',
-      code: 'SUP002',
-      name: '上海物流配送有限公司',
-      shortName: '上海物流',
-      type: SupplierType.SERVICE_PROVIDER,
-      level: SupplierLevel.B,
-      status: SupplierStatus.ACTIVE,
-      contactPerson: '李主管',
-      contactPhone: '13800138002',
-      contactEmail: 'li@logistics.com',
-      address: '上海市浦东新区物流园区',
-      city: '上海',
-      province: '上海',
-      country: '中国',
-      postalCode: '200000',
-      mainProducts: '物流配送服务',
-      businessScope: '货物运输、仓储、配送',
-      qualityRating: 4.0,
-      deliveryRating: 4.5,
-      serviceRating: 4.2,
-      overallRating: 4.2,
-      createdAt: new Date('2024-01-05'),
-      updatedAt: new Date('2024-01-20'),
-      createdBy: 'admin',
-      updatedBy: 'admin'
-    }
-  ];
-
-  // 初始化数据
-  useEffect(() => {
-    loadSuppliers();
-  }, [queryParams]);
-
-  const loadSuppliers = async () => {
-    setLoading(true);
-    try {
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // 直接设置模拟数据，ProTable会自动处理搜索和筛选
-      setSuppliers(mockSuppliers);
-    } catch {
-      message.error('加载供应商列表失败');
-    } finally {
-      setLoading(false);
-    }
-  };
+  
 
   // 状态渲染函数
   const renderStatus = (status: SupplierStatus) => {
     const statusConfig = {
       [SupplierStatus.ACTIVE]: { color: 'green', text: '启用' },
       [SupplierStatus.INACTIVE]: { color: 'gray', text: '停用' },
-      [SupplierStatus.SUSPENDED]: { color: 'orange', text: '暂停' },
-      [SupplierStatus.BLACKLISTED]: { color: 'red', text: '黑名单' }
+      
     };
     
     const config = statusConfig[status] || { color: 'default', text: '未知' };
     return <Tag color={config.color}>{config.text}</Tag>;
   };
 
-  // 供应商类型渲染函数
-  const renderType = (type: SupplierType) => {
-    const typeConfig = {
-      [SupplierType.MANUFACTURER]: { color: 'blue', text: '制造商' },
-      [SupplierType.DISTRIBUTOR]: { color: 'green', text: '分销商' },
-      [SupplierType.SERVICE_PROVIDER]: { color: 'orange', text: '服务商' },
-      [SupplierType.TRADING_COMPANY]: { color: 'purple', text: '贸易公司' }
-    };
-    
-    const config = typeConfig[type] || { color: 'default', text: '未知' };
-    return <Tag color={config.color}>{config.text}</Tag>;
-  };
-
-  // 供应商等级渲染函数
-  const renderLevel = (level: SupplierLevel) => {
-    const levelConfig = {
-      [SupplierLevel.A]: { color: 'gold', text: 'A级' },
-      [SupplierLevel.B]: { color: 'lime', text: 'B级' },
-      [SupplierLevel.C]: { color: 'orange', text: 'C级' },
-      [SupplierLevel.D]: { color: 'red', text: 'D级' }
-    };
-    
-    const config = levelConfig[level] || { color: 'default', text: '未知' };
-    return <Tag color={config.color}>{config.text}</Tag>;
+  const renderCategory = (category: SupplierCategory) => {
+    const map = {
+      [SupplierCategory.MANUFACTURER]: { color: 'blue', text: '制造商' },
+      [SupplierCategory.DISTRIBUTOR]: { color: 'green', text: '分销商' },
+      [SupplierCategory.SERVICE]: { color: 'orange', text: '服务商' },
+      [SupplierCategory.OTHER]: { color: 'purple', text: '其他' }
+    } as const;
+    const cfg = map[category] || { color: 'default', text: '未知' };
+    return <Tag color={cfg.color}>{cfg.text}</Tag>;
   };
 
   // 表格列定义
@@ -202,32 +87,13 @@ const SupplierManagement: React.FC = () => {
       )
     },
     {
-      title: '类型',
-      dataIndex: 'type',
-      key: 'type',
-      width: 100,
+      title: '分类',
+      dataIndex: 'category',
+      key: 'category',
+      width: 120,
       valueType: 'select',
-      valueEnum: {
-        [SupplierType.MANUFACTURER]: { text: '制造商', status: 'Default' },
-        [SupplierType.DISTRIBUTOR]: { text: '分销商', status: 'Success' },
-        [SupplierType.SERVICE_PROVIDER]: { text: '服务商', status: 'Warning' },
-        [SupplierType.TRADING_COMPANY]: { text: '贸易公司', status: 'Processing' }
-      },
-      render: (_, record: Supplier) => renderType(record.type)
-    },
-    {
-      title: '等级',
-      dataIndex: 'level',
-      key: 'level',
-      width: 80,
-      valueType: 'select',
-      valueEnum: {
-        [SupplierLevel.A]: { text: 'A级', status: 'Success' },
-        [SupplierLevel.B]: { text: 'B级', status: 'Default' },
-        [SupplierLevel.C]: { text: 'C级', status: 'Warning' },
-        [SupplierLevel.D]: { text: 'D级', status: 'Error' }
-      },
-      render: (_, record: Supplier) => renderLevel(record.level)
+      valueEnum: SUPPLIER_CATEGORY_VALUE_ENUM_PRO,
+      render: (_, record: Supplier) => renderCategory(record.category as SupplierCategory)
     },
     {
       title: '状态',
@@ -235,43 +101,31 @@ const SupplierManagement: React.FC = () => {
       key: 'status',
       width: 80,
       valueType: 'select',
-      valueEnum: {
-        [SupplierStatus.ACTIVE]: { text: '启用', status: 'Success' },
-        [SupplierStatus.INACTIVE]: { text: '停用', status: 'Default' },
-        [SupplierStatus.SUSPENDED]: { text: '暂停', status: 'Warning' },
-        [SupplierStatus.BLACKLISTED]: { text: '黑名单', status: 'Error' }
-      },
+      valueEnum: SUPPLIER_STATUS_VALUE_ENUM_PRO,
       render: (_, record: Supplier) => renderStatus(record.status)
     },
     {
       title: '联系人',
-      dataIndex: 'contactPerson',
+      dataIndex: 'contactName',
       key: 'contactPerson',
       width: 100,
       hideInSearch: true
     },
     {
       title: '联系电话',
-      dataIndex: 'contactPhone',
+      dataIndex: 'phone',
       key: 'contactPhone',
       width: 120,
       hideInSearch: true
     },
-    {
-      title: '所在城市',
-      dataIndex: 'city',
-      key: 'city',
-      width: 100,
-      hideInSearch: true
-    },
+    
     {
       title: '创建时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      width: 120,
-      valueType: 'dateRange',
+      width: 160,
       hideInSearch: true,
-      render: (_, record: Supplier) => record.createdAt.toLocaleDateString()
+      render: (_, record: Supplier) => new Date(record.createdAt).toLocaleString()
     },
     {
       title: '操作',
@@ -321,32 +175,18 @@ const SupplierManagement: React.FC = () => {
   };
 
   // 保存供应商
-  const handleSaveSupplier = async (formData: SupplierFormData) => {
+  const handleSaveSupplier = async (formData: CreateSupplierData) => {
     try {
       if (editingSupplier) {
         // 编辑模式
-        const updatedSupplier: Supplier = {
-          ...editingSupplier,
-          ...formData,
-          updatedAt: new Date()
-        };
-        setSuppliers(prev => prev.map(s => s.id === editingSupplier.id ? updatedSupplier : s));
-        message.success('供应商信息更新成功');
+        await handleUpdate(editingSupplier.id!, { id: editingSupplier.id!, ...formData })
       } else {
         // 新增模式
-        const newSupplier: Supplier = {
-          id: Date.now().toString(),
-          ...formData,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          createdBy: '当前用户',
-          updatedBy: '当前用户'
-        };
-        setSuppliers(prev => [newSupplier, ...prev]);
-        message.success('供应商添加成功');
+        await handleCreate(formData)
       }
       setFormModalVisible(false);
       setEditingSupplier(null);
+      actionRef.current?.reload?.();
     } catch {
       message.error('操作失败，请重试');
     }
@@ -360,7 +200,7 @@ const SupplierManagement: React.FC = () => {
 
   // 处理删除供应商
   const handleDeleteSupplier = async (supplierId: string) => {
-    Modal.confirm({
+    modal.confirm({
       title: '确认删除',
       content: '确定要删除这个供应商吗？删除后无法恢复。',
       okText: '确定',
@@ -368,10 +208,9 @@ const SupplierManagement: React.FC = () => {
       okType: 'danger',
       onOk: async () => {
         try {
-          // 模拟API调用
-          await new Promise(resolve => setTimeout(resolve, 500));
-          setSuppliers(prev => prev.filter(supplier => supplier.id !== supplierId));
+          await handleDelete(String(supplierId))
           message.success('删除成功');
+          actionRef.current?.reload?.();
         } catch {
           message.error('删除失败');
         }
@@ -382,17 +221,10 @@ const SupplierManagement: React.FC = () => {
   // 处理批量状态变更
   const handleBatchStatusChange = async (status: SupplierStatus) => {
     try {
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setSuppliers(prev => 
-        prev.map(supplier => 
-          selectedRowKeys.includes(supplier.id) 
-            ? { ...supplier, status }
-            : supplier
-        )
-      );
+      await Promise.all(selectedRowKeys.map((id) => supplierService.update(String(id), { id: String(id), status })))
       setSelectedRowKeys([]);
       message.success(`批量${status === SupplierStatus.ACTIVE ? '启用' : '停用'}成功`);
+      actionRef.current?.reload?.();
     } catch {
       message.error('操作失败');
     }
@@ -400,7 +232,7 @@ const SupplierManagement: React.FC = () => {
 
   // 处理批量删除
   const handleBatchDelete = async () => {
-    Modal.confirm({
+    modal.confirm({
       title: '确认批量删除',
       content: `确定要删除选中的 ${selectedRowKeys.length} 个供应商吗？删除后无法恢复。`,
       okText: '确定',
@@ -408,11 +240,10 @@ const SupplierManagement: React.FC = () => {
       okType: 'danger',
       onOk: async () => {
         try {
-          // 模拟API调用
-          await new Promise(resolve => setTimeout(resolve, 500));
-          setSuppliers(prev => prev.filter(supplier => !selectedRowKeys.includes(supplier.id)));
+          await Promise.all(selectedRowKeys.map((id) => supplierService.delete(String(id))))
           setSelectedRowKeys([]);
           message.success('批量删除成功');
+          actionRef.current?.reload?.();
         } catch {
           message.error('删除失败');
         }
@@ -443,21 +274,16 @@ const SupplierManagement: React.FC = () => {
       <ProTable<Supplier>
         headerTitle="供应商管理"
         columns={columns}
-        dataSource={suppliers}
+        actionRef={actionRef}
         rowKey="id"
-        loading={loading}
         rowSelection={rowSelection}
         scroll={{ x: 1500 }}
-        pagination={{
-          current: queryParams.page,
-          pageSize: queryParams.pageSize,
-          total: suppliers.length,
-          showSizeChanger: true,
-          showQuickJumper: true,
-          showTotal: (total, range) =>
-            `第 ${range[0]}-${range[1]} 条/共 ${total} 条`,
-          onChange: (page, pageSize) => {
-            setQueryParams(prev => ({ ...prev, page, pageSize }));
+        request={async (params) => {
+          const resp = await supplierService.getList(params)
+          return {
+            data: resp.data,
+            success: resp.success,
+            total: resp.total,
           }
         }}
         search={{
@@ -554,26 +380,18 @@ const SupplierManagement: React.FC = () => {
                 <p><strong>供应商编码：</strong>{viewingSupplier.code}</p>
                 <p><strong>供应商名称：</strong>{viewingSupplier.name}</p>
                 <p><strong>简称：</strong>{viewingSupplier.shortName || '-'}</p>
-                <p><strong>类型：</strong>{renderType(viewingSupplier.type)}</p>
-                <p><strong>等级：</strong>{renderLevel(viewingSupplier.level)}</p>
                 <p><strong>状态：</strong>{renderStatus(viewingSupplier.status)}</p>
+                <p><strong>分类：</strong>{renderCategory(viewingSupplier.category as SupplierCategory)}</p>
               </Col>
               <Col span={12}>
-                <p><strong>联系人：</strong>{viewingSupplier.contactPerson}</p>
-                <p><strong>联系电话：</strong>{viewingSupplier.contactPhone}</p>
-                <p><strong>邮箱：</strong>{viewingSupplier.contactEmail}</p>
-                <p><strong>网站：</strong>{viewingSupplier.website || '-'}</p>
-                <p><strong>地址：</strong>{viewingSupplier.address}</p>
-                <p><strong>城市：</strong>{viewingSupplier.city}</p>
+                <p><strong>联系人：</strong>{viewingSupplier.contactName || '-'}</p>
+                <p><strong>联系电话：</strong>{viewingSupplier.phone || '-'}</p>
+                <p><strong>邮箱：</strong>{viewingSupplier.email || '-'}</p>
+                <p><strong>地址：</strong>{viewingSupplier.address || '-'}</p>
+                <p><strong>注册资本：</strong>{viewingSupplier.registeredCapital ?? '-'}</p>
+                <p><strong>信用等级：</strong>{viewingSupplier.creditLevel ?? '-'}</p>
               </Col>
             </Row>
-            {viewingSupplier.overallRating && (
-              <Row>
-                <Col span={24}>
-                  <p><strong>综合评分：</strong><Rate disabled value={viewingSupplier.overallRating} allowHalf /></p>
-                </Col>
-              </Row>
-            )}
             {viewingSupplier.remark && (
               <Row>
                 <Col span={24}>
@@ -581,6 +399,14 @@ const SupplierManagement: React.FC = () => {
                 </Col>
               </Row>
             )}
+            <Row>
+              <Col span={12}>
+                <p><strong>创建时间：</strong>{new Date(viewingSupplier.createdAt).toLocaleString()}</p>
+              </Col>
+              <Col span={12}>
+                <p><strong>更新时间：</strong>{new Date(viewingSupplier.updatedAt).toLocaleString()}</p>
+              </Col>
+            </Row>
           </div>
         )}
       </Modal>

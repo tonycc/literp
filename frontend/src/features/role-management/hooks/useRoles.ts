@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Role } from '@zyerp/shared';
 import { roleService } from '../services/role.service';
-import { useMessage } from '../../../shared/hooks/useMessage';
+import { useMessage } from '@/shared/hooks/useMessage';
 
 export interface UseRolesOptions {
   autoFetch?: boolean; // 是否自动获取数据

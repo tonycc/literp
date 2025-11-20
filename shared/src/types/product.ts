@@ -1,7 +1,7 @@
 // 导入相关类型
-import { UnitInfo } from './unit';
-import { WarehouseInfo } from './warehouse';
-import { ProductCategoryInfo } from './productCategory';
+import type { UnitInfo } from './unit';
+import type { WarehouseInfo } from './warehouse';
+import type { ProductCategoryInfo } from './productCategory';
 
 /**
  * 产品类型枚举
@@ -100,8 +100,6 @@ export interface ProductDocument {
   updatedAt: Date;
 }
 
-
-
 /**
  * 产品信息接口
  */
@@ -112,20 +110,20 @@ export interface ProductInfo {
   type: ProductType;               // 产品属性（原材料、半成品、成品）
   categoryId: string;              // 产品分类ID
   unitId: string;                  // 主单位ID
-  defaultWarehouseId?: string;            // 默认仓库ID
+  defaultWarehouseId?: string;     // 默认仓库ID
   status: ProductStatus;           // 产品状态
   acquisitionMethod: AcquisitionMethod; // 获取方式
-  
+
   specification?: string;          // 产品规格
   model?: string;                  // 型号
   barcode?: string;                // 条形码
   qrCode?: string;                 // 二维码
-  
+
   // 成本信息
   standardCost?: number;           // 标准成本
   averageCost?: number;            // 平均成本
   latestCost?: number;             // 最新成本
-  
+
   // 库存信息
   safetyStock?: number;            // 安全库存
   safetyStockMin?: number;         // 安全库存下限
@@ -133,21 +131,21 @@ export interface ProductInfo {
   minStock?: number;               // 最小库存
   maxStock?: number;               // 最大库存
   reorderPoint?: number;           // 再订货点
-  
+
   // 描述信息
   description?: string;            // 产品描述
   remark?: string;                 // 备注
-  
+
   // 状态信息
   isActive: boolean;               // 是否启用
-  
+
   // 审计信息
   createdAt: Date;
   updatedAt: Date;
   createdBy?: string;
   updatedBy?: string;
   version: number;                 // 版本号
-  
+
   // 关联数据
   unit?: UnitInfo;                 // 主单位信息
   warehouse?: WarehouseInfo;       // 默认仓库信息
@@ -156,6 +154,26 @@ export interface ProductInfo {
   alternativeUnits?: ProductAlternativeUnit[]; // 辅助计量单位
   images?: ProductImage[];         // 产品图片
   documents?: ProductDocument[];   // 相关文档
+
+  // 变体相关字段
+  parentId?: string;               
+  variantAttributes?: {            
+    name: string;
+    value: string;
+  }[];
+  variantCount?: number;           
+  variants?: ProductInfo[];        // 变体列表
+}
+
+
+export interface VariantInfo extends ProductInfo {
+  standardPrice?: number;
+  salePrice?: number;
+  purchasePrice?: number;
+  currency?: string;
+  currentStock?: number;
+  reservedStock?: number;
+  availableStock?: number;
 }
 
 
@@ -174,7 +192,7 @@ export interface ProductFormData {
   unitId: string;                      // 计量单位
   defaultWarehouseId: string;          // 默认仓库（前端表单中为必填）
   acquisitionMethod: AcquisitionMethod; // 获取方式
-  status: ProductStatus;               // 产品状态
+  status: ProductStatus;               
   
   // 基本信息 - 可选字段
   model?: string;                      // 产品型号
@@ -198,12 +216,43 @@ export interface ProductFormData {
   
   // 系统字段
   isActive?: boolean;                  // 是否启用
-  
+
   // 关联数据（文件上传等）
   specifications?: Omit<ProductSpecification, 'id' | 'productId' | 'createdAt' | 'updatedAt'>[];
   alternativeUnits?: Omit<ProductAlternativeUnit, 'id' | 'productId' | 'createdAt' | 'updatedAt'>[];
   images?: any[];                      // 产品图片（文件上传格式）
   documents?: any[];                   // 相关文档（文件上传格式）
+
+  // 变体相关字段
+  variantAttributes?: {                
+    name: string;
+    value: string;
+  }[];
+  variants?: VariantCreateInput[];
+  variantGenerateAttributes?: VariantGenerateAttribute[];
+}
+
+export interface VariantCreateInput {
+  name: string;
+  code: string;
+  barcode?: string;
+  variantAttributes?: Array<{ name: string; value: string }>;
+}
+
+export interface ProductAttributeLineInput {
+  attributeName: string;
+  values: string[];
+}
+
+export interface VariantGenerateAttribute {
+  attributeName: string;
+  values: string[];
+}
+
+export interface ProductCreateWithVariantsInput extends ProductFormData {
+  variants?: VariantCreateInput[];
+  variantGenerateAttributes?: VariantGenerateAttribute[];
+  attributeLines?: ProductAttributeLineInput[];
 }
 
 /**
@@ -222,6 +271,7 @@ export interface ProductQueryParams {
   status?: ProductStatus;
   acquisitionMethod?: AcquisitionMethod;
   isActive?: boolean;
+  
   sortField?: string;
   sortOrder?: 'asc' | 'desc';
 }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, Modal, message } from 'antd';
 import type { UploadFile, UploadProps } from 'antd';
+import type { UploadRequestOption } from 'rc-upload/lib/interface';
 import { PlusOutlined } from '@ant-design/icons';
 import { uploadService, type ProductImageUploadResult } from '../../../features/file-management/services/upload.service';
 
@@ -46,7 +47,7 @@ const ProductImageUpload: React.FC<ProductImageUploadProps> = ({
         const uploadResults = await uploadService.uploadProductImages(filesToUpload);
 
         // 将上传结果转换为UploadFile格式
-        const uploadedFileList: UploadFile[] = uploadResults.map((result, index) => ({
+        const uploadedFileList: UploadFile[] = uploadResults.map((result) => ({
           uid: result.id,
           name: result.name,
           status: 'done' as const,
@@ -88,16 +89,16 @@ const ProductImageUpload: React.FC<ProductImageUploadProps> = ({
   };
 
   // 自定义上传请求
-  const customUploadRequest = async (options: any) => {
+  const customUploadRequest = async (options: UploadRequestOption) => {
     const { file, onSuccess, onError } = options;
 
     try {
       // 文件验证
-      if (!uploadService.validateFileType(file, 'product-image')) {
+      if (!uploadService.validateFileType(file as File, 'product-image')) {
         throw new Error('只支持图片文件（JPG、PNG、GIF等）');
       }
 
-      if (!uploadService.validateFileSize(file, 'product-image')) {
+      if (!uploadService.validateFileSize(file as File, 'product-image')) {
         throw new Error('图片大小不能超过2MB');
       }
 

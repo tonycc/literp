@@ -1,35 +1,43 @@
 import React, { useState } from 'react';
-import { Modal, Form, message } from 'antd';
+import { Modal, Form } from 'antd';
 import PurchaseOrderForm from './PurchaseOrderForm';
-import type { PurchaseOrderFormData } from '../types';
+import type { PurchaseOrderFormData } from '@zyerp/shared';
+import { useMessage } from '@/shared/hooks';
 
 interface AddPurchaseOrderModalProps {
   visible: boolean;
+  mode?: 'create' | 'edit';
+  initialValues?: Partial<PurchaseOrderFormData>;
   onCancel: () => void;
   onSuccess: () => void;
+  onSubmit?: (values: PurchaseOrderFormData) => Promise<void> | void;
 }
 
 const AddPurchaseOrderModal: React.FC<AddPurchaseOrderModalProps> = ({
   visible,
+  mode = 'create',
+  initialValues,
   onCancel,
-  onSuccess
+  onSuccess,
+  onSubmit,
 }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const message = useMessage();
 
   // 处理表单提交
-  const handleSubmit = (values: PurchaseOrderFormData) => {
+  const handleSubmit = async (values: PurchaseOrderFormData) => {
     setLoading(true);
-    
-    // 模拟 API 调用
-    console.log('新增采购订单数据:', values);
-    
-    setTimeout(() => {
-      message.success('采购订单创建成功');
+    try {
+      if (onSubmit) {
+        await onSubmit(values);
+      }
+      message.success(mode === 'create' ? '采购订单创建成功' : '采购订单更新成功');
       form.resetFields();
-      setLoading(false);
       onSuccess?.();
-    }, 1000);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 处理取消
@@ -48,7 +56,7 @@ const AddPurchaseOrderModal: React.FC<AddPurchaseOrderModalProps> = ({
 
   return (
     <Modal
-      title="新增采购订单"
+      title={mode === 'create' ? '新增采购订单' : '编辑采购订单'}
       open={visible}
       onCancel={handleCancel}
       onOk={handleOk}
@@ -61,6 +69,7 @@ const AddPurchaseOrderModal: React.FC<AddPurchaseOrderModalProps> = ({
     >
       <PurchaseOrderForm
         form={form}
+        initialValues={initialValues}
         onSubmit={handleSubmit}
         loading={loading}
       />

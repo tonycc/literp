@@ -5,6 +5,7 @@ import { BomItemService } from './services/BomItemService';
 import { BomVersionService } from './services/BomVersionService';
 import { BomCostService, type BomCostSummary } from './services/BomCostService';
 import { BomImportExportService } from './services/BomImportExportService';
+import type { BomTreeNode } from '@shared/types/bom';
 
 /**
  * BOM服务协调器
@@ -86,6 +87,51 @@ export class BomService {
     return this.bomItemService.getBomItems(bomId);
   }
 
+  async getBomTree(bomId: string): Promise<BomTreeNode> {
+    return this.buildBomTree(bomId);
+  }
+
+  private async buildBomTree(bomId: string): Promise<BomTreeNode> {
+    const res = await this.bomCrudService.getBomById(bomId) as { success: boolean; data?: any };
+    if (!res.success || !res.data) {
+      throw new Error('BOM不存在');
+    }
+    const bom = res.data;
+    const root: BomTreeNode = {
+      id: bom.id,
+      code: bom.code,
+      name: bom.name,
+      quantity: typeof bom.baseQuantity === 'number' ? bom.baseQuantity : 1,
+      unit: bom.baseUnit?.name,
+      type: 'bom',
+      isPhantom: false,
+      children: []
+    };
+
+    const items = Array.isArray(bom.items) ? bom.items : [];
+    for (const it of items) {
+      const materialId = it.material?.id ?? it.materialVariant?.id ?? '';
+      const materialCode = it.material?.code ?? it.materialVariant?.code ?? '';
+      const materialName = it.material?.name ?? it.materialVariant?.name ?? '';
+      const child: BomTreeNode = {
+        id: materialId,
+        code: materialCode,
+        name: materialName,
+        quantity: typeof it.quantity === 'number' ? it.quantity : 0,
+        unit: it.unit?.name,
+        type: 'material',
+        isPhantom: !!it.isPhantom
+      };
+      if (it.childBom?.id) {
+        const sub = await this.buildBomTree(it.childBom.id);
+        child.children = sub.children;
+      }
+      root.children!.push(child);
+    }
+
+    return root;
+  }
+
   /**
    * 添加BOM物料项
    */
@@ -107,6 +153,12 @@ export class BomService {
     return this.bomItemService.deleteBomItem(itemId);
   }
 
+  /**
+   * 批量同步BOM物料项
+   */
+  async syncBomItems(bomId: string, items: (BomItemFormData & { id?: string })[], user: User) {
+    return this.bomItemService.syncBomItems(bomId, items, user);
+  }
   /**
    * 批量删除BOM物料项
    */

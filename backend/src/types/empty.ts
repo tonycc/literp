@@ -10,4 +10,4 @@
 
 // 此文件仅作为标记，提示开发者不要在此添加类型定义
 // All type definitions should be in shared/src/types/
-Created empty.ts marker at: 2025年11月 9日 星期日 11时26分58秒 CST
+// Created empty.ts marker at: 2025年11月 9日 星期日 11时26分58秒 CST

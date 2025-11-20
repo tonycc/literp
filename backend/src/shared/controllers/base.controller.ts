@@ -4,7 +4,7 @@
  */
 
 import { Request, Response } from 'express';
-import { createSuccessResponse, createErrorResponse } from '@zyerp/shared';
+import { createSuccessResponse, createErrorResponse } from '@zyerp/shared/utils';
 
 export abstract class BaseController {
   /**

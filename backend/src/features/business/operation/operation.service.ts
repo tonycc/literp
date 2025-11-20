@@ -305,7 +305,7 @@ export class OperationService extends BaseService {
       where: { code }
     });
 
-    const isUnique = !existingOperation || (excludeId && existingOperation.id === excludeId);
+    const isUnique = !existingOperation || (!!excludeId && existingOperation.id === excludeId);
     
     return {
       isValid: true,
@@ -331,7 +331,7 @@ export class OperationService extends BaseService {
       where: { name }
     });
 
-    const isUnique = !existingOperation || (excludeId && existingOperation.id === excludeId);
+    const isUnique = !existingOperation || (!!excludeId && existingOperation.id === excludeId);
     
     return {
       isValid: true,

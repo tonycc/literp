@@ -16,21 +16,24 @@ import {
 } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { Row, Col, Select } from 'antd';
-import type { BomFormData, BomItemFormData, ProductInfo, MaterialRequirementType } from '@zyerp/shared';
+import type { BomFormData, BomItemFormData, ProductInfo, MaterialRequirementType, ProductBom, BomItem } from '@zyerp/shared';
 import type { RoutingOption } from '@zyerp/shared';
 import type { WorkcenterOption } from '@zyerp/shared';
 import { useBom } from '../hooks/useBom';
-import { bomService } from '../services/bom.service';
+import { BomService } from '../services/bom.service';
 import MaterialSelectModal from './MaterialSelectModal';
-import { useMessage, useModal } from '../../../shared/hooks';
+import { useMessage, useModal } from '@/shared/hooks';
 import { routingService } from '../../routing/services/routing.service';
+import dayjs from 'dayjs';
+import { useBomItemsSync } from '../hooks/useBomItemsSync';
 
 interface BomCreatePageProps {
   onSuccess?: () => void;
   onCancel?: () => void;
+  editing?: ProductBom;
 }
 
-const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel }) => {
+const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, editing }) => {
   const [form] = Form.useForm();
   const message = useMessage();
   const { products, units, fetchSelectOptions } = useBom();
@@ -39,6 +42,7 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel }) =>
   
   // BOM物料项行类型（保留展示字段，同时存储必要ID以便提交）
   type BomItemRow = {
+    id?: string;
     key: string;
     materialId: string; // 用于提交
     unitId: string;     // 用于提交
@@ -58,15 +62,20 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel }) =>
   // 物料选择弹窗状态
   const [materialModalVisible, setMaterialModalVisible] = useState(false);
   const modal = useModal();
+  const { syncBomItems, toSyncItems } = useBomItemsSync();
   
   // 获取下拉选项数据
   useEffect(() => {
-    fetchSelectOptions();
+    void fetchSelectOptions();
     // 获取工艺路线数据
     const fetchRoutings = async () => {
       try {
         const res = await routingService.getOptions({ _active: true });
-        setRoutingOptions(res.data || []);
+        if (res.success && Array.isArray(res.data)) {
+          setRoutingOptions(res.data);
+        } else {
+          setRoutingOptions([]);
+        }
       } catch (error) {
         console.error('获取工艺路线失败:', error);
         message.error('获取工艺路线失败');
@@ -76,16 +85,60 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel }) =>
     const fetchWorkcenters = async () => {
       try {
         const res = await routingService.getWorkcenterOptions({ _active: true });
-        setWorkcenterOptions(res.data || []);
+        if (res.success && Array.isArray(res.data)) {
+          setWorkcenterOptions(res.data);
+        } else {
+          setWorkcenterOptions([]);
+        }
       } catch (error) {
         console.error('获取工作中心选项失败:', error);
         message.error('获取工作中心选项失败');
         setWorkcenterOptions([]);
       }
     };
-    fetchRoutings();
-    fetchWorkcenters();
-  }, [fetchSelectOptions]);
+    void fetchRoutings();
+    void fetchWorkcenters();
+  }, [fetchSelectOptions, message]);
+
+  // 编辑模式：预填充表单与加载现有明细
+  useEffect(() => {
+    const initEdit = async () => {
+      if (!editing) return;
+      form.setFieldsValue({
+        name: editing.name,
+        productId: editing.productId,
+        baseQuantity: editing.baseQuantity,
+        baseUnitId: editing.baseUnitId,
+        effectiveDate: editing.effectiveDate,
+        expiryDate: editing.expiryDate,
+        version: editing.version,
+        routingId: editing.routingId,
+      });
+      try {
+        const res = await BomService.getItems(editing.id);
+        const list = res.success && Array.isArray(res.data) ? res.data : [];
+        const mapped: BomItemRow[] = list.map((it: BomItem, idx: number) => ({
+          id: it.id,
+          key: it.id || `old_${idx}`,
+          materialId: it.materialId,
+          unitId: it.unitId,
+          materialCode: it.materialCode,
+          materialName: it.materialName,
+          specification: it.materialSpec || '-',
+          quantity: it.quantity,
+          unit: it.unitName || '-',
+          sequence: typeof it.sequence === 'number' ? it.sequence : (idx + 1) * 10,
+          isKey: !!it.isKey,
+          childBomId: it.childBomId,
+        }));
+        setBomItemData(mapped);
+      } catch (e) {
+        console.error('加载BOM明细失败:', e);
+        setBomItemData([]);
+      }
+    };
+    void initEdit();
+  }, [editing, form]);
 
   // 处理产品选择变化
   const handleProductChange = (productId: string) => {
@@ -105,67 +158,94 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel }) =>
       // 验证所有字段
       await form.validateFields();
       
-      // 构造BOM数据
+      
+      const effectiveDateStr = typeof values.effectiveDate === 'string'
+        ? values.effectiveDate
+        : dayjs(values.effectiveDate).format('YYYY-MM-DD');
+      const expiryDateStr = values.expiryDate
+        ? (typeof values.expiryDate === 'string' ? values.expiryDate : dayjs(values.expiryDate).format('YYYY-MM-DD'))
+        : undefined;
       const bomData: BomFormData = {
         ...values,
-        effectiveDate: values.effectiveDate,
-        expiryDate: values.expiryDate
+        effectiveDate: effectiveDateStr as unknown as Date,
+        expiryDate: expiryDateStr as unknown as Date,
       };
-
-      // 调用API创建BOM
-      const result = await bomService.createBom(bomData);
-      if (result.success) {
-        const bomId = result.data?.id;
-
-        if (!bomId) {
-          message.warning('BOM创建成功，但未返回标识');
-          onSuccess?.();
+      if (editing?.id) {
+        // 编辑模式：更新BOM并同步物料项
+        const upd = await BomService.update(editing.id, bomData);
+        if (!upd.success) {
+          message.error(upd.message || '更新失败');
           return;
         }
-
-        // 若存在物料明细，则逐项创建
-        if (bomItemData.length > 0) {
-          const payloads: BomItemFormData[] = bomItemData.map((row) => ({
-            materialId: row.materialId,
-            quantity: row.quantity,
-            unitId: row.unitId,
-            sequence: row.sequence,
-            requirementType: 'fixed' as MaterialRequirementType,
-            isKey: row.isKey,
-            isPhantom: false,
-            childBomId: row.childBomId,
-          }));
-
-          const creations = await Promise.allSettled(
-            payloads.map((p) => bomService.addBomItem(bomId, p))
-          );
-
-          const successCount = creations.filter((r) => r.status === 'fulfilled' && r.value?.success).length;
-          const failedCount = creations.length - successCount;
-
-          if (failedCount === 0) {
-            message.success(`BOM创建成功，已添加 ${successCount} 条明细`);
-          } else if (successCount > 0) {
-            message.warning(`BOM创建成功，但有 ${failedCount} 条明细添加失败`);
+        // 批量同步物料项（事务、幂等）
+        const syncItems = toSyncItems(bomItemData.map((row) => ({
+          id: row.id,
+          materialId: row.materialId,
+          quantity: row.quantity,
+          unitId: row.unitId,
+          sequence: row.sequence,
+          isKey: row.isKey,
+          isPhantom: false,
+          childBomId: row.childBomId,
+          requirementType: 'fixed' as MaterialRequirementType,
+        })));
+        const summary = await syncBomItems(editing.id, syncItems);
+        if (summary) {
+          const s = summary;
+          if (s?.deleted || s?.updated || s?.created) {
+            message.success(`BOM更新成功：新增${s.created ?? 0}、更新${s.updated ?? 0}、删除${s.deleted ?? 0}、跳过${s.skipped ?? 0}`);
           } else {
-            message.warning('BOM创建成功，但所有明细添加失败');
+            message.success('BOM更新成功，无变更');
           }
-
-          // 创建后批量自动绑定子BOM（用户确认）
-          modal.confirm({
-            title: '批量自动绑定子BOM',
-            content: '是否批量为物料自动绑定子BOM？（仅绑定启用的候选项）',
-            onOk: async () => {
-              await autoBindChildBoms(bomId!);
-            },
-          });
-        } else {
-          message.success('BOM创建成功');
         }
-
         onSuccess?.();
       } else {
-        message.error(result.message || '创建失败');
+        // 创建模式
+        const result = await BomService.create(bomData);
+        if (result.success) {
+          const bomId = result.data?.id;
+          if (!bomId) {
+            message.warning('BOM创建成功，但未返回标识');
+            onSuccess?.();
+            return;
+          }
+          if (bomItemData.length > 0) {
+            const payloads: BomItemFormData[] = bomItemData.map((row) => ({
+              materialId: row.materialId,
+              quantity: row.quantity,
+              unitId: row.unitId,
+              sequence: row.sequence,
+              requirementType: 'fixed' as MaterialRequirementType,
+              isKey: row.isKey,
+              isPhantom: false,
+              childBomId: row.childBomId,
+            }));
+            const creations = await Promise.allSettled(payloads.map((p) => BomService.addItem(bomId, p)));
+            const successCount = creations.filter((r) => r.status === 'fulfilled' && (r.value as { success?: boolean })?.success).length;
+            const failedCount = creations.length - successCount;
+            if (failedCount === 0) {
+              message.success(`BOM创建成功，已添加 ${successCount} 条明细`);
+            } else if (successCount > 0) {
+              message.warning(`BOM创建成功，但有 ${failedCount} 条明细添加失败`);
+            } else {
+              message.warning('BOM创建成功，但所有明细添加失败');
+            }
+            modal.confirm({
+              title: '批量自动绑定子BOM',
+              content: '是否批量为物料自动绑定子BOM？（仅绑定启用的候选项）',
+              onOk: async () => {
+                if (bomId) {
+                  await autoBindChildBoms(bomId);
+                }
+              },
+            });
+          } else {
+            message.success('BOM创建成功');
+          }
+          onSuccess?.();
+        } else {
+          message.error(result.message || '创建失败');
+        }
       }
     } catch (error) {
       console.error('创建BOM失败:', error);
@@ -178,7 +258,7 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel }) =>
   // 批量自动绑定子BOM
   const autoBindChildBoms = async (bomId: string) => {
     try {
-      const itemsRes = await bomService.getBomItems(bomId);
+      const itemsRes = await BomService.getItems(bomId);
       const items = itemsRes.data || [];
       let successCount = 0;
       let skipCount = 0;
@@ -192,8 +272,8 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel }) =>
         }
         // 拉取该物料对应产品的启用子BOM候选
         try {
-          const optionsRes = await bomService.getBomOptions({ _productId: item.materialId, activeOnly: true });
-          const options = optionsRes.data || [];
+          const listRes = await BomService.getList({ page: 1, pageSize: 100 });
+          const options = (listRes.data || []).filter((b) => b.productId === item.materialId);
           const target = options[0];
 
           if (!target || target.id === bomId) {
@@ -202,7 +282,7 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel }) =>
             continue;
           }
 
-          const upd = await bomService.updateBomItem(item.id, { childBomId: target.id } as BomItemFormData);
+          const upd = await BomService.updateItem(item.id, { childBomId: target.id } as BomItemFormData);
           if (upd.success) {
             successCount++;
           } else {
@@ -235,8 +315,9 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel }) =>
         return;
       }
       try {
-        const res = await bomService.getBomOptions({ _productId: materialId, activeOnly: true });
-        const options = Array.isArray(res.data) ? res.data : [];
+        const res = await BomService.getList({ page: 1, pageSize: 100 });
+        const list = res.success && Array.isArray(res.data) ? res.data : [];
+        const options = list.filter((b) => b.productId === materialId);
         setOpts(options.map((b) => ({
           value: b.id,
           label: `${b.code} ${b.name}（${b.version}）`,
@@ -249,7 +330,7 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel }) =>
     };
 
     useEffect(() => {
-      loadOptions();
+      void loadOptions();
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [materialId]);
 
@@ -417,7 +498,7 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel }) =>
   const [processData, setProcessData] = useState<ProcessRow[]>([]);
 
   // 监听工艺路线选择变化并加载工序与工作中心
-  const selectedRoutingId = Form.useWatch('routingId', form);
+  const selectedRoutingId: unknown = Form.useWatch('routingId', form);
 
   useEffect(() => {
     const loadRoutingOperations = async (routingId?: string) => {
@@ -427,7 +508,7 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel }) =>
       }
       try {
         const res = await routingService.getOperations(routingId);
-        const ops = res.data || [];
+        const ops = res.success && Array.isArray(res.data) ? res.data : [];
 
         // 映射工序表格行
         const mappedProcesses: ProcessRow[] = ops.map((op) => {
@@ -449,15 +530,16 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel }) =>
       }
     };
 
-    loadRoutingOperations(selectedRoutingId);
-  }, [selectedRoutingId, workcenterOptions]);
+    const rid = typeof selectedRoutingId === 'string' ? selectedRoutingId : undefined;
+    void loadRoutingOperations(rid);
+  }, [selectedRoutingId, workcenterOptions, message]);
 
 
   return (
     <div style={{ padding: '16px' }}>
-      <ProForm
+      <ProForm<BomFormData>
         form={form}
-        onFinish={onFinish}
+        onFinish={(values) => { void onFinish(values) }}
         layout="vertical"
         submitter={{
           render: (props) => {
@@ -468,7 +550,7 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel }) =>
                     取消
                   </Button>
                   <Button type="primary" onClick={() => props.form?.submit?.()}>
-                    创建BOM
+                    {editing ? '保存' : '创建BOM'}
                   </Button>
                 </Space>
               </Row>
@@ -566,7 +648,7 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel }) =>
             </Space>
           </div>
           
-          <ProTable
+          <ProTable<BomItemRow>
             columns={bomItemColumns}
             dataSource={bomItemData}
             rowKey="key"
@@ -594,7 +676,7 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel }) =>
           {/* 工序列表 */}
           <div style={{ marginBottom: 16 }}>
             <h4 style={{ margin: '0 0 8px 0', fontSize: 14, fontWeight: 500 }}>工序列表</h4>
-            <ProTable
+            <ProTable<ProcessRow>
               columns={processColumns}
               dataSource={processData}
               rowKey="key"

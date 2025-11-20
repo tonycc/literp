@@ -34,7 +34,7 @@ interface ProductionInboundListProps {
   onAdd?: () => void;
 }
 
-const ProductionInboundList: React.FC<ProductionInboundListProps> = ({ onAdd }) => {
+const ProductionInboundList: React.FC<ProductionInboundListProps> = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [dataSource, setDataSource] = useState<ProductionInboundRecord[]>([]);

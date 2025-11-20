@@ -9,7 +9,7 @@ import RoutingOperationsForm from '../components/RoutingOperationsForm';
 import OperationSelectModal from '../components/OperationSelectModal';
 import { routingService } from '../services/routing.service';
 import { operationService } from '../../operation/services/operation.service';
-import { useMessage } from '../../../shared/hooks';
+import { useMessage } from '@/shared/hooks';
 
 // 本地定义：一次性提交/更新工序输入结构（与后端保持字段一致）
 type RoutingWorkcenterInputLocal = {

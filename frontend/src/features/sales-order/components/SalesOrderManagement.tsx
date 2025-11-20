@@ -1,35 +1,99 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { SalesOrderList } from './SalesOrderList';
-import type { SalesOrder } from '../types';
-import { useMessage, useModal } from '@/shared/hooks';
+import type { SalesOrder } from '@zyerp/shared';
+import type { SalesOrderFormData } from '../types';
+import { SalesOrderPaymentMethod } from '@/shared/constants/sales-order';
+import { PaymentMethod } from '../types';
+import { AddSalesOrderModal } from './AddSalesOrderModal';
+import { useSalesOrder } from '../hooks/useSalesOrder';
+import { SalesOrderDetail } from './SalesOrderDetail';
 
 export const SalesOrderManagement: React.FC = () => {
-  const message = useMessage();
-  const modal = useModal();
+
+  const { handleCreate, handleUpdate, handleDelete } = useSalesOrder();
+
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorMode, setEditorMode] = useState<'create' | 'edit'>('create');
+  const [current, setCurrent] = useState<SalesOrder | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const handleAdd = () => {
-    message.info('待实现：新增销售订单');
+    setEditorMode('create');
+    setCurrent(null);
+    setEditorOpen(true);
   };
 
   const handleView = (item: SalesOrder) => {
-    modal.info({ title: '查看订单', content: `订单号：${item.id}` });
+    setCurrent(item);
+    setDetailOpen(true);
   };
 
   const handleEdit = (item: SalesOrder) => {
-    modal.info({ title: '编辑订单', content: `待实现：编辑 ${item.id}` });
+    setEditorMode('edit');
+    setCurrent(item);
+    setEditorOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    message.warning(`待实现：删除订单 ${id}`);
+ 
+
+
+
+  const submitEditor = async (values: SalesOrderFormData) => {
+    if (editorMode === 'create') {
+      const ok = await handleCreate(values);
+      if (ok) {
+        setEditorOpen(false);
+        setRefreshKey((k) => k + 1);
+      }
+    } else if (current) {
+      const ok = await handleUpdate(current.id, values);
+      if (ok) {
+        setEditorOpen(false);
+        setRefreshKey((k) => k + 1);
+      }
+    }
+  };
+
+  const initialFormValues = (): Partial<SalesOrderFormData> | undefined => {
+    if (!current) return undefined;
+    return {
+      customerName: current.customerName || '',
+      orderDate: current.orderDate,
+      deliveryDate: current.deliveryDate,
+      salesManager: current.salesManager || '',
+      productName: '',
+      productCode: '',
+      specification: '',
+      unit: '',
+      quantity: 1,
+      unitPriceWithTax: 0,
+      taxRate: 13,
+      paymentMethod: ((current.paymentMethod || SalesOrderPaymentMethod.CASH) as unknown) as PaymentMethod,
+      plannedPaymentDate: current.orderDate,
+      remark: current.remark,
+    };
   };
 
   return (
-        <SalesOrderList
-          onAdd={handleAdd}
-          onView={handleView}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
+    <>
+      <SalesOrderList
+        onAdd={handleAdd}
+        onView={handleView}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        refreshKey={refreshKey}
+      />
+      <AddSalesOrderModal
+        visible={editorOpen}
+        onCancel={() => setEditorOpen(false)}
+        mode={editorMode}
+        initialValues={initialFormValues()}
+        onSubmit={submitEditor}
+        onSuccess={() => {}}
+      />
+      <SalesOrderDetail visible={detailOpen} orderId={current?.id} onClose={() => setDetailOpen(false)} />
+    </>
   );
 };
 

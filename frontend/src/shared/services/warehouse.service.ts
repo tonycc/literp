@@ -3,10 +3,11 @@
  */
 
 import apiClient from './api';
+import { mapPaginatedResponse } from './pagination';
 import type { 
   WarehouseInfo, 
   WarehouseQueryParams, 
-  WarehouseListResponse,
+  PaginatedResponse,
   ApiResponse 
 } from '@zyerp/shared';
 
@@ -23,29 +24,9 @@ class WarehouseService {
   /**
    * 获取仓库列表
    */
-  async getWarehouses(params?: WarehouseQueryParams): Promise<WarehouseListResponse> {
-    const response = await apiClient.get<ApiResponse<{
-      data: WarehouseInfo[];
-      total: number;
-      page: number;
-      pageSize: number;
-      totalPages: number;
-    }>>(this.baseUrl, { params });
-    
-    // 转换后端数据结构为前端期望的格式
-    const backendData = response.data.data!;
-    return {
-      success: response.data.success,
-      data: backendData.data,
-      message: response.data.message,
-      timestamp: new Date(response.data.timestamp),
-      pagination: {
-        page: backendData.page,
-        pageSize: backendData.pageSize,
-        total: backendData.total,
-        totalPages: backendData.totalPages,
-      },
-    };
+  async getWarehouses(params?: WarehouseQueryParams): Promise<PaginatedResponse<WarehouseInfo>> {
+    const response = await apiClient.get<ApiResponse<unknown>>(this.baseUrl, { params });
+    return mapPaginatedResponse<WarehouseInfo>(response.data);
   }
 
   /**

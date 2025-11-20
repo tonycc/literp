@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { message } from 'antd';
+import { useMessage } from '@/shared/hooks';
 import { departmentService } from '../services/department.service';
 import type {
   Department,
@@ -18,6 +18,7 @@ import type {
  * 部门列表 hook
  */
 export const useDepartments = (initialParams?: DepartmentListParams) => {
+  const message = useMessage();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
@@ -37,14 +38,14 @@ export const useDepartments = (initialParams?: DepartmentListParams) => {
     } finally {
       setLoading(false);
     }
-  }, [params]);
+  }, [params, message]);
 
   useEffect(() => {
-    fetchDepartments();
-  }, []);
+    void fetchDepartments();
+  }, [fetchDepartments]);
 
   const refresh = useCallback(() => {
-    fetchDepartments(params);
+    void fetchDepartments(params);
   }, [fetchDepartments, params]);
 
   return {
@@ -61,6 +62,7 @@ export const useDepartments = (initialParams?: DepartmentListParams) => {
  * 部门树 hook
  */
 export const useDepartmentTree = () => {
+  const message = useMessage();
   const [tree, setTree] = useState<DepartmentTreeNode[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -75,14 +77,14 @@ export const useDepartmentTree = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [message]);
 
   useEffect(() => {
-    fetchTree();
+    void fetchTree();
   }, [fetchTree]);
 
   const refresh = useCallback(() => {
-    fetchTree();
+    void fetchTree();
   }, [fetchTree]);
 
   return {
@@ -97,6 +99,7 @@ export const useDepartmentTree = () => {
  * 部门详情 hook
  */
 export const useDepartment = (id?: string) => {
+  const message = useMessage();
   const [department, setDepartment] = useState<Department | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -111,11 +114,11 @@ export const useDepartment = (id?: string) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [message]);
 
   useEffect(() => {
     if (id) {
-      fetchDepartment(id);
+      void fetchDepartment(id);
     }
   }, [id, fetchDepartment]);
 
@@ -130,6 +133,7 @@ export const useDepartment = (id?: string) => {
  * 部门操作 hook
  */
 export const useDepartmentActions = () => {
+  const message = useMessage();
   const [loading, setLoading] = useState(false);
 
   const createDepartment = useCallback(async (data: CreateDepartmentData) => {
@@ -145,7 +149,7 @@ export const useDepartmentActions = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [message]);
 
   const updateDepartment = useCallback(async (id: string, data: UpdateDepartmentData) => {
     setLoading(true);
@@ -160,7 +164,7 @@ export const useDepartmentActions = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [message]);
 
   const deleteDepartment = useCallback(async (id: string) => {
     setLoading(true);
@@ -174,7 +178,7 @@ export const useDepartmentActions = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [message]);
 
   return {
     loading,
@@ -188,6 +192,7 @@ export const useDepartmentActions = () => {
  * 部门统计 hook
  */
 export const useDepartmentStats = () => {
+  const message = useMessage();
   const [stats, setStats] = useState<DepartmentStats | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -202,10 +207,10 @@ export const useDepartmentStats = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [message]);
 
   useEffect(() => {
-    fetchStats();
+    void fetchStats();
   }, [fetchStats]);
 
   return {

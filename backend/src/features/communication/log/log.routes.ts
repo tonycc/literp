@@ -11,7 +11,7 @@ import {
   cleanupLogs,
 } from './log.controller';
 
-const router = Router();
+const router: import('express').Router = Router();
 
 // 所有日志路由都需要认证
 router.use(authenticateToken);

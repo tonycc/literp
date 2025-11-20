@@ -135,11 +135,13 @@ export class ProductCategoryService extends BaseService {
 
     return {
       data: formattedCategories,
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize)
-    };
+      pagination: {
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize)
+      }
+    } as any;
   }
 
   /**

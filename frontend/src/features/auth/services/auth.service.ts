@@ -2,7 +2,7 @@
  * 认证服务
  */
 
-import apiClient from '../../../shared/services/api';
+import apiClient from '@/shared/services/api';
 import type { LoginRequest, LoginResponse, User } from '@zyerp/shared';
 
 export interface RefreshTokenResponse {

@@ -79,7 +79,7 @@ export const uploadConfig = {
 };
 
 // 头像上传中间件
-export const avatarUpload = multer({
+export const avatarUpload: import('express').RequestHandler = multer({
   ...uploadConfig,
   limits: {
     fileSize: 2 * 1024 * 1024, // 头像限制2MB
@@ -88,10 +88,10 @@ export const avatarUpload = multer({
 }).single('avatar');
 
 // 文档上传中间件
-export const documentUpload = multer(uploadConfig).array('documents', 5);
+export const documentUpload: import('express').RequestHandler = multer(uploadConfig).array('documents', 5);
 
 // 单文件上传中间件
-export const singleFileUpload = multer(uploadConfig).single('file');
+export const singleFileUpload: import('express').RequestHandler = multer(uploadConfig).single('file');
 
 // 上传目录配置
 export const uploadPaths = {

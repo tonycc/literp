@@ -50,3 +50,8 @@ export const ACQUISITION_METHOD_OPTIONS = Object.entries(ACQUISITION_METHOD_MAP)
   label,
   value,
 }));
+
+/**
+ * 模板标识映射
+ */
+ 

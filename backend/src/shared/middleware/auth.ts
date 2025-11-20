@@ -4,7 +4,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import jwt, { JwtPayload } from 'jsonwebtoken';
-import { createErrorResponse } from '@zyerp/shared';
+import { createErrorResponse } from '@zyerp/shared/utils';
 import { config } from '../../config';
 
 // 扩展 Request 接口

@@ -12,7 +12,6 @@ import {
   message,
   Row,
   Col,
-  Statistic,
   Tooltip,
   Popconfirm
 } from 'antd';
@@ -28,8 +27,7 @@ import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import type {
   PurchaseReturn,
-  PurchaseReturnQueryParams,
-  PurchaseReturnStats
+  PurchaseReturnQueryParams
 } from '../types';
 import {
   PurchaseReturnStatus,
@@ -87,12 +85,7 @@ const mockData: PurchaseReturn[] = [
   }
 ];
 
-const mockStats: PurchaseReturnStats = {
-  totalReturns: 15,
-  pendingReturns: 3,
-  completedReturns: 8,
-  totalReturnAmount: 125000
-};
+// 示例统计数据（当前未展示）
 
 export const PurchaseReturnManagement: React.FC = () => {
   const [data, setData] = useState<PurchaseReturn[]>(mockData);
@@ -101,7 +94,7 @@ export const PurchaseReturnManagement: React.FC = () => {
     page: 1,
     pageSize: 10
   });
-  const [stats, setStats] = useState<PurchaseReturnStats>(mockStats);
+  // 统计信息暂未展示，后续如需展示可启用
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<PurchaseReturn | null>(null);
@@ -233,7 +226,6 @@ export const PurchaseReturnManagement: React.FC = () => {
       // 这里应该调用实际的API
       await new Promise(resolve => setTimeout(resolve, 500));
       setData(mockData);
-      setStats(mockStats);
     } catch {
       message.error('加载数据失败');
     } finally {

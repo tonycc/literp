@@ -2,7 +2,7 @@
  * 日志管理服务
  */
 
-import apiClient from '../../../shared/services/api';
+import apiClient from '@/shared/services/api';
 import type { ApiResponse, PaginatedResponse, QueryParams } from '@zyerp/shared';
 
 export interface SystemLog {

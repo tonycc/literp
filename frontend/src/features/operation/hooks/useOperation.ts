@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { useMessage } from '../../../shared/hooks';
+import { useMessage } from '@/shared/hooks';
 import { operationService } from '../services/operation.service';
 import type { 
   OperationInfo, 
@@ -153,19 +153,19 @@ export const useOperation = () => {
   const handlePageChange = useCallback((newPage: number, newPageSize: number) => {
     setPage(newPage);
     setPageSize(newPageSize);
-    fetchOperations({ page: newPage, pageSize: newPageSize });
+    void fetchOperations({ page: newPage, pageSize: newPageSize });
   }, [fetchOperations]);
 
   // 搜索处理
   const handleSearch = useCallback((keyword: string) => {
     setPage(1); // 搜索时重置到第一页
-    fetchOperations({ keyword, page: 1 });
+    void fetchOperations({ keyword, page: 1 });
   }, [fetchOperations]);
 
   // 重置搜索
   const handleResetSearch = useCallback(() => {
     setPage(1);
-    fetchOperations({ keyword: undefined, page: 1 });
+    void fetchOperations({ keyword: undefined, page: 1 });
   }, [fetchOperations]);
 
   // 返回接口

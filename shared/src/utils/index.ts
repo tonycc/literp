@@ -3,7 +3,7 @@
  * 工具函数
  */
 
-import { ApiResponse, PaginationParams } from '../types/common';
+import type { ApiResponse, PaginationParams } from '../types/common';
 
 // 格式化日期
 export const formatDate = (date: Date | string, format = 'YYYY-MM-DD HH:mm:ss'): string => {

@@ -2,7 +2,7 @@
  * 通知管理服务
  */
 
-import apiClient from '../../../shared/services/api';
+import apiClient from '@/shared/services/api';
 import type { ApiResponse, PaginatedResponse } from '@zyerp/shared';
 import type {
   Notification,

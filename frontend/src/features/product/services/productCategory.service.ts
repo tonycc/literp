@@ -2,7 +2,7 @@
  * 产品类别服务实现
  */
 
-import apiClient from '../../../shared/services/api';
+import apiClient from '@/shared/services/api';
 import type { 
   ProductCategoryApi,
   CreateProductCategoryRequest,
@@ -16,13 +16,13 @@ import type {
   BatchOperationRequest,
   BatchOperationResponse,
   ProductCategoryStats
-} from '../../../../../shared/src/interfaces/productCategory';
+} from '@/shared/src/interfaces/productCategory';
 import type {
   ProductCategoryInfo,
   ProductCategoryQueryParams,
   ProductCategoryImportResult,
   ProductCategoryExportParams
-} from '../../../../../shared/src/types/productCategory';
+} from '@/shared/src/types/productCategory';
 import type { ApiResponse, PaginatedResponse, ID } from '@zyerp/shared';
 
 /**

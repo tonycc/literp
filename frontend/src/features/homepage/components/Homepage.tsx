@@ -107,7 +107,7 @@ const Homepage: React.FC = () => {
   ];
 
   const handleQuickAction = (path: string) => {
-    navigate(path);
+    void navigate(path);
   };
 
   return (
@@ -218,37 +218,37 @@ const Homepage: React.FC = () => {
               <Button 
                 type="primary" 
                 icon={<ClusterOutlined />}
-                onClick={() => navigate('/production-management')}
+                onClick={() => { void navigate('/production-management') }}
               >
                 生产管理
               </Button>
               <Button 
                 icon={<ShoppingCartOutlined />}
-                onClick={() => navigate('/purchase-management')}
+                onClick={() => { void navigate('/purchase-management') }}
               >
                 采购管理
               </Button>
               <Button 
                 icon={<FileTextOutlined />}
-                onClick={() => navigate('/sales-management')}
+                onClick={() => { void navigate('/sales-management') }}
               >
                 销售管理
               </Button>
               <Button 
                 icon={<InboxOutlined />}
-                onClick={() => navigate('/inventory-management')}
+                onClick={() => { void navigate('/inventory-management') }}
               >
                 库存管理
               </Button>
               <Button 
                 icon={<ShoppingOutlined />}
-                onClick={() => navigate('/base-data')}
+                onClick={() => { void navigate('/base-data') }}
               >
                 基础资料
               </Button>
               <Button 
                 icon={<SettingOutlined />}
-                onClick={() => navigate('/system')}
+                onClick={() => { void navigate('/system') }}
               >
                 系统管理
               </Button>

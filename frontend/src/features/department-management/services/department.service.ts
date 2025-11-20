@@ -2,7 +2,7 @@
  * 部门管理服务
  */
 
-import apiClient from '../../../shared/services/api';
+import apiClient from '@/shared/services/api';
 import type {
   Department,
   DepartmentTreeNode,

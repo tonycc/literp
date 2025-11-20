@@ -4,7 +4,8 @@ import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns, ProFormInstance } from '@ant-design/pro-components';
 import type { OperationInfo, OperationQueryParams } from '@zyerp/shared';
 import operationService from '../../operation/services/operation.service';
-import { useMessage } from '../../../shared/hooks';
+import { useMessage } from '@/shared/hooks';
+import { normalizeTableParams } from '@/shared/utils/normalizeTableParams';
 
 interface OperationSelectModalProps {
   visible: boolean;
@@ -20,7 +21,7 @@ const OperationSelectModal: React.FC<OperationSelectModalProps> = ({
   excludeOperationIds = [],
 }) => {
   // ProTable 的 formRef 需要 MutableRefObject<ProFormInstance | undefined>
-  const formRef = useRef<ProFormInstance | undefined>(undefined);
+  const formRef = useRef<ProFormInstance<OperationQueryParams> | undefined>(undefined);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectedRows, setSelectedRows] = useState<OperationInfo[]>([]);
   const message = useMessage();
@@ -97,11 +98,12 @@ const OperationSelectModal: React.FC<OperationSelectModalProps> = ({
         formRef={formRef}
         request={async (params) => {
           try {
+            const base = normalizeTableParams(params as unknown as import('@/shared/utils/normalizeTableParams').TableParams)
             const queryParams: OperationQueryParams = {
-              page: params.current || 1,
-              pageSize: params.pageSize || 10,
-              keyword: params.keyword,
-              isActive: params.isActive ?? true, // 默认显示启用状态
+              page: base.page,
+              pageSize: base.pageSize,
+              keyword: typeof (params as OperationQueryParams).keyword === 'string' ? params.keyword : undefined,
+              isActive: (params as OperationQueryParams).isActive ?? true,
             };
             const response = await operationService.getList(queryParams);
             const data = (response.data || []).filter(op => !excludeOperationIds.includes(op.id));

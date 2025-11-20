@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import {
   Tag,
   Button,
@@ -7,7 +7,7 @@ import {
   Image,
   Dropdown,
 } from 'antd';
-import { useModal } from '../../../shared/hooks';
+import { useModal } from '@/shared/hooks';
 import type { MenuProps } from 'antd';
 import {
   DeleteOutlined,
@@ -17,14 +17,17 @@ import {
   EditOutlined,
   MoreOutlined,
   PlusOutlined,
+  ApartmentOutlined
 } from '@ant-design/icons';
 import type { ProColumns, ActionType, ProTableProps } from '@ant-design/pro-components';
 import { ProTable } from '@ant-design/pro-components';
 import { PRODUCT_TYPE_OPTIONS, PRODUCT_STATUS_OPTIONS, PRODUCT_TYPE_MAP } from '@zyerp/shared';
 import type { ProductInfo, ProductQueryParams } from '@zyerp/shared';
 import { productService } from '../services/product.service';
-import StatusTag from '../../../shared/components/StatusTag';
-import { formatDate, formatCurrency } from '../../../shared/utils/format';
+import StatusTag from '@/shared/components/StatusTag';
+import { normalizeTableParams } from '@/shared/utils/normalizeTableParams';
+import { formatDate, formatCurrency } from '@/shared/utils/format';
+import ProductVariantsModal from './ProductVariantsModal';
 
 interface ProductListProps {
   onAdd: () => void;
@@ -41,11 +44,23 @@ const ProductList: React.FC<ProductListProps> = React.memo(({
   onEdit,
   onView,
   onDelete,
-  onCopy,
   onRefresh,
-  actionRef
+  actionRef,
 }) => {
   const modal = useModal();
+  
+  const [variantsModalVisible, setVariantsModalVisible] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<ProductInfo | null>(null);
+
+  const handleOpenVariantsModal = (product: ProductInfo) => {
+    setSelectedProduct(product);
+    setVariantsModalVisible(true);
+  };
+
+  const handleCloseVariantsModal = () => {
+    setVariantsModalVisible(false);
+    setSelectedProduct(null);
+  };
 
   // 删除产品
   const handleDelete = useCallback(async (record: ProductInfo) => {
@@ -69,7 +84,13 @@ const ProductList: React.FC<ProductListProps> = React.memo(({
       icon: <EditOutlined />,
       onClick: () => onEdit?.(record)
     },
-
+    {
+      key: 'variants',
+      label: '变体管理',
+      icon: <ApartmentOutlined />,
+      onClick: () => handleOpenVariantsModal(record)
+    },
+    
     {
       type: 'divider'
     },
@@ -80,17 +101,18 @@ const ProductList: React.FC<ProductListProps> = React.memo(({
       danger: true,
       onClick: () => handleDelete(record)
     }
-  ], [onEdit, handleDelete, onCopy]);
+  ], [onEdit, handleDelete]);
 
   // ProTable请求函数 - 使用useCallback优化
   const handleRequest = useCallback<NonNullable<ProTableProps<ProductInfo, ProductQueryParams>['request']>>(async (params, sort, filter) => {
     void sort;
     void filter;
     try {
+      const base = normalizeTableParams(params as import('@/shared/utils/normalizeTableParams').TableParams)
       // 构建查询参数
       const queryParams: ProductQueryParams = {
-        page: params.current,
-        pageSize: params.pageSize,
+        page: base.page,
+        pageSize: base.pageSize,
         keyword: params.keyword,
         code: params.code,
         name: params.name,
@@ -101,8 +123,8 @@ const ProductList: React.FC<ProductListProps> = React.memo(({
         status: params.status,
         acquisitionMethod: params.acquisitionMethod,
         isActive: params.isActive !== undefined ? params.isActive : undefined,
-        sortField: params.sortField,
-        sortOrder: params.sortOrder
+        sortField: base.sortField || params.sortField,
+        sortOrder: base.sortOrder || params.sortOrder
       };
 
       // 移除undefined的参数
@@ -147,6 +169,7 @@ const ProductList: React.FC<ProductListProps> = React.memo(({
       ),
       search: true
     },
+
     {
       title: '产品名称',
       dataIndex: 'name',
@@ -201,6 +224,15 @@ const ProductList: React.FC<ProductListProps> = React.memo(({
       width: 120,
       render: (_, record: ProductInfo) => record.category?.name || '-',
       search: true
+    },
+    {
+      title: '变体数量',
+      dataIndex: 'variantCount',
+      key: 'variantCount',
+      width: 100,
+      align: 'right',
+      render: (_, record: ProductInfo) => record.variantCount ?? 0,
+      hideInSearch: true
     },
     {
       title: '获取方式',
@@ -290,22 +322,46 @@ const ProductList: React.FC<ProductListProps> = React.memo(({
     {
       title: '操作',
       key: 'actions',
-      width: 80,
+      width: 180,
       fixed: 'right',
       valueType: 'option',
-      render: (_, record: ProductInfo) => [
-        <Button key="view" type="link" onClick={() => onView?.(record)}>详情</Button>,
-        <Dropdown key="more" overlayClassName="product-dropdown-menu" menu={{ items: getMoreActions(record) }} placement="bottomRight">
-          <Button
-            type="link"
-            icon={<MoreOutlined />}
-          />
-        </Dropdown>
-      ]
+      render: (_, record: ProductInfo) => {
+        // 根据产品状态显示不同的操作按钮
+        const getActionButtons = () => {
+          const buttons: React.ReactNode[] = [];
+
+          // 详情按钮
+          buttons.push(
+            <Button key="view" type="link" onClick={() => onView?.(record)}>
+              详情
+            </Button>
+          );
+          // 更多操作下拉菜单
+          buttons.push(
+            <Dropdown
+              key="more"
+              overlayClassName="product-dropdown-menu"
+              menu={{ items: getMoreActions(record) }}
+              placement="bottomRight"
+            >
+              <Button
+                type="link"
+                icon={<MoreOutlined />}
+              />
+            </Dropdown>
+          );
+
+          return buttons;
+        };
+
+        return getActionButtons();
+      }
     }
-  ], [onView, onEdit, onDelete, onCopy, getMoreActions, handleDelete]);
+  ], [onView, onEdit, onDelete, getMoreActions, handleDelete]);
+
 
   return (
+    <>
       <ProTable<ProductInfo>
         columns={columns}
         actionRef={actionRef}
@@ -333,20 +389,22 @@ const ProductList: React.FC<ProductListProps> = React.memo(({
           >
             新增产品
           </Button>,
-          <Button 
-            key="import" 
+          
+          
+          <Button
+            key="import"
             icon={<ImportOutlined />}
           >
             导入
           </Button>,
-          <Button 
-            key="export" 
+          <Button
+            key="export"
             icon={<ExportOutlined />}
           >
             导出
           </Button>,
-          <Button 
-            key="refresh" 
+          <Button
+            key="refresh"
             icon={<ReloadOutlined />}
             onClick={onRefresh}
           >
@@ -363,7 +421,16 @@ const ProductList: React.FC<ProductListProps> = React.memo(({
         }}
         scroll={{ x: 1400 }}
       />
-    );
+      {selectedProduct && (
+        <ProductVariantsModal
+          productId={selectedProduct.id}
+          productName={selectedProduct.name}
+          visible={variantsModalVisible}
+          onClose={handleCloseVariantsModal}
+        />
+      )}
+    </>
+  );
 });
 
 ProductList.displayName = 'ProductList';

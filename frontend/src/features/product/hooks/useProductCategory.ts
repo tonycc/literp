@@ -4,7 +4,7 @@
 
 import { useState, useCallback } from 'react';
 import productCategoryService from '../services/productCategory.service';
-import { useMessage } from '../../../shared/hooks/useMessage';
+import { useMessage } from '@/shared/hooks/useMessage';
 import type { 
   ProductCategoryInfo, 
   ProductCategoryQueryParams,

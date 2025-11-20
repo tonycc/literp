@@ -22,7 +22,9 @@ import type {
   BomListResponse,
   BomImportResult,
   BomCostSummary,
-  BomCostItem
+  BomCostItem,
+  BomItemSyncItem,
+  BomItemsSyncSummary
 } from '../types/bom';
 
 /**
@@ -77,6 +79,12 @@ export interface BomApi {
    * 删除BOM物料项
    */
   deleteBomItem(_itemId: string): Promise<ApiResponse<void>>;
+
+  /**
+   * 批量同步BOM物料项（事务、幂等）
+   * 传入完整期望集合：包含现有项的id与更新字段，新增项不带id；未出现在集合中的现有项将被删除
+   */
+  syncBomItems(_bomId: string, _items: BomItemSyncItem[], _options?: { strict?: boolean }): Promise<ApiResponse<BomItemsSyncSummary>>;
   
   // ==================== BOM状态管理 ====================
   

@@ -124,11 +124,13 @@ export class UnitService {
 
     return {
       data: units,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit)
-    };
+      pagination: {
+        total,
+        page,
+        pageSize: limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    } as any;
   }
 
   /**

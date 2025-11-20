@@ -16,7 +16,7 @@ import type {
   User,
 } from '@zyerp/shared';
 import { workcenterService } from '../services/workcenter.service';
-import { useMessage } from '../../../shared/hooks';
+import { useMessage } from '@/shared/hooks';
 import { getUsers } from '@/shared/services';
 
 interface WorkcenterFormProps {
@@ -93,7 +93,7 @@ const WorkcenterForm: React.FC<WorkcenterFormProps> = ({
   };
 
   return (
-    <ProForm
+    <ProForm<CreateWorkcenterRequest | UpdateWorkcenterRequest>
       form={form}
       onFinish={handleSubmit}
       layout="vertical"

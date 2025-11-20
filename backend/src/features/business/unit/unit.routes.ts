@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { UnitController } from './unit.controller';
 import { authenticateToken, requireRoles } from '../../../shared/middleware';
 
-const router = Router();
+const router: import('express').Router = Router();
 const unitController = new UnitController();
 
 // 应用认证中间件到所有路由

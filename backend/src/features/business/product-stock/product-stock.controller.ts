@@ -5,7 +5,9 @@ import { ProductStockService } from './product-stock.service';
 import type { ProductStockQueryParams, InventoryStatus } from '@zyerp/shared';
 
 /**
- * 产品库存控制器
+ * 产品库存控制器（只读聚合接口）
+ * 数据来源：VariantStock 按产品聚合
+ * 写入入口：/products/:productId/variants/:variantId/stock/adjust
  */
 export class ProductStockController extends BaseController {
   private service: ProductStockService;

@@ -414,7 +414,7 @@ const PurchaseReceiptManagement: React.FC = () => {
           <Col span={6}>
             <RangePicker
               placeholder={['开始日期', '结束日期']}
-              value={dateRange ? [dateRange[0], dateRange[1]] as any : null}
+              value={dateRange ? [dayjs(dateRange[0]), dayjs(dateRange[1])] : null}
               onChange={(dates) => {
                 if (dates) {
                   setDateRange([dates[0]?.format('YYYY-MM-DD') || '', dates[1]?.format('YYYY-MM-DD') || '']);

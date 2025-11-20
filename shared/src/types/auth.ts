@@ -2,8 +2,8 @@
  * 认证相关类型定义
  */
 
-import { ID, Timestamp } from './common';
-import { Department, UserDepartment } from './department';
+import type { ID, Timestamp } from './common';
+import type { Department, UserDepartment } from './department';
 
 // 用户角色
 export enum UserRole {

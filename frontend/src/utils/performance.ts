@@ -48,16 +48,7 @@ function getRating(value: number, thresholds: { good: number; poor: number }): P
   }
 }
 
-/**
- * 格式化字节大小
- */
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 Bytes'
-  const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
-}
+ 
 
 /**
  * 获取网络信息
@@ -67,12 +58,13 @@ function getNetworkInfo() {
     return null
   }
 
-  const connection = (navigator as any).connection
+  const n = navigator as Navigator & { connection?: { downlink?: number; effectiveType?: string; rtt?: number; saveData?: boolean } }
+  const connection = n.connection
   return {
-    downlink: connection.downlink, // Mbps
-    effectiveType: connection.effectiveType, // 4g, 3g, 2g, slow-2g
-    rtt: connection.rtt, // ms
-    saveData: connection.saveData, // boolean
+    downlink: connection?.downlink ?? 0,
+    effectiveType: connection?.effectiveType ?? 'unknown',
+    rtt: connection?.rtt ?? 0,
+    saveData: connection?.saveData ?? false,
   }
 }
 
@@ -123,8 +115,8 @@ export function measurePerformance() {
   try {
     const lcpObserver = new PerformanceObserver((list) => {
       const entries = list.getEntries()
-      const lastEntry = entries[entries.length - 1] as any
-      metrics.lcp = lastEntry.startTime
+      const lastEntry = entries[entries.length - 1]
+      metrics.lcp = lastEntry?.startTime ?? 0
 
       const rating = getRating(metrics.lcp, {
         good: PERFORMANCE_THRESHOLDS.LCP_GOOD,
@@ -141,8 +133,9 @@ export function measurePerformance() {
   try {
     const fidObserver = new PerformanceObserver((list) => {
       const entries = list.getEntries()
-      entries.forEach((entry: any) => {
-        metrics.fid = entry.processingStart - entry.startTime
+      entries.forEach((entry) => {
+        const e = entry as PerformanceEventTiming
+        metrics.fid = e.processingStart - e.startTime
 
         const rating = getRating(metrics.fid, {
           good: PERFORMANCE_THRESHOLDS.FID_GOOD,
@@ -161,9 +154,10 @@ export function measurePerformance() {
     let clsValue = 0
     const clsObserver = new PerformanceObserver((list) => {
       const entries = list.getEntries()
-      entries.forEach((entry: any) => {
-        if (!entry.hadRecentInput) {
-          clsValue += entry.value
+      entries.forEach((entry) => {
+        const e = entry as unknown as { hadRecentInput?: boolean; value?: number }
+        if (!e.hadRecentInput) {
+          clsValue += typeof e.value === 'number' ? e.value : 0
           metrics.cls = clsValue
 
           const rating = getRating(metrics.cls, {
@@ -202,13 +196,13 @@ export function measurePerformance() {
 
   // 页面卸载时报告所有指标
   window.addEventListener('pagehide', () => {
-    reportToServer(metrics)
+    void reportToServer(metrics)
   })
 
   // 页面隐藏时也报告
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
-      reportToServer(metrics)
+      void reportToServer(metrics)
     }
   })
 }
@@ -237,13 +231,13 @@ export function measureCustom(name: string) {
  * 获取资源加载性能
  */
 export function getResourceTiming() {
-  const resources = performance.getEntriesByType('resource')
+  const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[]
   return resources.map((resource) => ({
     name: resource.name,
-    type: (resource as any).initiatorType,
-    size: (resource as any).transferSize,
+    type: resource.initiatorType,
+    size: resource.transferSize,
     duration: resource.duration,
-    cached: (resource as any).transferSize === 0,
+    cached: resource.transferSize === 0,
   }))
 }
 

@@ -67,7 +67,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     };
 
-    initAuth();
+    void initAuth();
   }, []);
 
   const login = async (username: string, password: string) => {

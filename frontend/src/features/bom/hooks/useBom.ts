@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react';
-import type { ProductBom, ProductInfo, UnitInfo, BomFormData } from '@zyerp/shared';
-import { bomService } from '../services/bom.service';
+import type { ProductBom, ProductInfo, UnitInfo, BomFormData, BomQueryParams } from '@zyerp/shared';
+import { BomService } from '../services/bom.service';
 import { productService } from '../../product/services/product.service';
-import unitService from '../../../shared/services/unit.service';
-import { useMessage } from '../../../shared/hooks';
+import unitService from '@/shared/services/unit.service';
+import { useMessage } from '@/shared/hooks';
+import { getErrorMessage } from '@/shared/utils/errorMessage';
 
 export const useBom = () => {
   const [boms, setBoms] = useState<ProductBom[]>([]);
@@ -12,20 +13,22 @@ export const useBom = () => {
   const [units, setUnits] = useState<UnitInfo[]>([]);
   // const [routings, setRoutings] = useState<Routing[]>([]);
   const message = useMessage();
+  
 
   // 获取BOM列表
   const fetchBoms = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await bomService.getBoms();
+      const params: BomQueryParams = { page: 1, pageSize: 50 };
+      const response = await BomService.getList(params);
       if (response.success) {
         setBoms(response.data || []);
       } else {
-        message.error(response.message || '获取BOM列表失败');
+        message.error(getErrorMessage(undefined, undefined, '获取BOM列表失败'));
       }
     } catch (error) {
       console.error('获取BOM列表失败:', error);
-      message.error('获取BOM列表失败');
+      message.error(getErrorMessage(undefined, error, '获取BOM列表失败'));
     } finally {
       setLoading(false);
     }
@@ -60,18 +63,18 @@ export const useBom = () => {
   // 创建BOM
   const createBom = useCallback(async (bomData: BomFormData) => {
     try {
-      const response = await bomService.createBom(bomData);
+      const response = await BomService.create(bomData);
       if (response.success) {
         message.success('创建成功');
-        fetchBoms(); // 重新加载列表
+        await fetchBoms();
         return response.data;
       } else {
-        message.error(response.message || '创建失败');
+        message.error(getErrorMessage(response, undefined, '创建失败'));
         return null;
       }
     } catch (error) {
       console.error('创建BOM失败:', error);
-      message.error('创建失败');
+      message.error(getErrorMessage(undefined, error, '创建失败'));
       return null;
     }
   }, [message, fetchBoms]);
@@ -79,18 +82,18 @@ export const useBom = () => {
   // 更新BOM
   const updateBom = useCallback(async (id: string, bomData: BomFormData) => {
     try {
-      const response = await bomService.updateBom(id, bomData);
+      const response = await BomService.update(id, bomData);
       if (response.success) {
         message.success('更新成功');
-        fetchBoms(); // 重新加载列表
+        await fetchBoms();
         return response.data;
       } else {
-        message.error(response.message || '更新失败');
+        message.error(getErrorMessage(response, undefined, '更新失败'));
         return null;
       }
     } catch (error) {
       console.error('更新BOM失败:', error);
-      message.error('更新失败');
+      message.error(getErrorMessage(undefined, error, '更新失败'));
       return null;
     }
   }, [message, fetchBoms]);
@@ -98,18 +101,18 @@ export const useBom = () => {
   // 删除BOM
   const deleteBom = useCallback(async (id: string) => {
     try {
-      const response = await bomService.deleteBom(id);
+      const response = await BomService.delete(id);
       if (response.success) {
         message.success('删除成功');
-        fetchBoms(); // 重新加载列表
+        await fetchBoms();
         return true;
       } else {
-        message.error(response.message || '删除失败');
+        message.error(getErrorMessage(response, undefined, '删除失败'));
         return false;
       }
     } catch (error) {
       console.error('删除BOM失败:', error);
-      message.error('删除失败');
+      message.error(getErrorMessage(undefined, error, '删除失败'));
       return false;
     }
   }, [message, fetchBoms]);

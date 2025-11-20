@@ -84,7 +84,16 @@ const PurchaseReceiptForm: React.FC<PurchaseReceiptFormProps> = ({
   initialValues
 }) => {
   const [form] = Form.useForm<FormValues>();
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  type SelectedOrder = {
+    orderNumber: string;
+    productName: string;
+    productCode: string;
+    specification: string;
+    unit: string;
+    orderDate: string;
+    deliveryDate: string;
+  };
+  const [selectedOrder, setSelectedOrder] = useState<SelectedOrder | null>(null);
 
   // 处理采购订单选择
   const handleOrderSelect = (orderNumber: string) => {
@@ -124,7 +133,7 @@ const PurchaseReceiptForm: React.FC<PurchaseReceiptFormProps> = ({
       };
 
       onSubmit(formData);
-    } catch (error) {
+    } catch {
       message.error('请检查表单填写是否正确');
     }
   };

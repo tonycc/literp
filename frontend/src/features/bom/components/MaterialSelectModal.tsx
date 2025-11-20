@@ -3,7 +3,9 @@ import { Modal, Button } from 'antd';
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns, ProFormInstance } from '@ant-design/pro-components';
 import type { ProductInfo } from '@zyerp/shared';
-import { useMessage } from '../../../shared/hooks';
+import type { ProductQueryParams } from '@zyerp/shared';
+import { ProductStatus, PRODUCT_TYPE_MAP, PRODUCT_STATUS_MAP } from '@zyerp/shared';
+import { useMessage } from '@/shared/hooks';
 import { productService } from '../../product/services/product.service';
 import { productCategoryService } from '../../product/services/productCategory.service';
 import type { ProductCategoryOption } from '@zyerp/shared';
@@ -22,9 +24,13 @@ const MaterialSelectModal: React.FC<MaterialSelectModalProps> = ({
   excludeProductIds = []
 }) => {
   const message = useMessage();
-  const formRef = useRef<ProFormInstance | undefined>(undefined);
+  type ProductTableParams = ProductQueryParams & { current?: number; pageSize?: number };
+  const formRef = useRef<ProFormInstance<ProductTableParams> | undefined>(undefined);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<Record<string, { text: string }>>({});
+  const typeValueEnum = Object.fromEntries(Object.entries(PRODUCT_TYPE_MAP).map(([value, cfg]) => [value, { text: cfg.label }])) as Record<string, { text: string }>;
+  const toAntStatus = (s: string) => (s === 'success' ? 'Success' : s === 'warning' ? 'Warning' : 'Default');
+  const statusValueEnum = Object.fromEntries(Object.entries(PRODUCT_STATUS_MAP).map(([value, cfg]) => [value, { text: cfg.label, status: toAntStatus(cfg.status) }]));
 
   // 加载产品类目选项
   useEffect(() => {
@@ -46,7 +52,7 @@ const MaterialSelectModal: React.FC<MaterialSelectModalProps> = ({
     };
 
     if (visible) {
-      loadCategoryOptions();
+      void loadCategoryOptions();
     }
   }, [visible]);
   const [selectedRows, setSelectedRows] = useState<ProductInfo[]>([]);
@@ -102,11 +108,7 @@ const MaterialSelectModal: React.FC<MaterialSelectModalProps> = ({
       title: '产品类型',
       dataIndex: 'type',
       width: 100,
-      valueEnum: {
-        raw_material: { text: '原材料', status: 'Default' },
-        semi_finished_product: { text: '半成品', status: 'Processing' },
-        finished_product: { text: '成品', status: 'Success' },
-      },
+      valueEnum: typeValueEnum,
     },
     {
       title: '规格',
@@ -126,12 +128,8 @@ const MaterialSelectModal: React.FC<MaterialSelectModalProps> = ({
       title: '状态',
       dataIndex: 'status',
       width: 80,
-      search: false, // 隐藏状态搜索，因为只显示启用状态
-      valueEnum: {
-        active: { text: '启用', status: 'Success' },
-        inactive: { text: '停用', status: 'Default' },
-        draft: { text: '草稿', status: 'Warning' },
-      },
+      search: false,
+      valueEnum: statusValueEnum,
     },
   ];
 
@@ -163,19 +161,19 @@ const MaterialSelectModal: React.FC<MaterialSelectModalProps> = ({
       destroyOnHidden
       afterClose={resetSelection}
     >
-      <ProTable<ProductInfo>
+      <ProTable<ProductInfo, ProductTableParams>
         columns={columns}
         formRef={formRef}
-        request={async (params) => {
+        request={async (params: ProductTableParams) => {
           try {
-            const queryParams = {
+            const queryParams: ProductQueryParams = {
               page: params.current || 1,
               pageSize: params.pageSize || 10,
               name: params.name,
               code: params.code,
-              categoryId: params.categoryId,
+              categoryId: params.categoryId ? String(params.categoryId) : undefined,
               type: params.type,
-              status: params.status || 'active', // 默认只显示启用状态的物料
+              status: params.status ?? ProductStatus.ACTIVE,
               keyword: params.keyword,
             };
             const response = await productService.getProducts(queryParams);

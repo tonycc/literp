@@ -6,7 +6,7 @@ import type { ProColumns } from '@ant-design/pro-components';
 import { Button, Space, Popconfirm, Select } from 'antd';
 import { PlusOutlined, DeleteOutlined, MenuOutlined } from '@ant-design/icons';
 import type { RoutingWorkcenterInfo, WorkcenterOption } from '@zyerp/shared';
-import { useMessage } from '../../../shared/hooks';
+import { useMessage } from '@/shared/hooks';
 
 interface RoutingOperationsListProps {
   dataSource?: RoutingWorkcenterInfo[];

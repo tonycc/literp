@@ -6,7 +6,7 @@ import { Router } from 'express';
 import { productCategoryController } from './product-category.controller';
 import { authenticateToken, requirePermissions } from '../../../shared/middleware/auth';
 
-const router = Router();
+const router: import('express').Router = Router();
 
 // 所有路由都需要认证
 router.use(authenticateToken);

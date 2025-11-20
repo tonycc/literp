@@ -12,7 +12,7 @@ export { default as WorkcenterList } from './components/WorkcenterList'
 export { default as WorkcenterForm } from './components/WorkcenterForm'
 
 // Hooks
-export { default as useWorkcenter } from './hooks/useWorkcenter'
+export { useWorkcenter } from './hooks/useWorkcenter'
 
 // Services
 export { default as workcenterService } from './services/workcenter.service'

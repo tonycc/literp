@@ -11,7 +11,7 @@ import {
   resetSettings,
 } from './settings.controller';
 
-const router = Router();
+const router: import('express').Router = Router();
 
 // 路由定义 - 只有管理员可以访问设置
 router.get('/', authenticateToken, requireRoles(['系统管理员']), getSettings);

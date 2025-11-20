@@ -15,8 +15,8 @@ import {
   Select,
   TreeSelect,
 } from 'antd';
-import { useMessage } from '../../../../shared/hooks/useMessage';
-import { usePermissions } from '../../../../shared/hooks/usePermissions';
+import { useMessage } from '@/shared/hooks/useMessage';
+import { usePermissions } from '@/shared/hooks/usePermissions';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { User } from '@zyerp/shared';

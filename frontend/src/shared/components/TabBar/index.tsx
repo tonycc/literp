@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Tabs } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { MenuDataItem } from '@ant-design/pro-layout';
@@ -25,7 +25,7 @@ const TabBar: React.FC<TabBarProps> = ({ menuData }) => {
   const [activeKey, setActiveKey] = useState<string>('/');
 
   // 根据路径获取菜单项信息（支持嵌套菜单）
-  const getMenuItemByPath = (path: string): MenuDataItem | undefined => {
+  const getMenuItemByPath = useCallback((path: string): MenuDataItem | undefined => {
     const findMenuItem = (items: MenuDataItem[]): MenuDataItem | undefined => {
       for (const item of items) {
         if (item.path === path) {
@@ -42,10 +42,10 @@ const TabBar: React.FC<TabBarProps> = ({ menuData }) => {
     };
     
     return findMenuItem(menuData);
-  };
+  }, [menuData]);
 
   // 添加标签页
-  const addTab = (path: string) => {
+  const addTab = useCallback((path: string) => {
     const menuItem = getMenuItemByPath(path);
     if (!menuItem) return;
 
@@ -64,10 +64,12 @@ const TabBar: React.FC<TabBarProps> = ({ menuData }) => {
       }
       return [...prevTabs, newTab];
     });
-  };
+  }, [getMenuItemByPath]);
+
+  
 
   // 移除标签页
-  const removeTab = (targetKey: string) => {
+  const removeTab = useCallback((targetKey: string) => {
     setTabs(prevTabs => {
       const newTabs = prevTabs.filter(tab => tab.key !== targetKey);
       
@@ -75,18 +77,18 @@ const TabBar: React.FC<TabBarProps> = ({ menuData }) => {
       if (targetKey === activeKey && newTabs.length > 0) {
         const newActiveKey = newTabs[newTabs.length - 1].key;
         setActiveKey(newActiveKey);
-        navigate(newActiveKey);
+        void navigate(newActiveKey);
       }
       
       return newTabs;
     });
-  };
+  }, [activeKey, navigate]);
 
   // 标签页切换
-  const handleTabChange = (key: string) => {
+  const handleTabChange = useCallback((key: string) => {
     setActiveKey(key);
-    navigate(key);
-  };
+    void navigate(key);
+  }, [navigate]);
 
   // 初始化标志
   const [isInitialized, setIsInitialized] = useState(false);
@@ -95,7 +97,7 @@ const TabBar: React.FC<TabBarProps> = ({ menuData }) => {
   useEffect(() => {
     addTab('/dashboard');
     setIsInitialized(true);
-  }, []);
+  }, [addTab]);
 
   // 监听路由变化
   useEffect(() => {
@@ -107,7 +109,7 @@ const TabBar: React.FC<TabBarProps> = ({ menuData }) => {
     const currentPath = location.pathname;
     setActiveKey(currentPath);
     addTab(currentPath);
-  }, [location.pathname, isInitialized]);
+  }, [location.pathname, isInitialized, addTab]);
 
   const items = tabs.map(tab => ({
     key: tab.key,

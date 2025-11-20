@@ -1,13 +1,13 @@
 import { useRef, useState } from 'react';
 import { Form } from 'antd';
-import type { ActionType } from '@ant-design/pro-table';
+import type { ActionType } from '@ant-design/pro-components';
 import type {
   CreateWorkcenterRequest,
   UpdateWorkcenterRequest,
   WorkcenterInfo,
 } from '@zyerp/shared';
 import { workcenterService } from '../services/workcenter.service';
-import { useMessage } from '../../../shared/hooks/useMessage';
+import { useMessage } from '@/shared/hooks/useMessage';
 
 export const useWorkcenter = () => {
   const [form] = Form.useForm();

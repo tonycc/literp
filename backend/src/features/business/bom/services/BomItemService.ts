@@ -23,6 +23,12 @@ export class BomItemService {
               specification: true
             }
           },
+          materialVariant: {
+            select: {
+              code: true,
+              name: true
+            }
+          },
           unit: {
             select: {
               name: true,
@@ -44,6 +50,8 @@ export class BomItemService {
         materialCode: item.material?.code,
         materialName: item.material?.name,
         materialSpec: item.material?.specification,
+        materialVariantCode: item.materialVariant?.code,
+        materialVariantName: item.materialVariant?.name,
         unitName: item.unit?.name
       }));
 
@@ -68,8 +76,13 @@ export class BomItemService {
         return { success: false, message: 'BOM不存在' };
       }
 
-      // 检查物料是否存在
-      if (itemData.materialId) {
+      // 检查物料是否存在（产品或变体至少一个）
+      if (itemData.materialVariantId) {
+        const mv = await prisma.productVariant.findUnique({ where: { id: itemData.materialVariantId } });
+        if (!mv) {
+          return { success: false, message: '物料变体不存在' };
+        }
+      } else if (itemData.materialId) {
         const material = await prisma.product.findUnique({
           where: { id: itemData.materialId }
         });
@@ -77,6 +90,8 @@ export class BomItemService {
         if (!material) {
           return { success: false, message: '物料不存在' };
         }
+      } else {
+        return { success: false, message: '物料或物料变体必须至少选择一个' };
       }
 
       // 检查单位是否存在
@@ -109,27 +124,43 @@ export class BomItemService {
         }
       }
 
-      // 添加BOM物料项
-      const item = await prisma.productBomItem.create({
-        data: {
-          bomId: bomId,
-          materialId: itemData.materialId || '',
-          quantity: itemData.quantity || 0,
-          unitId: itemData.unitId || '',
-          sequence: itemData.sequence || 1,
-          requirementType: itemData.requirementType || 'fixed',
-          isKey: itemData.isKey || false,
-          isPhantom: itemData.isPhantom || false,
-          processInfo: itemData.processInfo || null,
-          remark: itemData.remark || null,
-          effectiveDate: effectiveDate,
-          expiryDate: expiryDate,
-          childBomId: itemData.childBomId || null,
-          createdBy: String((user as any)?.userId ?? (user as any)?.sub ?? (user as any)?.id),
-          updatedBy: String((user as any)?.userId ?? (user as any)?.sub ?? (user as any)?.id),
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
+      const item = await prisma.$transaction(async (tx) => {
+        const currentMax = await tx.productBomItem.aggregate({
+          where: { bomId },
+          _max: { sequence: true }
+        });
+        const desiredSeq = typeof itemData.sequence === 'number' && itemData.sequence > 0
+          ? itemData.sequence
+          : (currentMax._max.sequence ?? 0) + 1;
+
+        await tx.productBomItem.updateMany({
+          where: { bomId, sequence: { gte: desiredSeq } },
+          data: { sequence: { increment: 1 } as any }
+        });
+
+        const created = await tx.productBomItem.create({
+          data: {
+            bomId: bomId,
+            materialId: itemData.materialId || '',
+            materialVariantId: itemData.materialVariantId || null,
+            quantity: itemData.quantity || 0,
+            unitId: itemData.unitId || '',
+            sequence: desiredSeq,
+            requirementType: itemData.requirementType || 'fixed',
+            isKey: itemData.isKey || false,
+            isPhantom: itemData.isPhantom || false,
+            processInfo: itemData.processInfo || null,
+            remark: itemData.remark || null,
+            effectiveDate: effectiveDate,
+            expiryDate: expiryDate,
+            childBomId: itemData.childBomId || null,
+            createdBy: String((user as any)?.userId ?? (user as any)?.sub ?? (user as any)?.id),
+            updatedBy: String((user as any)?.userId ?? (user as any)?.sub ?? (user as any)?.id),
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        });
+        return created;
       });
 
       return { success: true, data: item, message: '物料项添加成功' };
@@ -154,7 +185,12 @@ export class BomItemService {
       }
 
       // 检查物料是否存在
-      if (itemData.materialId) {
+      if (itemData.materialVariantId) {
+        const mv = await prisma.productVariant.findUnique({ where: { id: itemData.materialVariantId } });
+        if (!mv) {
+          return { success: false, message: '物料变体不存在' };
+        }
+      } else if (itemData.materialId) {
         const material = await prisma.product.findUnique({
           where: { id: itemData.materialId }
         });
@@ -162,6 +198,8 @@ export class BomItemService {
         if (!material) {
           return { success: false, message: '物料不存在' };
         }
+      } else {
+        return { success: false, message: '物料或物料变体必须至少选择一个' };
       }
 
       // 检查单位是否存在
@@ -194,25 +232,49 @@ export class BomItemService {
         }
       }
 
-      // 更新BOM物料项
-      const item = await prisma.productBomItem.update({
-        where: { id: itemId },
-        data: {
-          ...(itemData.materialId !== undefined && { materialId: itemData.materialId }),
-          ...(itemData.quantity !== undefined && { quantity: itemData.quantity }),
-          ...(itemData.unitId !== undefined && { unitId: itemData.unitId }),
-          ...(itemData.sequence !== undefined && { sequence: itemData.sequence }),
-          ...(itemData.requirementType !== undefined && { requirementType: itemData.requirementType }),
-          ...(itemData.isKey !== undefined && { isKey: itemData.isKey }),
-          ...(itemData.isPhantom !== undefined && { isPhantom: itemData.isPhantom }),
-          ...(itemData.processInfo !== undefined && { processInfo: itemData.processInfo }),
-          ...(itemData.remark !== undefined && { remark: itemData.remark }),
-          ...(effectiveDate !== null && { effectiveDate }),
-          ...(expiryDate !== null && { expiryDate }),
-          ...(itemData.childBomId !== undefined && { childBomId: itemData.childBomId }),
-          updatedBy: user.id.toString(),
-          updatedAt: new Date()
+      const item = await prisma.$transaction(async (tx) => {
+        const target = await tx.productBomItem.findUnique({ where: { id: itemId } });
+        if (!target) throw new Error('物料项不存在');
+        const bomId = target.bomId;
+
+        if (typeof itemData.sequence === 'number' && itemData.sequence > 0 && itemData.sequence !== target.sequence) {
+          const newSeq = itemData.sequence;
+          const oldSeq = target.sequence;
+          if (newSeq < oldSeq) {
+            await tx.productBomItem.updateMany({
+              where: { bomId, sequence: { gte: newSeq, lt: oldSeq } },
+              data: { sequence: { increment: 1 } as any }
+            });
+          } else {
+            await tx.productBomItem.updateMany({
+              where: { bomId, sequence: { gt: oldSeq, lte: newSeq } },
+              data: { sequence: { decrement: 1 } as any }
+            });
+          }
         }
+
+        const updated = await tx.productBomItem.update({
+          where: { id: itemId },
+          data: {
+            ...(itemData.materialId !== undefined && { materialId: itemData.materialId }),
+            ...(itemData.materialVariantId !== undefined && { materialVariantId: itemData.materialVariantId }),
+            ...(itemData.quantity !== undefined && { quantity: itemData.quantity }),
+            ...(itemData.unitId !== undefined && { unitId: itemData.unitId }),
+            ...(itemData.sequence !== undefined && { sequence: itemData.sequence }),
+            ...(itemData.requirementType !== undefined && { requirementType: itemData.requirementType }),
+            ...(itemData.isKey !== undefined && { isKey: itemData.isKey }),
+            ...(itemData.isPhantom !== undefined && { isPhantom: itemData.isPhantom }),
+            ...(itemData.processInfo !== undefined && { processInfo: itemData.processInfo }),
+            ...(itemData.remark !== undefined && { remark: itemData.remark }),
+            ...(effectiveDate !== null && { effectiveDate }),
+            ...(expiryDate !== null && { expiryDate }),
+            ...(itemData.childBomId !== undefined && { childBomId: itemData.childBomId }),
+            updatedBy: user.id.toString(),
+            updatedAt: new Date()
+          }
+        });
+
+        return updated;
       });
 
       return { success: true, data: item, message: '物料项更新成功' };
@@ -236,9 +298,16 @@ export class BomItemService {
         return { success: false, message: '物料项不存在' };
       }
 
-      // 删除BOM物料项
-      await prisma.productBomItem.delete({
-        where: { id: itemId }
+      await prisma.$transaction(async (tx) => {
+        const bomId = existingItem.bomId;
+        await tx.productBomItem.delete({ where: { id: itemId } });
+        const rest = await tx.productBomItem.findMany({ where: { bomId }, orderBy: { sequence: 'asc' } });
+        for (let i = 0; i < rest.length; i++) {
+          const desired = i + 1;
+          if (rest[i].sequence !== desired) {
+            await tx.productBomItem.update({ where: { id: rest[i].id }, data: { sequence: desired } });
+          }
+        }
       });
 
       return { success: true, message: '物料项删除成功' };
@@ -253,10 +322,17 @@ export class BomItemService {
    */
   async batchDeleteBomItems(itemIds: string[]) {
     try {
-      await prisma.productBomItem.deleteMany({
-        where: {
-          id: {
-            in: itemIds
+      const items = await prisma.productBomItem.findMany({ where: { id: { in: itemIds } }, select: { id: true, bomId: true } });
+      const bomIds = Array.from(new Set(items.map(i => i.bomId)));
+      await prisma.$transaction(async (tx) => {
+        await tx.productBomItem.deleteMany({ where: { id: { in: itemIds } } });
+        for (const bid of bomIds) {
+          const rest = await tx.productBomItem.findMany({ where: { bomId: bid }, orderBy: { sequence: 'asc' } });
+          for (let i = 0; i < rest.length; i++) {
+            const desired = i + 1;
+            if (rest[i].sequence !== desired) {
+              await tx.productBomItem.update({ where: { id: rest[i].id }, data: { sequence: desired } });
+            }
           }
         }
       });
@@ -268,6 +344,155 @@ export class BomItemService {
     }
   }
 
+  /**
+   * 批量同步BOM物料项（事务、幂等）
+   * 输入为期望的物料项集合：
+   * - 带id的视为现有项，若字段有变化则更新；若无变化则跳过
+   * - 不带id的视为新增项，创建
+   * - 现有但未出现在输入集合中的项将被删除
+   * 成功则整体提交，任一错误则整体回滚
+   */
+  async syncBomItems(bomId: string, items: (BomItemFormData & { id?: string })[], user: User) {
+    try {
+      const bom = await prisma.productBom.findUnique({ where: { id: bomId } });
+      if (!bom) {
+        return { success: false, message: 'BOM不存在' };
+      }
+
+      // 预校验：物料/单位/子BOM可选校验
+      for (const item of items) {
+        if (!item.materialId && !item.materialVariantId) {
+          return { success: false, message: '每个物料项必须指定物料或物料变体' };
+        }
+        if (item.unitId) {
+          const unit = await prisma.unit.findUnique({ where: { id: item.unitId } });
+          if (!unit) return { success: false, message: '单位不存在' };
+        }
+        if (item.materialId) {
+          const material = await prisma.product.findUnique({ where: { id: item.materialId } });
+          if (!material) return { success: false, message: '物料不存在' };
+        }
+        if (item.materialVariantId) {
+          const mv = await prisma.productVariant.findUnique({ where: { id: item.materialVariantId } });
+          if (!mv) return { success: false, message: '物料变体不存在' };
+        }
+        if (item.childBomId) {
+          if (item.childBomId === bomId) return { success: false, message: '子BOM不能引用自身' };
+          const child = await prisma.productBom.findUnique({ where: { id: item.childBomId } });
+          if (!child) return { success: false, message: '子BOM不存在' };
+        }
+      }
+
+      // 拉取现有项
+      const existingItems = await prisma.productBomItem.findMany({ where: { bomId } });
+      const existingMap = new Map(existingItems.map(i => [i.id, i]));
+      const payloadIds = new Set(items.filter(i => i.id).map(i => String(i.id)));
+
+      let created = 0;
+      let updated = 0;
+      let deleted = 0;
+      let skipped = 0;
+
+      // 事务执行：更新/新增，然后删除缺失项，最后校正序号
+      await prisma.$transaction(async (tx) => {
+        // 逐项处理新增与更新
+        for (const item of items) {
+          const effectiveDate = item.effectiveDate ? (typeof item.effectiveDate === 'string' ? new Date(item.effectiveDate) : item.effectiveDate) : null;
+          const expiryDate = item.expiryDate ? (typeof item.expiryDate === 'string' ? new Date(item.expiryDate) : item.expiryDate) : null;
+
+          if (item.id) {
+            const existing = existingMap.get(item.id);
+            if (!existing || existing.bomId !== bomId) {
+              throw new Error('物料项不存在或不属于当前BOM');
+            }
+            const changed = (
+              existing.materialId !== item.materialId ||
+              existing.materialVariantId !== item.materialVariantId ||
+              existing.quantity !== item.quantity ||
+              existing.unitId !== item.unitId ||
+              existing.sequence !== item.sequence ||
+              !!existing.isKey !== !!item.isKey ||
+              !!existing.isPhantom !== !!item.isPhantom ||
+              (existing.processInfo ?? undefined) !== (item.processInfo ?? undefined) ||
+              (existing.remark ?? undefined) !== (item.remark ?? undefined) ||
+              (existing.effectiveDate ? existing.effectiveDate.getTime() : undefined) !== (effectiveDate ? effectiveDate.getTime() : undefined) ||
+              (existing.expiryDate ? existing.expiryDate.getTime() : undefined) !== (expiryDate ? expiryDate.getTime() : undefined) ||
+              (existing.childBomId ?? undefined) !== (item.childBomId ?? undefined)
+            );
+            if (changed) {
+              await tx.productBomItem.update({
+                where: { id: existing.id },
+                data: {
+                  materialId: item.materialId,
+                  materialVariantId: item.materialVariantId,
+                  quantity: item.quantity,
+                  unitId: item.unitId,
+                  sequence: item.sequence,
+                  requirementType: item.requirementType,
+                  isKey: item.isKey,
+                  isPhantom: item.isPhantom,
+                  processInfo: item.processInfo,
+                  remark: item.remark,
+                  effectiveDate,
+                  expiryDate,
+                  childBomId: item.childBomId,
+                  updatedBy: String((user as any)?.userId ?? (user as any)?.sub ?? (user as any)?.id),
+                }
+              });
+              updated++;
+            } else {
+              skipped++;
+            }
+          } else {
+            await tx.productBomItem.create({
+              data: {
+                bomId,
+                materialId: item.materialId || '',
+                materialVariantId: item.materialVariantId || null,
+                quantity: item.quantity || 0,
+                unitId: item.unitId || '',
+                sequence: item.sequence,
+                requirementType: item.requirementType || 'fixed',
+                isKey: item.isKey || false,
+                isPhantom: item.isPhantom || false,
+                processInfo: item.processInfo ?? null,
+                remark: item.remark ?? null,
+                effectiveDate,
+                expiryDate,
+                childBomId: item.childBomId ?? null,
+                createdBy: String((user as any)?.userId ?? (user as any)?.sub ?? (user as any)?.id),
+                updatedBy: String((user as any)?.userId ?? (user as any)?.sub ?? (user as any)?.id),
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              }
+            });
+            created++;
+          }
+        }
+
+        // 删除未出现的旧项
+        const toDelete = existingItems.filter(i => !payloadIds.has(i.id));
+        if (toDelete.length > 0) {
+          await tx.productBomItem.deleteMany({ where: { id: { in: toDelete.map(i => i.id) } } });
+          deleted += toDelete.length;
+        }
+
+        // 序号校正（按输入的sequence排序后重排为1..N）
+        const after = await tx.productBomItem.findMany({ where: { bomId }, orderBy: { sequence: 'asc' } });
+        for (let i = 0; i < after.length; i++) {
+          const desired = i + 1;
+          if (after[i].sequence !== desired) {
+            await tx.productBomItem.update({ where: { id: after[i].id }, data: { sequence: desired } });
+          }
+        }
+      });
+
+      return { success: true, data: { created, updated, deleted, skipped }, message: '物料项批量同步完成' };
+    } catch (error) {
+      console.error('批量同步BOM物料项失败:', error);
+      return { success: false, message: '批量同步BOM物料项失败' };
+    }
+  }
   /**
    * 复制BOM物料项到另一个BOM
    */

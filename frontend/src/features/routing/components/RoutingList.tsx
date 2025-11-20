@@ -8,7 +8,8 @@ import type { RoutingInfo, RoutingWorkcenterInfo, WorkcenterOption } from '@zyer
 import type { OperationOption } from '@zyerp/shared';
 import { operationService } from '../../operation/services/operation.service';
 import { routingService } from '../services/routing.service';
-import { useMessage } from '../../../shared/hooks';
+import { useMessage } from '@/shared/hooks';
+import { normalizeTableParams } from '@/shared/utils/normalizeTableParams';
 
 interface RoutingListProps {
   onEdit?: (record: RoutingInfo) => void;
@@ -151,9 +152,10 @@ const RoutingList = React.forwardRef<RoutingListRef, RoutingListProps>(({ onEdit
   // 请求工艺路线列表数据
   const fetchData: ProTableProps<RoutingInfo, { current?: number; pageSize?: number; keyword?: string; active?: string }>['request'] = async (params) => {
     try {
+      const base = normalizeTableParams(params as unknown as import('@/shared/utils/normalizeTableParams').TableParams)
       const response = await routingService.getList({
-        page: params.current,
-        pageSize: params.pageSize,
+        page: base.page,
+        pageSize: base.pageSize,
         keyword: params.keyword as string,
         active: params.active !== undefined ? params.active === 'true' : undefined,
       });

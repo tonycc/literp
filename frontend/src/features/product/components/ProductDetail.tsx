@@ -11,12 +11,13 @@ import {
   Spin,
   Typography,
   Space,
-  Badge
+  Badge,
+  Button
 } from 'antd';
 import type { ProductInfo } from '@zyerp/shared';
 import { PRODUCT_TYPE_MAP, PRODUCT_STATUS_MAP, ACQUISITION_METHOD_MAP } from '@zyerp/shared';
 import { productService } from '../services/product.service';
-import { useMessage } from '../../../shared/hooks';
+import { useMessage } from '@/shared/hooks';
 
 const { Title } = Typography;
 
@@ -29,13 +30,12 @@ interface ProductDetailProps {
 const ProductDetail: React.FC<ProductDetailProps> = ({
   productId,
   visible,
-  onClose
+  onClose,
 }) => {
   const [product, setProduct] = useState<ProductInfo | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const message = useMessage();
 
-  // 获取产品详情
   const fetchProductDetail = async () => {
     if (!productId) return;
     
@@ -112,9 +112,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
       title="产品详情"
       open={visible}
       onCancel={onClose}
-      footer={null}
       width={1200}
-      destroyOnHidden
+      destroyOnClose
+      footer={<Button onClick={onClose}>关闭</Button>}
     >
       <Spin spinning={loading}>
         {product && (

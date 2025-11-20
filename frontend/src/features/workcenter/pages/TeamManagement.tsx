@@ -5,7 +5,7 @@ import type { WorkcenterInfo, CreateWorkcenterRequest, UpdateWorkcenterRequest }
 import WorkcenterList from '../components/WorkcenterList';
 import WorkcenterForm from '../components/WorkcenterForm';
 import { workcenterService } from '../services/workcenter.service';
-import { useMessage } from '../../../shared/hooks';
+import { useMessage } from '@/shared/hooks';
 
 const TeamManagement: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);

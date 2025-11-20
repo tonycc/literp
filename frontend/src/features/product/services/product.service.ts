@@ -1,4 +1,4 @@
-import apiClient from '../../../shared/services/api';
+import apiClient from '@/shared/services/api';
 import type { 
   ProductInfo, 
   ProductFormData, 
@@ -9,7 +9,9 @@ import type {
   ProductImage,
   ProductAlternativeUnit,
   ApiResponse, 
-  PaginatedResponse
+  PaginatedResponse,
+  ProductCreateWithVariantsInput,
+  ProductAttributeLineInput,
 } from '@zyerp/shared';
 
 export type ProductListParams = ProductQueryParams;
@@ -76,8 +78,13 @@ export class ProductService {
   }
 
   // 创建产品
-  async createProduct(data: ProductFormData): Promise<ApiResponse<ProductInfo>> {
+  async createProduct(data: ProductFormData & { attributeLines?: ProductAttributeLineInput[] }): Promise<ApiResponse<ProductInfo>> {
     const response = await apiClient.post<ApiResponse<ProductInfo>>(this.baseUrl, data);
+    return response.data;
+  }
+
+  async createProductWithVariants(data: ProductCreateWithVariantsInput): Promise<ApiResponse<{ product: ProductInfo; variants: ProductInfo[] }>> {
+    const response = await apiClient.post<ApiResponse<{ product: ProductInfo; variants: ProductInfo[] }>>(`${this.baseUrl}/with-variants`, data);
     return response.data;
   }
 
@@ -119,8 +126,8 @@ export class ProductService {
   }
 
   // 获取产品选项（用于下拉选择）
-  async getProductOptions(params?: { categoryId?: string; type?: string; activeOnly?: boolean }): Promise<ApiResponse<Array<{ id: string; code: string; name: string }>>> {
-    const response = await apiClient.get<ApiResponse<Array<{ id: string; code: string; name: string }>>>(`${this.baseUrl}/options`, { params });
+  async getProductOptions(params?: { categoryId?: string; keyword?: string; activeOnly?: boolean }): Promise<ApiResponse<Array<{ id: string; code: string; name: string; specification?: string; unit?: { name: string; symbol: string }; primaryImageUrl?: string }>>> {
+    const response = await apiClient.get<ApiResponse<Array<{ id: string; code: string; name: string; specification?: string; unit?: { name: string; symbol: string }; primaryImageUrl?: string }>>>(`${this.baseUrl}/options`, { params });
     return response.data;
   }
 

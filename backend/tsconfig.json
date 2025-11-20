@@ -18,7 +18,7 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "../",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -27,15 +27,16 @@
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["../shared/src/*"],
-      "@/*": ["./src/*"],
       "@zyerp/shared": ["../shared/src/index"],
-      "@zyerp/shared/*": ["../shared/src/*"]
+      "@zyerp/shared/*": ["../shared/src/*"],
+      "@/*": ["./src/*"]
     },
-    "typeRoots": ["../../node_modules/@types", "./node_modules/@types", "./src/types"],
+    "typeRoots": ["../node_modules/@types", "./node_modules/@types"],
     "types": ["node"]
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "../shared/src/**/*"
   ],
   "exclude": [
     "node_modules",
@@ -43,7 +44,5 @@
     "**/*.test.ts",
     "**/*.spec.ts"
   ],
-  "references": [
-    { "path": "../shared" }
-  ]
+  "references": []
 }

@@ -170,6 +170,7 @@ export interface ProductBom {
   code: string;                     // BOM编码
   name: string;                     // BOM名称
   productId: string;                // 产品ID
+  variantId?: string;               // 变体ID（可选，变体级BOM时使用）
   productCode: string;              // 产品编码
   productName: string;              // 产品名称
   
@@ -212,6 +213,7 @@ export interface ProductBom {
   product?: ProductInfo;            // 产品信息
   baseUnit?: UnitInfo;              // 基准单位信息
   routing?: Routing;                // 工艺路线信息
+  childBomCount?: number;
 }
 
 /**
@@ -220,7 +222,8 @@ export interface ProductBom {
 export interface BomFormData {
   code?: string;                    // BOM编码（新增时可选，编辑时必填）
   name: string;                     // BOM名称
-  productId: string;                // 产品ID
+  productId?: string;               // 产品ID（与variantId二选一，传variantId可不传产品ID）
+  variantId?: string;               // 变体ID（可选，指定为变体级BOM）
   type: BomType;                    // BOM类型
   version: string;                  // 版本号
   status: BomStatus;                // 状态
@@ -241,7 +244,8 @@ export interface BomFormData {
  * BOM物料项表单数据接口
  */
 export interface BomItemFormData {
-  materialId: string;               // 物料ID
+  materialId?: string;              // 物料产品ID（与materialVariantId二选一）
+  materialVariantId?: string;       // 物料变体ID（可选）
   quantity: number;                 // 用量
   unitId: string;                   // 单位ID
   sequence: number;                 // 序号
@@ -259,6 +263,21 @@ export interface BomItemFormData {
 }
 
 /**
+ * 批量同步物料项输入项（允许携带现有项ID以实现幂等与差异识别）
+ */
+export type BomItemSyncItem = BomItemFormData & { id?: string };
+
+/**
+ * 批量同步结果汇总
+ */
+export interface BomItemsSyncSummary {
+  created: number;
+  updated: number;
+  deleted: number;
+  skipped: number;
+}
+
+/**
  * BOM查询参数接口
  */
 export interface BomQueryParams {
@@ -268,6 +287,7 @@ export interface BomQueryParams {
   code?: string;                    // BOM编码
   name?: string;                    // BOM名称
   productId?: string;               // 产品ID
+  variantId?: string;               // 变体ID（可选）
   type?: BomType;                   // BOM类型
   status?: BomStatus;               // 状态
   version?: string;                 // 版本
@@ -363,6 +383,20 @@ export interface BomExportData {
   remark?: string;                  // 备注
   createdAt: string;                // 创建时间
   updatedAt: string;                // 更新时间
+}
+
+/**
+ * BOM树节点（母子结构展示）
+ */
+export interface BomTreeNode {
+  id: string;
+  code: string;
+  name: string;
+  quantity: number;
+  unit?: string;
+  type?: string;
+  isPhantom?: boolean;
+  children?: BomTreeNode[];
 }
 
 /**

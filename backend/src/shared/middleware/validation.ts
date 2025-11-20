@@ -4,7 +4,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import Joi from 'joi';
-import { createErrorResponse } from '@zyerp/shared';
+import { createErrorResponse } from '@zyerp/shared/utils';
 
 // 验证中间件
 export const validateRequest = (schema: Joi.ObjectSchema) => {

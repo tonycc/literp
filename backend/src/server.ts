@@ -18,6 +18,8 @@ import {
 import routes from './routes';
 import { webSocketService } from './features/communication/notification/websocket/websocket.service';
 import { emailQueueService } from './features/communication/notification/email/email-queue.service';
+import path from 'path';
+import fs from 'fs';
 
 const startServer = async () => {
   try {
@@ -34,13 +36,20 @@ const startServer = async () => {
     // 安全中间件
     app.use(corsMiddleware);
     app.use(helmetMiddleware);
-    app.use(rateLimitMiddleware);
+    if (config.server.nodeEnv !== 'development') {
+      app.use(rateLimitMiddleware);
+    }
     app.use(compressionMiddleware);
 
     // 请求日志（仅开发环境）
     if (config.server.nodeEnv === 'development') {
       app.use(requestLogger);
     }
+
+    // 静态资源：上传文件
+    const uploadsDir = path.resolve(process.cwd(), 'uploads');
+    try { fs.mkdirSync(uploadsDir, { recursive: true }); } catch {}
+    app.use('/uploads', express.static(uploadsDir));
 
     // API 路由
     app.use('/api/v1', routes);

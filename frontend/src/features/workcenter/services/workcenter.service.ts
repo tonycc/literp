@@ -1,4 +1,4 @@
-import apiClient from '../../../shared/services/api';
+import apiClient from '@/shared/services/api';
 import type { 
   WorkcenterApi,
   UpdateWorkcenterRequest,
@@ -111,7 +111,7 @@ class WorkcenterService implements WorkcenterApi {
   /**
    * 更新排班信息
    */
-  async updateShiftSchedule(_id: string, _schedule: any): Promise<ApiResponse<WorkcenterInfo>> {
+  async updateShiftSchedule(_id: string, _schedule: Record<string, unknown>): Promise<ApiResponse<WorkcenterInfo>> {
     const response = await apiClient.put<ApiResponse<WorkcenterInfo>>(`${this.baseUrl}/${_id}/schedule`, { schedule: _schedule });
     return response.data;
   }
@@ -119,8 +119,8 @@ class WorkcenterService implements WorkcenterApi {
   /**
    * 获取排班信息
    */
-  async getShiftSchedule(_id: string): Promise<ApiResponse<{ schedule: any }>> {
-    const response = await apiClient.get<ApiResponse<{ schedule: any }>>(`${this.baseUrl}/${_id}/schedule`);
+  async getShiftSchedule(_id: string): Promise<ApiResponse<{ schedule: Record<string, unknown> }>> {
+    const response = await apiClient.get<ApiResponse<{ schedule: Record<string, unknown> }>>(`${this.baseUrl}/${_id}/schedule`);
     return response.data;
   }
 }

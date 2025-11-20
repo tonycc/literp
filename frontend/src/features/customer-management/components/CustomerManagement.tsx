@@ -2,16 +2,10 @@
  * 客户信息管理主页面组件
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { AddCustomerModal } from './AddCustomerModal';
-import {
-  Button,
-  Space,
-  Tag,
-  message,
-  Tooltip,
-  Modal,
-} from 'antd';
+import CustomerDetail from './CustomerDetail';
+import { Button, Space, Tag, Tooltip } from 'antd';
 import type { ProColumns, ActionType } from '@ant-design/pro-components';
 import { ProTable } from '@ant-design/pro-components';
 import {
@@ -25,119 +19,53 @@ import {
   BankOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
-import type {
-  Customer,
-  CustomerCategory,
-  CustomerStatus,
-  CreditLevel,
-} from '../types';
-
-// 模拟数据
-const mockData: Customer[] = [
-  {
-    id: '1',
-    code: 'CUS001',
-    name: '深圳市华为技术有限公司',
-    category: 'enterprise' as CustomerCategory,
-    contactPerson: '张经理',
-    phone: '13800138001',
-    email: 'zhang@huawei.com',
-    address: '深圳市龙岗区华为基地',
-    creditLevel: 'AAA' as CreditLevel,
-    creditLimit: 5000000,
-    status: 'active' as CustomerStatus,
-    taxNumber: '91440300708461136T',
-    bankAccount: '6225880123456789',
-    bankName: '中国银行深圳分行',
-    website: 'https://www.huawei.com',
-    industry: '通信设备制造',
-    establishedDate: '1987-09-15',
-    registeredCapital: 4040000000,
-    businessLicense: '91440300708461136T',
-    legalRepresentative: '任正非',
-    remark: '重要客户，优先处理',
-    createdAt: '2024-01-15 10:30:00',
-    updatedAt: '2024-01-20 14:20:00',
-    createdBy: 'admin',
-    updatedBy: 'admin',
-  },
-  {
-    id: '2',
-    code: 'CUS002',
-    name: '北京小米科技有限责任公司',
-    category: 'enterprise' as CustomerCategory,
-    contactPerson: '李总监',
-    phone: '13900139002',
-    email: 'li@xiaomi.com',
-    address: '北京市海淀区小米科技园',
-    creditLevel: 'AA' as CreditLevel,
-    creditLimit: 3000000,
-    status: 'active' as CustomerStatus,
-    taxNumber: '91110108551385082Q',
-    bankAccount: '6225880987654321',
-    bankName: '招商银行北京分行',
-    website: 'https://www.mi.com',
-    industry: '消费电子',
-    establishedDate: '2010-03-03',
-    registeredCapital: 1850000000,
-    businessLicense: '91110108551385082Q',
-    legalRepresentative: '雷军',
-    remark: '长期合作伙伴',
-    createdAt: '2024-01-16 09:15:00',
-    updatedAt: '2024-01-18 16:45:00',
-    createdBy: 'admin',
-    updatedBy: 'admin',
-  },
-];
+import type { Customer, CustomerCategory, CustomerStatus, CreditLevel, CustomerListParams } from '../types';
+import { CUSTOMER_CATEGORY_VALUE_ENUM_PRO, CUSTOMER_CREDIT_LEVEL_VALUE_ENUM_PRO, CUSTOMER_STATUS_VALUE_ENUM_PRO } from '@/shared/constants/customer';
+import { customerService } from '../services/customer.service';
+import { normalizeTableParams } from '@/shared/utils/normalizeTableParams';
+import { useMessage } from '@/shared/hooks';
+import { useCustomer } from '../hooks/useCustomer';
 
 const CustomerManagement: React.FC = () => {
-  const [data, setData] = useState<Customer[]>(mockData);
+  const message = useMessage();
+
   const [loading, setLoading] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailCustomer, setDetailCustomer] = useState<Customer | null>(null);
   const actionRef = useRef<ActionType>(null);
 
-  // 加载数据
-  const loadData = async () => {
+  const {
+    handleDelete: hookHandleDelete,
+    handleBatchDelete: hookHandleBatchDelete,
+  } = useCustomer(() => actionRef.current?.reload?.());
+
+  const request = async (params: Record<string, unknown>) => {
     setLoading(true);
     try {
-      // 这里应该调用API获取数据
-      // const response = await customerService.getCustomerList(searchParams);
-      // setData(response.data);
-      
-      // 模拟API调用延迟
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setData(mockData);
+      const base = normalizeTableParams(params);
+      const query: CustomerListParams = {
+        page: base.page,
+        pageSize: base.pageSize,
+        keyword: (params as Record<string, unknown>).name as string | undefined,
+        category: (params as Record<string, unknown>).category as string | undefined,
+        status: (params as Record<string, unknown>).status as string | undefined,
+        creditLevel: (params as Record<string, unknown>).creditLevel as string | undefined,
+      };
+      const res = await customerService.getCustomerList(query);
+      return { data: res.data, success: res.success, total: res.pagination.total };
     } catch {
       message.error('加载客户数据失败');
+      return { data: [], success: false, total: 0 };
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const handleDelete = (id: string) => hookHandleDelete(id);
 
-  // 处理删除
-  const handleDelete = async (id: string) => {
-    try {
-      // 这里应该调用API删除数据
-      // await customerService.deleteCustomer(id);
-      
-      console.log('删除客户:', id);
-      message.success('删除成功');
-      loadData();
-    } catch {
-      message.error('删除失败');
-    }
-  };
-
-  // 导出数据
-  const handleExport = () => {
-    // 这里应该实现导出功能
-    message.info('导出功能开发中...');
-  };
 
   // 获取状态标签
   const getStatusTag = (status: CustomerStatus) => {
@@ -190,7 +118,7 @@ const CustomerManagement: React.FC = () => {
       key: 'code',
       width: 120,
       fixed: 'left',
-      search: false
+      hideInSearch: true
     },
     {
       title: '客户名称',
@@ -198,15 +126,12 @@ const CustomerManagement: React.FC = () => {
       key: 'name',
       width: 200,
       fixed: 'left',
-      ellipsis: {
-        showTitle: false,
-      },
+      ellipsis: true,
       render: (_, record) => (
         <Tooltip placement="topLeft" title={record.name}>
           {record.name}
         </Tooltip>
       ),
-      search: true
     },
     {
       title: '客户分类',
@@ -215,42 +140,31 @@ const CustomerManagement: React.FC = () => {
       width: 120,
       render: (_, record) => getCategoryTag(record.category),
       valueType: 'select',
-      valueEnum: {
-        enterprise: { text: '企业客户', status: 'Default' },
-        individual: { text: '个人客户', status: 'Success' },
-        government: { text: '政府客户', status: 'Warning' },
-        institution: { text: '机构客户', status: 'Processing' },
-      },
-      search: true
+      valueEnum: CUSTOMER_CATEGORY_VALUE_ENUM_PRO,
     },
     {
       title: '联系人',
       dataIndex: 'contactPerson',
       key: 'contactPerson',
       width: 100,
-      search: true
     },
     {
       title: '联系电话',
       dataIndex: 'phone',
       key: 'phone',
       width: 130,
-      search: true
     },
     {
       title: '邮箱',
       dataIndex: 'email',
       key: 'email',
       width: 180,
-      ellipsis: {
-        showTitle: false,
-      },
+      ellipsis: true,
       render: (_, record) => (
         <Tooltip placement="topLeft" title={record.email}>
           {record.email}
         </Tooltip>
       ),
-      search: true
     },
     {
       title: '信用等级',
@@ -259,16 +173,7 @@ const CustomerManagement: React.FC = () => {
       width: 100,
       render: (_, record) => getCreditLevelTag(record.creditLevel),
       valueType: 'select',
-      valueEnum: {
-        AAA: { text: 'AAA', status: 'Success' },
-        AA: { text: 'AA', status: 'Processing' },
-        A: { text: 'A', status: 'Default' },
-        BBB: { text: 'BBB', status: 'Warning' },
-        BB: { text: 'BB', status: 'Error' },
-        B: { text: 'B', status: 'Error' },
-        C: { text: 'C', status: 'Error' },
-      },
-      search: true
+      valueEnum: CUSTOMER_CREDIT_LEVEL_VALUE_ENUM_PRO,
     },
     {
       title: '信用额度',
@@ -284,13 +189,7 @@ const CustomerManagement: React.FC = () => {
       width: 100,
       render: (_, record) => getStatusTag(record.status),
       valueType: 'select',
-      valueEnum: {
-        active: { text: '活跃', status: 'Success' },
-        inactive: { text: '非活跃', status: 'Default' },
-        suspended: { text: '暂停', status: 'Warning' },
-        blacklisted: { text: '黑名单', status: 'Error' },
-      },
-      search: true
+      valueEnum: CUSTOMER_STATUS_VALUE_ENUM_PRO,
     },
     {
       title: '创建时间',
@@ -299,7 +198,7 @@ const CustomerManagement: React.FC = () => {
       width: 160,
       sorter: true,
       valueType: 'dateTime',
-      search: false
+      hideInSearch: true
     },
     {
       title: '操作',
@@ -312,9 +211,18 @@ const CustomerManagement: React.FC = () => {
           <Button
             type="link"
             icon={<EyeOutlined />}
-            onClick={() => {
-              // 这里应该打开详情页面
-              message.info('查看详情功能开发中...');
+            onClick={async () => {
+              try {
+                const res = await customerService.getById(record.id);
+                if (res.success) {
+                  setDetailCustomer(res.data);
+                  setDetailOpen(true);
+                } else {
+                  message.error(res.message || '加载失败');
+                }
+              } catch {
+                message.error('加载失败');
+              }
             }}
           />
         </Tooltip>,
@@ -323,8 +231,8 @@ const CustomerManagement: React.FC = () => {
             type="link"
             icon={<EditOutlined />}
             onClick={() => {
-              // 这里应该打开编辑表单
-              message.info('编辑功能开发中...');
+              setEditingCustomerId(record.id);
+              setAddModalOpen(true);
             }}
           />
         </Tooltip>,
@@ -333,15 +241,7 @@ const CustomerManagement: React.FC = () => {
             type="link"
             danger
             icon={<DeleteOutlined />}
-            onClick={() => {
-              Modal.confirm({
-                title: '确定要删除这个客户吗？',
-                content: '删除后无法恢复，请确认操作。',
-                okText: '确定',
-                cancelText: '取消',
-                onOk: () => handleDelete(record.id)
-              });
-            }}
+            onClick={() => handleDelete(record.id)}
           />
         </Tooltip>
       ],
@@ -356,27 +256,10 @@ const CustomerManagement: React.FC = () => {
     },
   };
 
-  // 批量删除
   const handleBatchDelete = async () => {
-    Modal.confirm({
-      title: '确定要删除选中的客户吗？',
-      content: `将删除 ${selectedRowKeys.length} 个客户，删除后无法恢复，请确认操作。`,
-      okText: '确定',
-      cancelText: '取消',
-      onOk: async () => {
-        try {
-          // 这里应该调用API批量删除数据
-          // await customerService.batchDeleteCustomers(selectedRowKeys as string[]);
-          
-          console.log('批量删除客户:', selectedRowKeys);
-          message.success('批量删除成功');
-          setSelectedRowKeys([]);
-          loadData();
-        } catch {
-          message.error('批量删除失败');
-        }
-      }
-    });
+    const ids = selectedRowKeys as string[];
+    await hookHandleBatchDelete(ids);
+    setSelectedRowKeys([]);
   };
 
   return (
@@ -385,7 +268,7 @@ const CustomerManagement: React.FC = () => {
         <ProTable<Customer>
           headerTitle="客户信息管理"
           columns={columns}
-          dataSource={data}
+          request={request}
           rowKey="id"
           loading={loading}
           actionRef={actionRef}
@@ -408,7 +291,6 @@ const CustomerManagement: React.FC = () => {
               key="export"
               icon={<ExportOutlined />}
               onClick={() => {
-                // 这里应该实现导出功能
                 message.info('导出功能开发中...');
               }}
             >
@@ -456,14 +338,27 @@ const CustomerManagement: React.FC = () => {
         />
 
       {/* 新增客户弹窗 */}
-      <AddCustomerModal
-        open={addModalOpen}
-        onCancel={() => setAddModalOpen(false)}
-        onSuccess={() => {
-          setAddModalOpen(false);
-          loadData(); // 刷新列表数据
-        }}
-      />
+  <AddCustomerModal
+    open={addModalOpen}
+    onCancel={() => {
+      setAddModalOpen(false);
+      setEditingCustomerId(null);
+    }}
+    onSuccess={() => {
+      setAddModalOpen(false);
+      setEditingCustomerId(null);
+      actionRef.current?.reload?.();
+    }}
+    customerId={editingCustomerId || undefined}
+  />
+  <CustomerDetail
+    open={detailOpen}
+    customer={detailCustomer}
+    onClose={() => {
+      setDetailOpen(false);
+      setDetailCustomer(null);
+    }}
+  />
     </div>
   );
 };

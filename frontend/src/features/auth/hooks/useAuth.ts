@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
-import type { AuthContextType } from './AuthProvider';
+import type { AuthContextType } from '@zyerp/shared';
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);

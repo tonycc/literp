@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { useMessage } from '../../../shared/hooks';
+import { useMessage } from '@/shared/hooks';
 import { routingService } from '../services/routing.service';
 import type { 
   RoutingInfo, 
@@ -153,19 +153,19 @@ export const useRouting = () => {
   const handlePageChange = useCallback((newPage: number, newPageSize: number) => {
     setPage(newPage);
     setPageSize(newPageSize);
-    fetchRoutings({ page: newPage, pageSize: newPageSize });
+    void fetchRoutings({ page: newPage, pageSize: newPageSize });
   }, [fetchRoutings]);
 
   // 搜索处理
   const handleSearch = useCallback((keyword: string) => {
     setPage(1); // 搜索时重置到第一页
-    fetchRoutings({ keyword, page: 1 });
+    void fetchRoutings({ keyword, page: 1 });
   }, [fetchRoutings]);
 
   // 重置搜索
   const handleResetSearch = useCallback(() => {
     setPage(1);
-    fetchRoutings({ keyword: undefined, page: 1 });
+    void fetchRoutings({ keyword: undefined, page: 1 });
   }, [fetchRoutings]);
 
   // 返回接口

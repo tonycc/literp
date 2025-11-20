@@ -1,4 +1,4 @@
-import type { Request, Response, NextFunction } from 'express';
+import type { Request, Response } from 'express';
 import { ProductService } from './product.service';
 import { BaseController } from '../../../shared/controllers/base.controller';
 import { ErrorHandler } from '../../../shared/decorators/error-handler';
@@ -27,11 +27,19 @@ export class ProductController extends BaseController {
     this.success(res, product, '产品创建成功');
   }
 
+  @ErrorHandler
+  async createProductWithVariants(req: Request, res: Response): Promise<void> {
+    const data: ProductFormData & { variants?: Array<{ name: string; code: string; barcode?: string; variantAttributes?: Array<{ name: string; value: string }> }>; variantGenerateAttributes?: Record<string, string[]> | Array<{ attributeName: string; values: string[] }> } = req.body as any;
+    const userId = this.getUserId(req);
+    const result = await this.productService.createProductWithVariants(data as any, userId);
+    this.success(res, result, '产品及变体创建成功');
+  }
+
   /**
    * 获取产品列表
    */
   @ErrorHandler
-  async getProducts(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getProducts(req: Request, res: Response): Promise<void> {
     const paginationParams = this.parsePaginationParams(req);
     const params: ProductQueryParams = {
       page: paginationParams.page,
@@ -59,7 +67,7 @@ export class ProductController extends BaseController {
    * 根据ID获取产品详情
    */
   @ErrorHandler
-  async getProductById(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getProductById(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
     
     const product = await this.productService.getProductById(id);
@@ -71,7 +79,7 @@ export class ProductController extends BaseController {
    * 根据编码获取产品详情
    */
   @ErrorHandler
-  async getProductByCode(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getProductByCode(req: Request, res: Response): Promise<void> {
     const { code } = req.params;
     
     const product = await this.productService.getProductByCode(code);
@@ -80,10 +88,24 @@ export class ProductController extends BaseController {
   }
 
   /**
+   * 获取产品选项（用于下拉选择）
+   */
+  @ErrorHandler
+  async getProductOptions(req: Request, res: Response): Promise<void> {
+    const params = {
+      keyword: req.query.keyword as string,
+      categoryId: req.query.categoryId as string,
+      activeOnly: this.parseBooleanParam(req.query.activeOnly),
+    };
+    const options = await this.productService.getProductOptions(params);
+    this.success(res, options, '获取产品选项成功');
+  }
+
+  /**
    * 更新产品
    */
   @ErrorHandler
-  async updateProduct(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async updateProduct(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
     const data: Partial<ProductFormData> = req.body;
     const userId = this.getUserId(req);
@@ -97,7 +119,7 @@ export class ProductController extends BaseController {
    * 删除产品
    */
   @ErrorHandler
-  async deleteProduct(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async deleteProduct(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
     const userId = this.getUserId(req);
     
@@ -110,7 +132,7 @@ export class ProductController extends BaseController {
    * 切换产品状态
    */
   @ErrorHandler
-  async toggleProductStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async toggleProductStatus(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
     const userId = this.getUserId(req);
     
@@ -123,7 +145,7 @@ export class ProductController extends BaseController {
    * 批量删除产品
    */
   @ErrorHandler
-  async batchDeleteProducts(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async batchDeleteProducts(req: Request, res: Response): Promise<void> {
     const { ids } = req.body;
     const userId = this.getUserId(req);
     
@@ -143,7 +165,7 @@ export class ProductController extends BaseController {
    * 批量更新产品状态
    */
   @ErrorHandler
-  async batchUpdateProductStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async batchUpdateProductStatus(req: Request, res: Response): Promise<void> {
     const { ids, status } = req.body;
     const userId = this.getUserId(req);
     
@@ -170,7 +192,7 @@ export class ProductController extends BaseController {
    * 检查产品编码是否可用
    */
   @ErrorHandler
-  async checkProductCode(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async checkProductCode(req: Request, res: Response): Promise<void> {
     const { code } = req.params;
     const { excludeId } = req.query;
     
@@ -193,7 +215,7 @@ export class ProductController extends BaseController {
    * 获取产品规格参数
    */
   @ErrorHandler
-  async getProductSpecifications(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getProductSpecifications(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
     const specifications = await this.productService.getProductSpecifications(id);
     this.success(res, specifications, '获取产品规格参数成功');
@@ -203,7 +225,7 @@ export class ProductController extends BaseController {
    * 更新产品规格参数
    */
   @ErrorHandler
-  async updateProductSpecifications(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async updateProductSpecifications(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
     const specifications = req.body.specifications;
     const result = await this.productService.updateProductSpecifications(id, specifications);
@@ -214,7 +236,7 @@ export class ProductController extends BaseController {
    * 获取产品图片
    */
   @ErrorHandler
-  async getProductImages(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getProductImages(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
     const images = await this.productService.getProductImages(id);
     this.success(res, images, '获取产品图片成功');
@@ -224,7 +246,7 @@ export class ProductController extends BaseController {
    * 上传产品图片
    */
   @ErrorHandler
-  async uploadProductImage(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async uploadProductImage(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
     const imageData = req.body;
     const result = await this.productService.addProductImage(id, imageData);
@@ -235,7 +257,7 @@ export class ProductController extends BaseController {
    * 删除产品图片
    */
   @ErrorHandler
-  async deleteProductImage(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async deleteProductImage(req: Request, res: Response): Promise<void> {
     const { id, imageId } = req.params;
     await this.productService.deleteProductImage(id, imageId);
     this.success(res, null, '删除产品图片成功');
@@ -245,7 +267,7 @@ export class ProductController extends BaseController {
    * 获取产品文档
    */
   @ErrorHandler
-  async getProductDocuments(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getProductDocuments(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
     const documents = await this.productService.getProductDocuments(id);
     this.success(res, documents, '获取产品文档成功');
@@ -255,7 +277,7 @@ export class ProductController extends BaseController {
    * 上传产品文档
    */
   @ErrorHandler
-  async uploadProductDocument(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async uploadProductDocument(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
     const documentData = req.body;
     const result = await this.productService.addProductDocument(id, documentData);
@@ -266,7 +288,7 @@ export class ProductController extends BaseController {
    * 删除产品文档
    */
   @ErrorHandler
-  async deleteProductDocument(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async deleteProductDocument(req: Request, res: Response): Promise<void> {
     const { id, documentId } = req.params;
     await this.productService.deleteProductDocument(id, documentId);
     this.success(res, null, '删除产品文档成功');
@@ -276,7 +298,7 @@ export class ProductController extends BaseController {
    * 导出产品数据
    */
   @ErrorHandler
-  async exportProducts(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async exportProducts(req: Request, res: Response): Promise<void> {
     const paginationParams = this.parsePaginationParams(req);
     const queryParams: ProductQueryParams = {
       page: paginationParams.page,
@@ -309,7 +331,7 @@ export class ProductController extends BaseController {
    * 导入产品数据
    */
   @ErrorHandler
-  async importProducts(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async importProducts(req: Request, res: Response): Promise<void> {
     const file = req.file;
     if (!file) {
       return this.error(res, '请上传文件', 'FILE_REQUIRED');
@@ -323,7 +345,7 @@ export class ProductController extends BaseController {
    * 获取导入模板
    */
   @ErrorHandler
-  async getImportTemplate(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getImportTemplate(req: Request, res: Response): Promise<void> {
     const format = req.query.format as string || 'excel';
     const template = await this.productService.getImportTemplate(format);
     

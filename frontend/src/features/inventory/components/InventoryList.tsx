@@ -5,6 +5,7 @@ import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import type { ProductStockInfo } from '@zyerp/shared';
 import { inventoryService } from '../services/inventory.service';
+import { normalizeTableParams } from '@/shared/utils/normalizeTableParams';
 
 interface InventoryListProps {
   onAdd?: () => void;
@@ -104,7 +105,8 @@ const InventoryList: React.FC<InventoryListProps> = ({
     <ProTable<ProductStockInfo>
       columns={columns}
       request={async (params) => {
-        const response = await inventoryService.getList(params);
+        const base = normalizeTableParams(params as any)
+        const response = await inventoryService.getList({ current: base.page, pageSize: base.pageSize, ...(params as any) });
         return {
           data: response.data,
           success: response.success,

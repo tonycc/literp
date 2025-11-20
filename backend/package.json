@@ -21,8 +21,8 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
     "db:export-seed": "tsx scripts/export-seed.ts",
-    "inventory:init": "tsx scripts/init-product-stocks.ts",
-    "sales:init": "tsx scripts/init-sales-order.ts"
+    "sales:init": "tsx scripts/init-sales-order.ts",
+    "stock:init-variants": "tsx scripts/init-variant-stock.ts"
   },
   "keywords": [
     "express",
@@ -34,11 +34,16 @@
   "author": "Fennec Team",
   "license": "MIT",
   "dependencies": {
+    "@nestjs/common": "^11.1.8",
+    "@nestjs/core": "^11.1.8",
+    "@nestjs/platform-express": "^11.1.8",
+    "@nestjs/swagger": "^11.2.1",
     "@prisma/client": "^5.7.0",
     "@types/multer": "^2.0.0",
     "@types/socket.io": "^3.0.1",
-    "@zyerp/shared": "*",
+    "@zyerp/shared": "workspace:*",
     "bcryptjs": "^2.4.3",
+    "class-validator": "^0.14.2",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -49,7 +54,8 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "nodemailer": "^7.0.9",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -59,6 +65,8 @@
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^20.19.24",
     "@types/nodemailer": "^7.0.2",
+    "@types/swagger-ui-express": "^4.1.8",
+    "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "eslint": "^8.57.1",

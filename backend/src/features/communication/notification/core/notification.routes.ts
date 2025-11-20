@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authenticateToken, requireRoles } from '../../../../shared/middleware';
 import * as notificationController from './notification.controller';
 
-const router = Router();
+const router: import('express').Router = Router();
 
 // 所有通知路由都需要认证
 router.use(authenticateToken);

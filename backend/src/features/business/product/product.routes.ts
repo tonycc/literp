@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { ProductController } from './product.controller';
 import { authenticateToken } from '../../../shared/middleware/auth';
 
-const router = Router();
+const router: import('express').Router = Router();
 const productController = new ProductController();
 
 // 应用认证中间件
@@ -14,9 +14,12 @@ router.use(authenticateToken);
 
 // 创建产品
 router.post('/', productController.createProduct.bind(productController));
+router.post('/with-variants', productController.createProductWithVariants.bind(productController));
 
 // 获取产品列表
 router.get('/', productController.getProducts.bind(productController));
+// 产品选项（用于下拉选择）
+router.get('/options', productController.getProductOptions?.bind(productController));
 
 // 检查产品编码是否可用 (需要在 /:id 之前定义)
 router.get('/check-code/:code', productController.checkProductCode.bind(productController));

@@ -7,14 +7,14 @@ import '@testing-library/jest-dom'
 import { vi } from 'vitest'
 
 // 模拟 window.matchMedia
-Object.defineProperty(window, 'matchMedia', {
+Object.defineProperty(globalThis.window, 'matchMedia', {
   writable: true,
-  value: vi.fn().mockImplementation((query) => ({
+  value: vi.fn().mockImplementation((query: string) => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: vi.fn(), // 弃用
-    removeListener: vi.fn(), // 弃用
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
     dispatchEvent: vi.fn(),
@@ -22,23 +22,34 @@ Object.defineProperty(window, 'matchMedia', {
 })
 
 // 模拟 ResizeObserver
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}))
+Object.defineProperty(globalThis, 'ResizeObserver', {
+  writable: true,
+  value: vi.fn().mockImplementation(() => ({
+    observe: vi.fn(),
+    unobserve: vi.fn(),
+    disconnect: vi.fn(),
+  })),
+})
 
 // 模拟 IntersectionObserver
-global.IntersectionObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}))
+Object.defineProperty(globalThis, 'IntersectionObserver', {
+  writable: true,
+  value: vi.fn().mockImplementation(() => ({
+    observe: vi.fn(),
+    unobserve: vi.fn(),
+    disconnect: vi.fn(),
+  })),
+})
 
 // 模拟 URL.createObjectURL
-global.URL.createObjectURL = vi.fn(() => 'mock-url')
-global.URL.revokeObjectURL = vi.fn()
+Object.defineProperty(globalThis, 'URL', {
+  writable: true,
+  value: {
+    createObjectURL: vi.fn(() => 'mock-url'),
+    revokeObjectURL: vi.fn(),
+  },
+})
 
 // 忽略未实现的 Web API
-global.fetch = vi.fn()
-console.warn = vi.fn()
+Object.defineProperty(globalThis, 'fetch', { writable: true, value: vi.fn() })
+vi.spyOn(console, 'warn').mockImplementation(() => {})

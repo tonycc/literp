@@ -2,7 +2,7 @@
  * 文件上传服务
  */
 
-import apiClient from '../../../shared/services/api';
+import apiClient from '@/shared/services/api';
 
 export interface UploadedFile {
   id: string;

@@ -14,8 +14,8 @@ export class BomCrudService {
       if (!bomData.name) {
         return { success: false, message: 'BOM名称不能为空' };
       }
-      if (!bomData.productId) {
-        return { success: false, message: '产品ID不能为空' };
+      if (!bomData.productId && !bomData.variantId) {
+        return { success: false, message: '产品ID或变体ID至少需要一个' };
       }
       if (!bomData.type) {
         // 缺少BOM类型时使用默认类型
@@ -25,9 +25,9 @@ export class BomCrudService {
         // 缺少版本时使用默认版本
         bomData.version = 'V1.0';
       }
-      // 缺少状态时默认草稿
+      // 缺少状态时默认启用
       if (!bomData.status) {
-        bomData.status = 'draft' as any;
+        bomData.status = 'active' as any;
       }
       // 缺少基准数量时默认 1
       if (bomData.baseQuantity === undefined || bomData.baseQuantity === null) {
@@ -64,9 +64,15 @@ export class BomCrudService {
       }
 
       // 检查产品是否存在
-      const product = await prisma.product.findUnique({
-        where: { id: bomData.productId }
-      });
+      let productId = bomData.productId || '';
+      if (bomData.variantId && !productId) {
+        const variant = await prisma.productVariant.findUnique({ where: { id: bomData.variantId } });
+        if (!variant) {
+          return { success: false, message: '变体不存在' };
+        }
+        productId = variant.productId;
+      }
+      const product = await prisma.product.findUnique({ where: { id: productId } });
 
       if (!product) {
         return { success: false, message: '产品不存在' };
@@ -82,7 +88,7 @@ export class BomCrudService {
 
       // 生成或规范化BOM编码
       const normalizedCode = (bomData.code || '').trim();
-      const code = normalizedCode || await this.generateBomCode(bomData.productId);
+      const code = normalizedCode || await this.generateBomCode(productId);
 
       // 检查BOM编码是否已存在
       const existingBom = await prisma.productBom.findUnique({
@@ -96,36 +102,67 @@ export class BomCrudService {
       // 如果设置为默认BOM，需要将该产品的其他BOM设置为非默认
       if (bomData.isDefault) {
         await prisma.productBom.updateMany({
-          where: { productId: bomData.productId },
+          where: bomData.variantId ? { variantId: bomData.variantId } : { productId },
           data: { isDefault: false }
         });
       }
 
-      // 创建BOM
-      const newBom = await prisma.productBom.create({
-        data: {
-          code,
-          name: bomData.name,
-          productId: bomData.productId,
-          type: bomData.type || 'production',
-          version: bomData.version,
-          status: bomData.status || 'draft',
-          isDefault: bomData.isDefault || false,
-          baseQuantity: bomData.baseQuantity ?? 1,
-          baseUnitId: bomData.baseUnitId,
-          routingId: bomData.routingId || null,
-          effectiveDate: effectiveDate,
-          expiryDate: expiryDate,
-          description: bomData.description || null,
-          remark: bomData.remark || null,
-          createdBy: userPayload.userId.toString(),
-        updatedBy: userPayload.userId.toString(),
-          createdAt: new Date(),
-          updatedAt: new Date()
+      const result = await prisma.$transaction(async (tx) => {
+        const created = await tx.productBom.create({
+          data: {
+            code,
+            name: bomData.name,
+            productId: productId,
+            variantId: bomData.variantId || null,
+            type: bomData.type || 'production',
+            version: bomData.version,
+            status: bomData.status || 'active',
+            isDefault: bomData.isDefault || false,
+            baseQuantity: bomData.baseQuantity ?? 1,
+            baseUnitId: bomData.baseUnitId,
+            routingId: bomData.routingId || null,
+            effectiveDate: effectiveDate,
+            expiryDate: expiryDate,
+            description: bomData.description || null,
+            remark: bomData.remark || null,
+            createdBy: userPayload.userId.toString(),
+            updatedBy: userPayload.userId.toString(),
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        });
+
+        if (Array.isArray(bomData.items) && bomData.items.length > 0) {
+          const items = bomData.items
+            .filter((it: any) => it && (it.materialId || it.materialVariantId) && it.unitId && it.quantity != null)
+            .map((it: any, i: number) => ({
+              bomId: created.id,
+              materialId: it.materialId ?? null,
+              materialVariantId: it.materialVariantId ?? null,
+              quantity: Number(it.quantity) || 0,
+              unitId: it.unitId,
+              sequence: typeof it.sequence === 'number' ? it.sequence : i + 1,
+              requirementType: it.requirementType || 'fixed',
+              isKey: !!it.isKey,
+              isPhantom: !!it.isPhantom,
+              processInfo: it.processInfo ?? null,
+              remark: it.remark ?? null,
+              effectiveDate: it.effectiveDate ? new Date(it.effectiveDate) : null,
+              expiryDate: it.expiryDate ? new Date(it.expiryDate) : null,
+              childBomId: it.childBomId ?? null,
+              createdBy: userPayload.userId.toString(),
+              updatedBy: userPayload.userId.toString(),
+              createdAt: new Date(),
+              updatedAt: new Date()
+            }));
+          if (items.length > 0) {
+            await tx.productBomItem.createMany({ data: items });
+          }
         }
+        return created;
       });
 
-      return { success: true, data: newBom, message: 'BOM创建成功' };
+      return { success: true, data: result, message: 'BOM创建成功' };
     } catch (error) {
       console.error('创建BOM失败:', error);
       return { success: false, message: '创建BOM失败' };
@@ -183,7 +220,7 @@ export class BomCrudService {
    */
   async getBoms(query: BomQueryParams) {
     try {
-      const { page = 1, pageSize = 20, keyword, productId, type, status, version, isDefault, routingId } = query;
+      const { page = 1, pageSize = 20, keyword, productId, variantId, type, status, version, isDefault, routingId } = query as any;
       // 兼容 req.query 的字符串类型，统一转换为数字
       const pageNum = typeof page === 'string' ? parseInt(page, 10) : page;
       const pageSizeNum = typeof pageSize === 'string' ? parseInt(pageSize, 10) : pageSize;
@@ -200,6 +237,7 @@ export class BomCrudService {
       }
       
       if (productId) where.productId = productId;
+      if (variantId) where.variantId = variantId;
       if (type) where.type = type;
       if (status) where.status = status;
       if (version) where.version = version;
@@ -214,6 +252,12 @@ export class BomCrudService {
           orderBy: { createdAt: 'desc' },
           include: {
             product: {
+              select: {
+                code: true,
+                name: true
+              }
+            },
+            variant: {
               select: {
                 code: true,
                 name: true
@@ -236,13 +280,22 @@ export class BomCrudService {
         prisma.productBom.count({ where })
       ]);
 
+      const ids = data.map(d => d.id);
+      const groups = ids.length > 0 ? await prisma.productBomItem.groupBy({
+        by: ['bomId'],
+        where: { bomId: { in: ids }, childBomId: { not: null } },
+        _count: { _all: true }
+      }) : [];
+      const countMap = new Map<string, number>(groups.map(g => [g.bomId as string, (g._count as any)._all as number]));
+      const enriched = data.map(d => ({ ...d, childBomCount: countMap.get(d.id) ?? 0 }));
+
       const totalPages = Math.ceil(total / safePageSize);
 
       return {
         success: true,
         // 按前端约定返回统一分页结构：data 包含 data 数组与分页信息
         data: {
-          data,
+          data: enriched,
           total,
           page: safePage,
           pageSize: safePageSize,
@@ -397,26 +450,59 @@ export class BomCrudService {
         });
       }
 
-      const updatedBom = await prisma.productBom.update({
-        where: { id },
-        data: {
-          ...(bomData.code && { code: bomData.code }),
-          ...(bomData.name && { name: bomData.name }),
-          ...(bomData.productId && { productId: bomData.productId }),
-          ...(bomData.type && { type: bomData.type }),
-          ...(bomData.version && { version: bomData.version }),
-          ...(bomData.status && { status: bomData.status }),
-          ...(bomData.isDefault !== undefined && { isDefault: bomData.isDefault }),
-          ...(bomData.baseQuantity !== undefined && { baseQuantity: bomData.baseQuantity }),
-          ...(bomData.baseUnitId && { baseUnitId: bomData.baseUnitId }),
-          ...(bomData.routingId !== undefined && { routingId: bomData.routingId }),
-          ...(effectiveDate && { effectiveDate }),
-          ...(expiryDate !== undefined && { expiryDate }),
-          ...(bomData.description !== undefined && { description: bomData.description }),
-          ...(bomData.remark !== undefined && { remark: bomData.remark }),
-          updatedBy: String((user as any)?.userId ?? (user as any)?.sub ?? (user as any)?.id),
-          updatedAt: new Date()
+      const updatedBom = await prisma.$transaction(async (tx) => {
+        const updated = await tx.productBom.update({
+          where: { id },
+          data: {
+            ...(bomData.code && { code: bomData.code }),
+            ...(bomData.name && { name: bomData.name }),
+            ...(bomData.productId && { productId: bomData.productId }),
+            ...(bomData.type && { type: bomData.type }),
+            ...(bomData.version && { version: bomData.version }),
+            ...(bomData.status && { status: bomData.status }),
+            ...(bomData.isDefault !== undefined && { isDefault: bomData.isDefault }),
+            ...(bomData.baseQuantity !== undefined && { baseQuantity: bomData.baseQuantity }),
+            ...(bomData.baseUnitId && { baseUnitId: bomData.baseUnitId }),
+            ...(bomData.routingId !== undefined && { routingId: bomData.routingId }),
+            ...(effectiveDate && { effectiveDate }),
+            ...(expiryDate !== undefined && { expiryDate }),
+            ...(bomData.description !== undefined && { description: bomData.description }),
+            ...(bomData.remark !== undefined && { remark: bomData.remark }),
+            updatedBy: String((user as any)?.userId ?? (user as any)?.sub ?? (user as any)?.id),
+            updatedAt: new Date()
+          }
+        });
+
+        if (Array.isArray((bomData as any).items)) {
+          await tx.productBomItem.deleteMany({ where: { bomId: id } });
+          const items = (bomData as any).items
+            .filter((it: any) => it && (it.materialId || it.materialVariantId) && it.unitId && it.quantity != null)
+            .map((it: any, i: number) => ({
+              bomId: id,
+              materialId: it.materialId ?? null,
+              materialVariantId: it.materialVariantId ?? null,
+              quantity: Number(it.quantity) || 0,
+              unitId: it.unitId,
+              sequence: typeof it.sequence === 'number' ? it.sequence : i + 1,
+              requirementType: it.requirementType || 'fixed',
+              isKey: !!it.isKey,
+              isPhantom: !!it.isPhantom,
+              processInfo: it.processInfo ?? null,
+              remark: it.remark ?? null,
+              effectiveDate: it.effectiveDate ? new Date(it.effectiveDate) : null,
+              expiryDate: it.expiryDate ? new Date(it.expiryDate) : null,
+              childBomId: it.childBomId ?? null,
+              createdBy: String((user as any)?.userId ?? (user as any)?.sub ?? (user as any)?.id),
+              updatedBy: String((user as any)?.userId ?? (user as any)?.sub ?? (user as any)?.id),
+              createdAt: new Date(),
+              updatedAt: new Date()
+            }));
+          if (items.length > 0) {
+            await tx.productBomItem.createMany({ data: items });
+          }
         }
+
+        return updated;
       });
 
       return { success: true, data: updatedBom, message: 'BOM更新成功' };

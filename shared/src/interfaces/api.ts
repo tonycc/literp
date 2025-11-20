@@ -2,8 +2,8 @@
  * API 接口定义
  */
 
-import { ApiResponse, PaginatedResponse, QueryParams, ID } from '../types/common';
-import { User, LoginRequest, LoginResponse, RefreshTokenRequest } from '../types/auth';
+import type { ApiResponse, PaginatedResponse, QueryParams, ID } from '../types/common';
+import type { User, LoginRequest, LoginResponse, RefreshTokenRequest } from '../types/auth';
 
 // 认证相关接口
 export interface AuthApi {

@@ -44,7 +44,7 @@ export const rateLimitMiddleware = rateLimit({
 });
 
 // 压缩中间件
-export const compressionMiddleware = compression({
+export const compressionMiddleware: import('express').RequestHandler = compression({
   filter: (req: Request, res: Response) => {
     if (req.headers['x-no-compression']) {
       return false;

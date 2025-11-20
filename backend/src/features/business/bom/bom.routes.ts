@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { BomController } from './bom.controller';
 import { authenticateToken } from '../../../shared/middleware/auth';
 
-const router = Router();
+const router: import('express').Router = Router();
 const bomController = new BomController();
 
 // 应用认证中间件
@@ -23,9 +23,13 @@ router.get('/check-code/:code', bomController.checkBomCode.bind(bomController));
 
 // BOM物料项管理
 router.get('/:id/items', bomController.getBomItems.bind(bomController));
+// 获取BOM母子结构树
+router.get('/:id/tree', bomController.getBomTree.bind(bomController));
 router.post('/:id/items', bomController.addBomItem.bind(bomController));
 router.put('/items/:itemId', bomController.updateBomItem.bind(bomController));
 router.delete('/items/:itemId', bomController.deleteBomItem.bind(bomController));
+// 批量同步BOM物料项
+router.put('/:id/items/sync', bomController.syncBomItems.bind(bomController));
 
 // BOM导入导出
 router.get('/export', bomController.exportBoms.bind(bomController));

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Form, Input, Button, Card, Typography } from 'antd';
-import { useMessage } from '../../../../shared/hooks/useMessage';
+import { useMessage } from '@/shared/hooks/useMessage';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -33,7 +33,7 @@ const LoginPage: React.FC = () => {
   // 如果已经登录，重定向到目标页面或仪表板
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      navigate('/dashboard');
+      void navigate('/dashboard');
     }
   }, [isAuthenticated, isLoading, navigate]);
 
@@ -83,9 +83,9 @@ const LoginPage: React.FC = () => {
           <p>欢迎登录</p>
         </div>
         
-        <Form
+        <Form<LoginForm>
           name="login"
-          onFinish={onFinish}
+          onFinish={(values) => { void onFinish(values) }}
           autoComplete="off"
           size="large"
         >

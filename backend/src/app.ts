@@ -21,7 +21,7 @@ import { swaggerSpec } from './docs/swagger';
 validateConfig();
 
 // 创建 Express 应用
-const app = express();
+const app: import('express').Express = express();
 
 // 基础中间件
 app.use(express.json({ limit: '10mb' }));
@@ -30,7 +30,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // 安全中间件
 app.use(corsMiddleware);
 app.use(helmetMiddleware);
-app.use(rateLimitMiddleware);
+if (config.server.nodeEnv !== 'development') {
+  app.use(rateLimitMiddleware);
+}
 app.use(compressionMiddleware);
 
 // 请求日志

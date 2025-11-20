@@ -61,6 +61,16 @@ export class BomController extends BaseController {
   }
 
   /**
+   * 获取BOM母子结构树
+   */
+  async getBomTree(req: Request, res: Response) {
+    return this.asyncHandler(async (req, res) => {
+      const tree = await this.bomService.getBomTree(req.params.id);
+      this.success(res, tree);
+    })(req, res);
+  }
+
+  /**
    * 添加BOM物料项
    */
   async addBomItem(req: Request, res: Response) {
@@ -155,6 +165,21 @@ export class BomController extends BaseController {
         }
       } catch (error) {
         this.error(res, error, '获取导入模板失败');
+      }
+    })(req, res);
+  }
+
+  /**
+   * 批量同步BOM物料项
+   */
+  async syncBomItems(req: Request, res: Response) {
+    return this.asyncHandler(async (req, res) => {
+      const items = Array.isArray(req.body?.items) ? req.body.items : [];
+      const result = await this.bomService.syncBomItems(req.params.id, items, req.user as User);
+      if (result.success) {
+        this.success(res, result.data, result.message);
+      } else {
+        this.error(res, new Error(result.message), result.message || '批量同步BOM物料项失败');
       }
     })(req, res);
   }

@@ -127,11 +127,13 @@ export class WarehouseService {
 
     return {
       data: warehouses,
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize)
-    };
+      pagination: {
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize)
+      }
+    } as any;
   }
 
   /**

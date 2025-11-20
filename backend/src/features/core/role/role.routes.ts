@@ -6,7 +6,7 @@ import { Router } from 'express';
 import { roleController } from './role.controller';
 import { authenticateToken, requireRoles } from '../../../shared/middleware';
 
-const router = Router();
+const router: import('express').Router = Router();
 
 // 所有角色路由都需要认证
 router.use(authenticateToken);

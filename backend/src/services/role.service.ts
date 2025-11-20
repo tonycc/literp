@@ -46,17 +46,31 @@ export class RoleService {
    * Create new role
    */
   async createRole(data: CreateRoleData): Promise<Role> {
-    // Validate permissions is an array
     if (!Array.isArray(data.permissions)) {
       throw new Error('Permissions must be an array')
     }
 
-    return this.prisma.role.create({
-      data: {
-        name: data.name,
-        description: data.description,
-        permissions: data.permissions,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const role = await tx.role.create({
+        data: {
+          name: data.name,
+          description: data.description,
+        },
+      })
+
+      if (data.permissions.length > 0) {
+        const perms = await tx.permission.findMany({
+          where: { code: { in: data.permissions } },
+          select: { id: true },
+        })
+        if (perms.length > 0) {
+          await tx.rolePermission.createMany({
+            data: perms.map((p) => ({ roleId: role.id, permissionId: p.id })),
+          })
+        }
+      }
+
+      return role
     })
   }
 
@@ -68,13 +82,39 @@ export class RoleService {
       throw new Error('Permissions must be an array')
     }
 
-    return this.prisma.role.update({
-      where: { id },
-      data: {
-        name: data.name,
-        description: data.description,
-        permissions: data.permissions,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const role = await tx.role.update({
+        where: { id },
+        data: {
+          name: data.name,
+          description: data.description,
+        },
+      })
+
+      if (Array.isArray(data.permissions)) {
+        const perms = await tx.permission.findMany({
+          where: { code: { in: data.permissions } },
+          select: { id: true },
+        })
+        const current = await tx.rolePermission.findMany({
+          where: { roleId: id },
+          select: { permissionId: true },
+        })
+        const currentSet = new Set(current.map((c) => c.permissionId))
+        const targetSet = new Set(perms.map((p) => p.id))
+
+        const toDelete = Array.from(currentSet).filter((pid) => !targetSet.has(pid))
+        const toAdd = Array.from(targetSet).filter((pid) => !currentSet.has(pid))
+
+        if (toDelete.length > 0) {
+          await tx.rolePermission.deleteMany({ where: { roleId: id, permissionId: { in: toDelete } } })
+        }
+        if (toAdd.length > 0) {
+          await tx.rolePermission.createMany({ data: toAdd.map((pid) => ({ roleId: id, permissionId: pid })) })
+        }
+      }
+
+      return role
     })
   }
 
@@ -91,15 +131,9 @@ export class RoleService {
    * Check if role has specific permission
    */
   async hasPermission(roleId: string, permission: string): Promise<boolean> {
-    const role = await this.prisma.role.findUnique({
-      where: { id: roleId },
-      select: { permissions: true },
-    })
-
-    if (!role) {
-      return false
-    }
-
-    return role.permissions.includes(permission)
+    const perm = await this.prisma.permission.findUnique({ where: { code: permission }, select: { id: true } })
+    if (!perm) return false
+    const rp = await this.prisma.rolePermission.findFirst({ where: { roleId, permissionId: perm.id }, select: { id: true } })
+    return !!rp
   }
 }

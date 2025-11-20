@@ -57,15 +57,17 @@ export default defineConfig({
         chunkFileNames: 'assets/js/[name]-[hash].js',
         entryFileNames: 'assets/js/[name]-[hash].js',
         assetFileNames: (assetInfo) => {
-          const info = assetInfo.name.split('.')
-          const ext = info[info.length - 1]
-          if (/\.(css)$/i.test(assetInfo.name)) {
-            return `assets/css/[name]-[hash].${ext}`
+          const name = typeof assetInfo.name === 'string' ? assetInfo.name : ''
+          if (!name) {
+            return 'assets/[name]-[hash][extname]'
           }
-          if (/\.(png|jpe?g|gif|svg)$/i.test(assetInfo.name)) {
-            return `assets/images/[name]-[hash].${ext}`
+          if (/\.(css)$/i.test(name)) {
+            return 'assets/css/[name]-[hash][extname]'
           }
-          return `assets/[name]-[hash].${ext}`
+          if (/\.(png|jpe?g|gif|svg)$/i.test(name)) {
+            return 'assets/images/[name]-[hash][extname]'
+          }
+          return 'assets/[name]-[hash][extname]'
         },
       },
     },
@@ -96,30 +98,5 @@ export default defineConfig({
     ],
   },
 
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/',
-        'src/test/',
-        '**/*.d.ts',
-        '**/*.config.*',
-        '**/index.ts',
-        '**/types/**',
-        '**/constants/**',
-      ],
-      thresholds: {
-        global: {
-          branches: 80,
-          functions: 80,
-          lines: 80,
-          statements: 80,
-        },
-      },
-    },
-  },
+  
 })

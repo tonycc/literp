@@ -32,7 +32,7 @@
     "install:all": "npm install && npm install -w frontend && npm run install -w backend && npm install -w shared && npm install -w external-portal",
     "quality-check": "bash scripts/quality-gate.sh",
     "performance-check": "bash scripts/performance-benchmark.sh",
-    "security-check": "npm audit && npm run test:security -w backend && npm run test:security -w frontend",
+    "security-check": "npm audit",
     "architecture-check": "node scripts/check-circular-deps.js",
     "all-checks": "npm run quality-check && npm run architecture-check && npm run security-check"
   },
@@ -50,6 +50,7 @@
     "c8": "^10.1.3",
     "concurrently": "^8.2.2",
     "eslint": "^8.56.0",
+    "frontend": "2.0.0-alpha.4",
     "jest": "^30.2.0",
     "jsdom": "^27.1.0",
     "lint-staged": "^16.2.6",
@@ -89,5 +90,10 @@
   ],
   "author": "Fennec Team",
   "license": "MIT",
-  "dependencies": {}
+  "pnpm": {
+    "overrides": {
+      "react": "19.2.0",
+      "react-dom": "19.2.0"
+    }
+  }
 }

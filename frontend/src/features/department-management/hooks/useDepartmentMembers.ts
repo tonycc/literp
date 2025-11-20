@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { message } from 'antd';
+import { useMessage } from '@/shared/hooks';
 import { departmentService } from '../services/department.service';
 import type {
   DepartmentMember,
@@ -17,6 +17,7 @@ import type {
  * 部门成员列表 hook
  */
 export const useDepartmentMembers = (initialParams?: DepartmentMemberListParams) => {
+  const message = useMessage();
   const [members, setMembers] = useState<DepartmentMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
@@ -40,16 +41,16 @@ export const useDepartmentMembers = (initialParams?: DepartmentMemberListParams)
     } finally {
       setLoading(false);
     }
-  }, [params]);
+  }, [params, message]);
 
   useEffect(() => {
     if (params.departmentId) {
-      fetchMembers();
+      void fetchMembers();
     }
-  }, []);
+  }, [fetchMembers, params.departmentId]);
 
   const refresh = useCallback(() => {
-    fetchMembers(params);
+    void fetchMembers(params);
   }, [fetchMembers, params]);
 
   return {
@@ -66,6 +67,7 @@ export const useDepartmentMembers = (initialParams?: DepartmentMemberListParams)
  * 部门成员操作 hook
  */
 export const useDepartmentMemberActions = () => {
+  const message = useMessage();
   const [actionLoading, setActionLoading] = useState(false);
 
   const assignMember = useCallback(async (data: AssignUserToDepartmentData) => {
@@ -81,7 +83,7 @@ export const useDepartmentMemberActions = () => {
     } finally {
       setActionLoading(false);
     }
-  }, []);
+  }, [message]);
 
   const updateMember = useCallback(async (userId: ID, departmentId: ID, data: UpdateUserDepartmentData) => {
     setActionLoading(true);
@@ -96,7 +98,7 @@ export const useDepartmentMemberActions = () => {
     } finally {
       setActionLoading(false);
     }
-  }, []);
+  }, [message]);
 
   const removeMember = useCallback(async (userId: ID, departmentId: ID) => {
     setActionLoading(true);
@@ -110,7 +112,7 @@ export const useDepartmentMemberActions = () => {
     } finally {
       setActionLoading(false);
     }
-  }, []);
+  }, [message]);
 
   return {
     actionLoading,

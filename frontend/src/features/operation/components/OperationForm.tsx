@@ -9,7 +9,7 @@ import { Row, Col } from 'antd';
 import type { FormInstance } from 'antd';
 import type { OperationFormData, OperationInfo } from '@zyerp/shared';
 import { operationService } from '../services/operation.service';
-import { useMessage } from '../../../shared/hooks';
+import { useMessage } from '@/shared/hooks';
 
 interface OperationFormProps {
   form: FormInstance;

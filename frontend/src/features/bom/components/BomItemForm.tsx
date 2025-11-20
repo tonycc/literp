@@ -2,7 +2,7 @@ import React from 'react';
 import { ModalForm, ProFormSelect } from '@ant-design/pro-components';
 import type { FormInstance } from 'antd';
 import { bomService } from '../services/bom.service';
-import { useMessage } from '../../../shared/hooks';
+import { useMessage } from '@/shared/hooks';
 
 interface BomItemFormProps {
   open: boolean;

@@ -7,7 +7,7 @@ import {
   Tag
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import type { ProductBom, BomItem, MaterialRequirementType, BomStatus } from '@zyerp/shared';
+import type { ProductBom, BomItem, BomStatus } from '@zyerp/shared';
 
 interface BomDetailProps {
   bom: ProductBom;
@@ -19,7 +19,9 @@ const BomDetail: React.FC<BomDetailProps> = ({ bom, items }) => {
   type MoneyLike = number | string | { toNumber: () => number } | null | undefined;
   // 类型守卫：判断对象是否具备 toNumber 方法
   const hasToNumber = (v: unknown): v is { toNumber: () => number } => {
-    return !!v && typeof v === 'object' && 'toNumber' in (v as any) && typeof (v as any).toNumber === 'function';
+    if (typeof v !== 'object' || v === null) return false;
+    const obj = v as { toNumber?: unknown };
+    return 'toNumber' in obj && typeof obj.toNumber === 'function';
   };
   // 金额格式化，兼容 number、string、Decimal 等类型
   const formatMoney = (value: MoneyLike) => {
@@ -36,18 +38,14 @@ const BomDetail: React.FC<BomDetailProps> = ({ bom, items }) => {
     } else if (typeof value === 'string') {
       num = Number(value);
     } else {
-      num = Number(value as any);
+      return '-';
     }
     if (!Number.isFinite(num)) return '-';
     return `¥${num.toFixed(2)}`;
   };
 
   // 需求类型映射定义
-  const REQ_TYPE_MAP: Record<MaterialRequirementType, { color: string; text: string }> = {
-    fixed: { color: 'blue', text: '固定' },
-    variable: { color: 'orange', text: '可变' },
-    optional: { color: 'default', text: '可选' }
-  };
+ 
 
   // BOM状态标签映射定义
   const STATUS_MAP: Record<BomStatus, { color: string; text: string }> = {

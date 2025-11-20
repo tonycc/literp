@@ -6,7 +6,7 @@ import type { Role } from '@zyerp/shared';
 import { roleService } from '../../services/role.service';
 import RoleForm from '../../components/RoleForm';
 import type { CreateRoleData, UpdateRoleData } from '../../services/role.service';
-import { useMessage } from '../../../../shared/hooks/useMessage';
+import { useMessage } from '@/shared/hooks/useMessage';
 
 const RoleManagement: React.FC = () => {
   const { modal } = App.useApp();

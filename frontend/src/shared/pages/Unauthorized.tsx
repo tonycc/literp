@@ -11,7 +11,7 @@ const Unauthorized: React.FC = () => {
       title="403"
       subTitle="抱歉，您没有权限访问此页面。"
       extra={
-        <Button type="primary" onClick={() => navigate('/dashboard')}>
+        <Button type="primary" onClick={() => { void navigate('/dashboard') }}>
           返回首页
         </Button>
       }

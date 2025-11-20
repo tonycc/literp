@@ -14,7 +14,7 @@ import {
   Popconfirm,
   Tag,
   Tooltip,
-  Tabs,
+ 
   Timeline,
   Descriptions,
   Alert,
@@ -22,7 +22,7 @@ import {
   Badge,
   Drawer
 } from 'antd';
-import { useMessage } from '../../../shared/hooks';
+import { useMessage } from '@/shared/hooks';
 import type { ColumnsType } from 'antd/es/table';
 import {
   PlusOutlined,
@@ -34,15 +34,14 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   ExclamationCircleOutlined,
-  EyeOutlined,
-  BranchesOutlined
+  EyeOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
 const { TextArea } = Input;
 const { Text } = Typography;
-const { TabPane } = Tabs;
+ 
 
 // BOM版本相关类型定义
 interface BomVersion {

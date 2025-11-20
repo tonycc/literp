@@ -1,25 +1,30 @@
 import React, { useState, useRef } from 'react';
-import type { ActionType } from '@ant-design/pro-table';
+import type { ActionType } from '@ant-design/pro-components';
+import { useMessage } from '@/shared/hooks';
 import type { ProductInfo, ProductFormData } from '@zyerp/shared';
 import ProductList from '../components/ProductList';
 import ProductForm from '../components/ProductForm';
 import ProductDetail from '../components/ProductDetail';
 import { useProduct } from '../hooks/useProduct';
 
-const ProductManagement: React.FC = () => {
+const ProductManagement: React.FC = () => {   
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isDetailVisible, setIsDetailVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductInfo | undefined>();
   const [viewingProductId, setViewingProductId] = useState<string | undefined>();
+  
   const actionRef = useRef<ActionType>(null);
   
-  const {
-    createProduct,
-    updateProduct,
-    deleteProduct,
-    copyProduct,
-    fetchProducts
+  const { 
+    createProduct, 
+    createProductWithVariants,
+    updateProduct, 
+    deleteProduct, 
+    copyProduct, 
+    fetchProducts, 
+    loading
   } = useProduct();
+  const message = useMessage();
 
   // 新增产品
   const handleAdd = () => {
@@ -40,19 +45,33 @@ const ProductManagement: React.FC = () => {
   };
 
   // 提交表单
-  const handleSubmit = async (values: ProductFormData) => {
+  type ExtendedProductFormData = Omit<ProductFormData, 'categoryId'> & { categoryCode?: string; singleAttributeId?: string; singleAttributeName?: string; singleAttributeValue?: string };
+  const handleSubmit = async (values: ExtendedProductFormData): Promise<void> => {
     try {
+      const { categoryCode, singleAttributeName, singleAttributeValue, ...baseData } = values;
+      const productData: ProductFormData = { ...baseData, categoryId: categoryCode as string };
+
       if (editingProduct) {
-        await updateProduct(editingProduct.id, values);
+        await updateProduct(editingProduct.id, productData);
+        message.success('产品更新成功');
       } else {
-        await createProduct(values);
+        const hasVariantAttrs = !!(singleAttributeName && singleAttributeValue);
+        if (hasVariantAttrs) {
+          const variantGenerateAttributes = [{ attributeName: singleAttributeName!, values: [singleAttributeValue!] }];
+          const attributeLines = [{ attributeName: singleAttributeName!, values: [singleAttributeValue!] }];
+          await createProductWithVariants({ ...productData, variantGenerateAttributes, attributeLines });
+          message.success('产品及变体创建成功');
+        } else {
+          await createProduct(productData);
+          message.success('产品创建成功');
+        }
       }
-      
       setIsModalVisible(false);
       setEditingProduct(undefined);
-      actionRef.current?.reload(); // 手动刷新 ProTable
-    } catch {
-      // 操作失败时的错误处理
+      actionRef.current?.reload();
+    } catch (error) {
+      console.error('产品保存失败:', error);
+      message.error('操作失败，请重试');
     }
   };
 
@@ -80,6 +99,8 @@ const ProductManagement: React.FC = () => {
     actionRef.current?.reload(); // 手动刷新 ProTable
   };
 
+  
+
   return (
     <div>
       {/* 产品列表 */}
@@ -91,6 +112,7 @@ const ProductManagement: React.FC = () => {
         onDelete={handleDelete}
         onCopy={handleCopy}
         onRefresh={fetchProducts}
+        
       />
 
       {/* 新增/编辑模态框 */}
@@ -99,7 +121,7 @@ const ProductManagement: React.FC = () => {
         visible={isModalVisible}
         onSave={handleSubmit}
         onCancel={handleCancel}
-        loading={false}
+        loading={loading}
       />
 
       {/* 产品详情模态框 */}
@@ -108,6 +130,7 @@ const ProductManagement: React.FC = () => {
         productId={viewingProductId}
         onClose={handleDetailClose}
       />
+
     </div>
   );
 };

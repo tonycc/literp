@@ -7,7 +7,7 @@ import { ACQUISITION_METHOD_MAP, PRODUCT_STATUS_MAP, PRODUCT_TYPE_MAP } from '@z
 const statusConfig: Record<string, { label: string; color: string; tooltip?: string }> = {
   ...PRODUCT_TYPE_MAP,
   ...PRODUCT_STATUS_MAP,
-  ...ACQUISITION_METHOD_MAP
+  ...ACQUISITION_METHOD_MAP,
 };
 
 export const StatusTag: React.FC<StatusTagProps> = ({

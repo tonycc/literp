@@ -1,12 +1,20 @@
 import apiClient from '@/shared/services/api';
 import type { ApiResponse, PaginatedResponse } from '@zyerp/shared';
-import type { SalesOrder, SalesOrderQueryParams } from '../types';
+import type { SalesOrder, SalesOrderListParams, SalesOrderItem } from '@zyerp/shared';
+
+interface BackendPaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages?: number;
+}
 
 export class SalesOrderService {
   private readonly baseUrl = '/sales-orders';
 
-  async getSalesOrders(params?: SalesOrderQueryParams): Promise<PaginatedResponse<SalesOrder>> {
-    const response = await apiClient.get<ApiResponse<any>>(this.baseUrl, { params });
+  async getSalesOrders(params?: SalesOrderListParams): Promise<PaginatedResponse<SalesOrder>> {
+    const response = await apiClient.get<ApiResponse<BackendPaginatedResponse<SalesOrder>>>(this.baseUrl, { params });
 
     const backendData = response.data.data;
     if (!backendData) {
@@ -30,6 +38,26 @@ export class SalesOrderService {
 
   async getById(id: string): Promise<ApiResponse<SalesOrder>> {
     const response = await apiClient.get<ApiResponse<SalesOrder>>(`${this.baseUrl}/${id}`);
+    return response.data;
+  }
+
+  async getItems(id: string): Promise<ApiResponse<SalesOrderItem[]>> {
+    const response = await apiClient.get<ApiResponse<SalesOrderItem[]>>(`${this.baseUrl}/${id}/items`);
+    return response.data;
+  }
+
+  async createSalesOrder(data: Record<string, unknown>): Promise<ApiResponse<SalesOrder>> {
+    const response = await apiClient.post<ApiResponse<SalesOrder>>(this.baseUrl, data);
+    return response.data;
+  }
+
+  async updateSalesOrder(id: string, data: Record<string, unknown>): Promise<ApiResponse<SalesOrder>> {
+    const response = await apiClient.put<ApiResponse<SalesOrder>>(`${this.baseUrl}/${id}`, data);
+    return response.data;
+  }
+
+  async deleteSalesOrder(id: string): Promise<ApiResponse<void>> {
+    const response = await apiClient.delete<ApiResponse<void>>(`${this.baseUrl}/${id}`);
     return response.data;
   }
 }

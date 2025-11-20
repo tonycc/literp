@@ -41,4 +41,47 @@ export class SalesOrderController extends BaseController {
     const order = await this.salesOrderService.getSalesOrderById(id);
     this.success(res, order);
   }
+
+  /**
+   * 获取销售订单明细项
+   */
+  @ErrorHandler
+  async getSalesOrderItems(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const { id } = req.params;
+    const items = await this.salesOrderService.getSalesOrderItems(id);
+    this.success(res, items);
+  }
+
+  /**
+   * 创建销售订单
+   */
+  @ErrorHandler
+  async createSalesOrder(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const userId = this.getUserId(req);
+    const data = req.body as Record<string, unknown>;
+    const created = await this.salesOrderService.createSalesOrder(data, userId);
+    this.success(res, created, '创建成功');
+  }
+
+  /**
+   * 更新销售订单
+   */
+  @ErrorHandler
+  async updateSalesOrder(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const userId = this.getUserId(req);
+    const { id } = req.params;
+    const data = req.body as Record<string, unknown>;
+    const updated = await this.salesOrderService.updateSalesOrder(id, data, userId);
+    this.success(res, updated, '更新成功');
+  }
+
+  /**
+   * 删除销售订单
+   */
+  @ErrorHandler
+  async deleteSalesOrder(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const { id } = req.params;
+    await this.salesOrderService.deleteSalesOrder(id);
+    this.success(res, null, '删除成功');
+  }
 }

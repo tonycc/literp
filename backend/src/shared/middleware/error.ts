@@ -3,7 +3,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { createErrorResponse } from '@zyerp/shared';
+import { createErrorResponse } from '@zyerp/shared/utils';
 
 // 自定义错误类
 export class AppError extends Error {

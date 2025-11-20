@@ -20,6 +20,16 @@ export * from './types/statusTag';
 export * from './types/workcenter';
 export * from './types/inventory';
 export * from './types/productionPlan';
+export * from './types/customer';
+export * from './types/supplier';
+export * from './types/supplier-price';
+export * from './types/sales-order';
+export * from './types/purchase-order';
+export * from './types/mo';
+export * from './types/materialIssue';
+export * from './types/productionReport';
+export * from './types/subcontract-order';
+ 
 
 // 导出接口定义
 export * from './interfaces/api';
@@ -30,6 +40,13 @@ export * from './interfaces/operation';
 export * from './interfaces/routing';
 export * from './interfaces/workcenter';
 export * from './interfaces/productionPlan';
+export * from './interfaces/customer';
+export * from './interfaces/supplier';
+export * from './interfaces/supplier-price';
+export * from './interfaces/sales-order';
+export * from './interfaces/purchase-order';
+export * from './interfaces/mo';
+export * from './interfaces/subcontract-order';
 
 // 导出常量
 export * from './constants';

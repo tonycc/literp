@@ -12,7 +12,7 @@ import {
   getFileInfo,
 } from './file.controller';
 
-const router = Router();
+const router: import('express').Router = Router();
 
 // 文件上传路由
 router.post('/avatar', authenticateToken, avatarUpload, uploadAvatar);

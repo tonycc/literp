@@ -4,7 +4,7 @@ import {
   Tooltip,
   Switch
 } from 'antd';
-import { useModal } from '../../../shared/hooks/useModal';
+import { useModal } from '@/shared/hooks/useModal';
 import {
   PlusOutlined,
   EditOutlined,
@@ -18,6 +18,7 @@ import type {
   ProductCategoryQueryParams
 } from '@zyerp/shared';
 import productCategoryService from '../services/productCategory.service';
+import { normalizeTableParams } from '@/shared/utils/normalizeTableParams';
 
 interface ProductCategoryListProps {
   onAdd?: () => void;
@@ -49,16 +50,17 @@ const ProductCategoryList: React.FC<ProductCategoryListProps> = ({
   // ProTable请求函数
   const handleRequest: ProTableProps<ProductCategoryInfo, ProductCategoryQueryParams>['request'] = async (params) => {
     try {
+      const base = normalizeTableParams(params as import('@/shared/utils/normalizeTableParams').TableParams)
       // 构建查询参数
       const queryParams: ProductCategoryQueryParams = {
-        page: params.current,
-        pageSize: params.pageSize,
+        page: base.page,
+        pageSize: base.pageSize,
         keyword: params.keyword,
         isActive: params.isActive !== undefined ? params.isActive : undefined,
         parentCode: params.parentCode,
         level: params.level,
-        sortBy: params.sortBy,
-        sortOrder: params.sortOrder
+        sortBy: base.sortField || params.sortBy,
+        sortOrder: base.sortOrder || params.sortOrder
       };
       
       // 移除undefined的参数

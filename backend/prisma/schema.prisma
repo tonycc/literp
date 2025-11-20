@@ -41,6 +41,7 @@ model User {
   userDepartments    UserDepartment[]
   userRoles          UserRole[]
   managedWorkcenters Workcenter[]       @relation("WorkcenterManager") // 管理的工作中心
+  ownedWorkOrders    WorkOrder[]        @relation("WorkOrderOwner")
   department         Department?        @relation(fields: [departmentId], references: [id])
   updatedWorkcenters Workcenter[]       @relation("WorkcenterUpdator")
   createdWorkcenters Workcenter[]       @relation("WorkcenterCreator")
@@ -348,8 +349,13 @@ model Unit {
   products                Product[]                @relation("ProductUnit")
   baseUnit                Unit?                    @relation("UnitConversion", fields: [baseUnitId], references: [id])
   derivedUnits            Unit[]                   @relation("UnitConversion")
-  productStocks           ProductStock[]
-  salesOrderItems         SalesOrderItem[]         @relation("SalesOrderItemUnit")
+
+  variantStocks      VariantStock[]
+  salesOrderItems    SalesOrderItem[]    @relation("SalesOrderItemUnit")
+  purchaseOrderItems PurchaseOrderItem[]
+  supplierPrices      SupplierPrice[]
+  workOrderMaterials WorkOrderMaterial[]
+  materialIssueOrderItems MaterialIssueOrderItem[]
 
   @@index([name])
   @@index([symbol])
@@ -358,18 +364,20 @@ model Unit {
 }
 
 model Warehouse {
-  id        String         @id @default(cuid())
-  code      String         @unique
+  id        String    @id @default(cuid())
+  code      String    @unique
   name      String
   type      String
   address   String?
   managerId String?
-  isActive  Boolean        @default(true)
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-  products  Product[]      @relation("ProductWarehouse")
-  stocks    ProductStock[]
-  salesOrderItems SalesOrderItem[] @relation("SalesOrderItemWarehouse")
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[] @relation("ProductWarehouse")
+
+  variantStocks      VariantStock[]
+  salesOrderItems    SalesOrderItem[]    @relation("SalesOrderItemWarehouse")
+  purchaseOrderItems PurchaseOrderItem[]
 
   @@index([code])
   @@index([name])
@@ -393,12 +401,7 @@ model Product {
   standardCost       Float?
   averageCost        Float?
   latestCost         Float?
-  safetyStock        Float?
-  safetyStockMin     Float?
-  safetyStockMax     Float?
-  minStock           Float?
-  maxStock           Float?
-  reorderPoint       Float?
+  // 移除产品维度库存阈值，统一到变体维度
   status             String                   @default("draft")
   isActive           Boolean                  @default(true)
   description        String?
@@ -414,11 +417,17 @@ model Product {
   documents          ProductDocument[]
   images             ProductImage[]
   specifications     ProductSpecification[]
-  stocks             ProductStock[]
-  salesOrderItems    SalesOrderItem[]         @relation("SalesOrderItemProduct")
-  category           ProductCategory?         @relation(fields: [categoryId], references: [id])
-  unit               Unit                     @relation("ProductUnit", fields: [unitId], references: [id])
-  defaultWarehouse   Warehouse?               @relation("ProductWarehouse", fields: [defaultWarehouseId], references: [id])
+
+  salesOrderItems    SalesOrderItem[]       @relation("SalesOrderItemProduct")
+  purchaseOrderItems PurchaseOrderItem[]
+  category           ProductCategory?       @relation(fields: [categoryId], references: [id])
+  unit               Unit                   @relation("ProductUnit", fields: [unitId], references: [id])
+  defaultWarehouse   Warehouse?             @relation("ProductWarehouse", fields: [defaultWarehouseId], references: [id])
+  productVariants    ProductVariant[]
+  attributeLines     ProductAttributeLine[]
+  CustomerPriceList  CustomerPriceList[]
+  workOrderMaterials WorkOrderMaterial[]
+  materialIssueOrderItems MaterialIssueOrderItem[]
 
   @@index([code])
   @@index([name])
@@ -500,24 +509,39 @@ model ProductDocument {
   @@map("product_documents")
 }
 
-/// 产品库存
-model ProductStock {
-  id               String     @id @default(cuid())
-  productId        String
+model VariantStock {
+  id               String         @id @default(cuid())
+  variantId        String
   warehouseId      String?
   unitId           String?
-  quantity         Float      @default(0)
-  reservedQuantity Float      @default(0)
-  updatedAt        DateTime   @updatedAt
-  createdAt        DateTime   @default(now())
-  product          Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
-  warehouse        Warehouse? @relation(fields: [warehouseId], references: [id])
-  unit             Unit?      @relation(fields: [unitId], references: [id])
+  quantity         Float          @default(0)
+  reservedQuantity Float          @default(0)
+  updatedAt        DateTime       @updatedAt
+  createdAt        DateTime       @default(now())
+  variant          ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  warehouse        Warehouse?     @relation(fields: [warehouseId], references: [id])
+  unit             Unit?          @relation(fields: [unitId], references: [id])
 
-  @@unique([productId])
-  @@index([productId])
+  @@unique([variantId, warehouseId])
+  @@index([variantId])
   @@index([warehouseId])
-  @@map("product_stocks")
+  @@map("variant_stocks")
+}
+
+model VariantImage {
+  id        String         @id @default(cuid())
+  variantId String
+  url       String
+  altText   String?
+  sortOrder Int            @default(0)
+  isPrimary Boolean        @default(false)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([variantId])
+  @@index([sortOrder])
+  @@map("variant_images")
 }
 
 model ProductBom {
@@ -525,6 +549,7 @@ model ProductBom {
   code          String           @unique
   name          String
   productId     String
+  variantId     String?
   type          String
   version       String
   status        String           @default("draft")
@@ -550,8 +575,10 @@ model ProductBom {
   routing       Routing?         @relation("BomRouting", fields: [routingId], references: [id])
   baseUnit      Unit             @relation("BomBaseUnit", fields: [baseUnitId], references: [id])
   product       Product          @relation("ProductBom", fields: [productId], references: [id])
+  variant       ProductVariant?  @relation(fields: [variantId], references: [id])
 
   @@index([productId])
+  @@index([variantId])
   @@index([type])
   @@index([status])
   @@index([effectiveDate])
@@ -562,19 +589,20 @@ model ProductBom {
 }
 
 model ProductBomItem {
-  id                String      @id @default(cuid())
+  id                String          @id @default(cuid())
   bomId             String
   materialId        String
+  materialVariantId String?
   quantity          Float
   unitId            String
   childBomId        String?
-  sequence          Int         @default(10)
-  requirementType   String      @default("fixed")
-  isKey             Boolean     @default(false)
-  isPhantom         Boolean     @default(false)
-  substitutionRatio Float       @default(1)
-  priority          Int         @default(0)
-  isPreferred       Boolean     @default(false)
+  sequence          Int             @default(10)
+  requirementType   String          @default("fixed")
+  isKey             Boolean         @default(false)
+  isPhantom         Boolean         @default(false)
+  substitutionRatio Float           @default(1)
+  priority          Int             @default(0)
+  isPreferred       Boolean         @default(false)
   processInfo       String?
   effectiveDate     DateTime?
   expiryDate        DateTime?
@@ -583,17 +611,19 @@ model ProductBomItem {
   remark            String?
   createdBy         String
   updatedBy         String
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-  updator           User        @relation("ProductBomItemUpdator", fields: [updatedBy], references: [id])
-  creator           User        @relation("ProductBomItemCreator", fields: [createdBy], references: [id])
-  childBom          ProductBom? @relation("BomItemChildBom", fields: [childBomId], references: [id])
-  unit              Unit        @relation("BomItemUnit", fields: [unitId], references: [id])
-  material          Product     @relation("BomItemMaterial", fields: [materialId], references: [id])
-  bom               ProductBom  @relation(fields: [bomId], references: [id], onDelete: Cascade)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  updator           User            @relation("ProductBomItemUpdator", fields: [updatedBy], references: [id])
+  creator           User            @relation("ProductBomItemCreator", fields: [createdBy], references: [id])
+  childBom          ProductBom?     @relation("BomItemChildBom", fields: [childBomId], references: [id])
+  unit              Unit            @relation("BomItemUnit", fields: [unitId], references: [id])
+  material          Product         @relation("BomItemMaterial", fields: [materialId], references: [id])
+  materialVariant   ProductVariant? @relation(fields: [materialVariantId], references: [id])
+  bom               ProductBom      @relation(fields: [bomId], references: [id], onDelete: Cascade)
 
   @@index([bomId])
   @@index([materialId])
+  @@index([materialVariantId])
   @@index([childBomId])
   @@index([sequence])
   @@index([createdBy])
@@ -639,6 +669,7 @@ model RoutingWorkcenter {
   workcenter      Workcenter? @relation(fields: [workcenterId], references: [id]) // 关联工作中心（可选）
   routing         Routing?    @relation("RoutingOperations", fields: [routingId], references: [id], onDelete: Cascade) // 关联工艺路线（可选）
   operation       Operation   @relation(fields: [operationId], references: [id]) // 关联工序（必需）
+  workOrderRoutingWorkcenters WorkOrderRoutingWorkcenter[]
 
   @@index([routingId])
   @@index([workcenterId])
@@ -729,19 +760,22 @@ model Operation {
 
 /// 销售订单
 model SalesOrder {
-  id          String          @id @default(cuid())
-  orderNo     String          @unique
+  id           String           @id @default(cuid())
+  orderNo      String           @unique
   customerName String?
-  status      String          @default("draft") // draft/confirmed/shipped/completed/canceled
-  orderDate   DateTime        @default(now())
-  totalAmount Float           @default(0)
-  currency    String          @default("CNY")
-  remark      String?
-  createdBy   String
-  updatedBy   String
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  items       SalesOrderItem[]
+  status       String           @default("draft") // draft/confirmed/shipped/completed/canceled
+  orderDate    DateTime         @default(now())
+  deliveryDate DateTime?
+  salesManager String?
+  paymentMethod String?
+  totalAmount  Float            @default(0)
+  currency     String           @default("CNY")
+  remark       String?
+  createdBy    String
+  updatedBy    String
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  items        SalesOrderItem[]
 
   @@index([status])
   @@index([orderDate])
@@ -750,24 +784,625 @@ model SalesOrder {
 
 /// 销售订单明细
 model SalesOrderItem {
-  id          String     @id @default(cuid())
+  id          String   @id @default(cuid())
   orderId     String
   productId   String
   unitId      String?
   warehouseId String?
-  quantity    Float      @default(1)
-  price       Float      @default(0)
-  amount      Float      @default(0)
+  quantity    Float    @default(1)
+  price       Float    @default(0)
+  amount      Float    @default(0)
   remark      String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  order       SalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product     Product    @relation("SalesOrderItemProduct", fields: [productId], references: [id])
-  unit        Unit?      @relation("SalesOrderItemUnit", fields: [unitId], references: [id])
-  warehouse   Warehouse? @relation("SalesOrderItemWarehouse", fields: [warehouseId], references: [id])
+  order     SalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product    @relation("SalesOrderItemProduct", fields: [productId], references: [id])
+  unit      Unit?      @relation("SalesOrderItemUnit", fields: [unitId], references: [id])
+  warehouse Warehouse? @relation("SalesOrderItemWarehouse", fields: [warehouseId], references: [id])
 
   @@index([orderId])
   @@index([productId])
   @@map("sales_order_items")
+}
+
+/// 采购订单
+model PurchaseOrder {
+  id                   String              @id @default(cuid())
+  orderNo              String              @unique
+  supplierId           String?
+  supplierName         String?
+  status               String              @default("draft")
+  orderDate            DateTime            @default(now())
+  expectedDeliveryDate DateTime?
+  totalAmount          Float               @default(0)
+  currency             String              @default("CNY")
+  remark               String?
+  createdBy            String
+  updatedBy            String
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  items                PurchaseOrderItem[]
+
+  @@index([status])
+  @@index([orderDate])
+  @@map("purchase_orders")
+}
+
+/// 采购订单明细
+model PurchaseOrderItem {
+  id            String   @id @default(cuid())
+  orderId       String
+  productId     String
+  unitId        String?
+  warehouseId   String?
+  quantity      Float    @default(1)
+  price         Float    @default(0)
+  amount        Float    @default(0)
+  specification String?
+  batchNumber   String?
+  remark        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  order     PurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product       @relation(fields: [productId], references: [id])
+  unit      Unit?         @relation(fields: [unitId], references: [id])
+  warehouse Warehouse?    @relation(fields: [warehouseId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("purchase_order_items")
+}
+
+/// 客户
+model Customer {
+  id                  String              @id @default(cuid())
+  code                String              @unique
+  name                String
+  category            String
+  contactPerson       String
+  phone               String
+  email               String?
+  address             String
+  creditLevel         String
+  creditLimit         Float?
+  status              String              @default("active")
+  taxNumber           String?
+  bankAccount         String?
+  bankName            String?
+  website             String?
+  industry            String?
+  establishedDate     DateTime?
+  registeredCapital   Float?
+  businessLicense     String?
+  legalRepresentative String?
+  remark              String?
+  createdBy           String
+  updatedBy           String
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  CustomerPriceList   CustomerPriceList[]
+
+  @@index([code])
+  @@index([name])
+  @@index([category])
+  @@index([status])
+  @@map("customers")
+}
+
+/// 客户价格表
+model CustomerPriceList {
+  id                  String    @id @default(cuid())
+  customerId          String
+  productId           String?
+  productName         String
+  productCode         String
+  customerProductCode String?
+  specification       String?
+  unit                String
+  priceIncludingTax   Float
+  vatRate             Int
+  priceExcludingTax   Float
+  taxAmount           Float
+  effectiveDate       DateTime
+  expiryDate          DateTime?
+  status              String    @default("active")
+  salesManager        String
+  submittedBy         String?
+  createdBy           String
+  updatedBy           String
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  product  Product? @relation(fields: [productId], references: [id])
+
+  @@index([customerId])
+  @@index([productId])
+  @@index([status])
+  @@index([effectiveDate])
+  @@map("customer_price_lists")
+}
+
+/// 供应商
+model Supplier {
+  id                String   @id @default(cuid())
+  code              String   @unique
+  name              String
+  shortName         String?
+  category          String
+  status            String   @default("active")
+  contactName       String?
+  phone             String?
+  email             String?
+  address           String?
+  registeredCapital Float?
+  creditLevel       String?
+  remark            String?
+  createdBy         String
+  updatedBy         String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  supplierPrices    SupplierPrice[]
+
+  @@index([code])
+  @@index([name])
+  @@index([category])
+  @@index([status])
+  @@map("suppliers")
+}
+
+/// 供应商价格表
+model SupplierPrice {
+  id                String   @id @default(cuid())
+  supplierId        String
+  variantId         String?
+  productName       String
+  productCode       String
+  unitId            String?
+  unit              String?
+  taxInclusivePrice Float
+  vatRate           Float
+  taxExclusivePrice Float
+  currency          String   @default("CNY")
+  effectiveDate     DateTime?
+  expiryDate        DateTime?
+  minOrderQty       Float?
+  purchaseManager   String?
+  submittedBy       String?
+  submittedAt       DateTime?
+  remark            String?
+  createdBy         String
+  updatedBy         String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  supplier          Supplier @relation(fields: [supplierId], references: [id])
+  variant           ProductVariant? @relation(fields: [variantId], references: [id])
+  unitRel           Unit? @relation(fields: [unitId], references: [id])
+
+  @@index([supplierId])
+  @@index([productCode])
+  @@index([vatRate])
+  @@index([effectiveDate])
+  @@map("supplier_prices")
+}
+
+model ProductVariant {
+  id              String                  @id @default(cuid())
+  productId       String
+  code            String                  @unique
+  name            String?
+  variantHash     String
+  priceDelta      Float?
+  status          String                  @default("active")
+  isActive        Boolean                 @default(true)
+  barcode         String?
+  qrCode          String?
+  standardPrice   Float?
+  salePrice       Float?
+  purchasePrice   Float?
+  currency        String?                 @default("CNY")
+  minStock        Float?
+  safetyStock     Float?
+  maxStock        Float?
+  reorderPoint    Float?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  product         Product                 @relation(fields: [productId], references: [id], onDelete: Cascade)
+  attributeValues VariantAttributeValue[]
+  variantStocks   VariantStock[]
+  images          VariantImage[]
+  ProductBom      ProductBom[]
+  ProductBomItem  ProductBomItem[]
+  supplierPrices  SupplierPrice[]
+
+  @@unique([productId, variantHash])
+  @@index([productId])
+  @@map("product_variants")
+}
+
+model ManufacturingOrder {
+  id             String   @id @default(cuid())
+  orderNo        String   @unique
+  sourceType     String?  @default("sales_order")
+  sourceRefId    String?
+  productId      String
+  productCode    String?
+  productName    String?
+  variantId      String?
+  bomId          String?
+  bomCode        String?
+  routingId      String?
+  routingCode    String?
+  unitId         String?
+  unit           String?
+  quantity       Float
+  warehouseId    String?
+  plannedStart   DateTime?
+  plannedFinish  DateTime?
+  dueDate        DateTime?
+  priority       Int?     @default(0)
+  status         String   @default("draft")
+  parentMoId     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  createdBy      String?
+  updatedBy      String?
+
+  @@index([productId])
+  @@index([parentMoId])
+  @@map("manufacturing_orders")
+}
+
+model WorkOrder {
+  id            String   @id @default(cuid())
+  orderNo       String?  @unique
+  moId          String
+  operationId   String
+  name          String?
+  sequence      Int
+  sequenceStart Int?
+  sequenceEnd   Int?
+  operationsLabel String?
+  workcenterId  String?
+  ownerId       String?
+  issueWarehouseId  String?
+  finishedWarehouseId String?
+  batchNo       String?
+  quantity      Float    @default(0)
+  plannedStart  String?
+  plannedFinish String?
+  status        String   @default("draft")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdBy     String?
+  updatedBy     String?
+
+  owner         User?    @relation("WorkOrderOwner", fields: [ownerId], references: [id])
+
+  routingWorkcenters WorkOrderRoutingWorkcenter[]
+  materials          WorkOrderMaterial[]
+
+  @@index([moId])
+  @@index([ownerId])
+  @@index([batchNo])
+  @@map("work_orders")
+}
+
+model WorkOrderRoutingWorkcenter {
+  id                   String            @id @default(cuid())
+  workOrderId          String
+  routingWorkcenterId  String
+  createdAt            DateTime          @default(now())
+
+  workOrder            WorkOrder         @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  routingWorkcenter    RoutingWorkcenter @relation(fields: [routingWorkcenterId], references: [id], onDelete: Cascade)
+
+  @@index([workOrderId])
+  @@index([routingWorkcenterId])
+  @@map("work_order_routing_workcenters")
+}
+
+model WorkOrderMaterial {
+  id           String   @id @default(cuid())
+  workOrderId  String
+  materialId   String
+  unitId       String
+  quantity     Float    @default(0)
+  warehouseId  String?
+  isIssued     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdBy    String?
+  updatedBy    String?
+
+  workOrder    WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  material     Product   @relation(fields: [materialId], references: [id])
+  unit         Unit      @relation(fields: [unitId], references: [id])
+
+  @@index([workOrderId])
+  @@index([materialId])
+  @@map("work_order_materials")
+}
+
+model MaterialIssueOrder {
+  id           String   @id @default(cuid())
+  orderNo      String   @unique
+  workOrderId  String
+  moId         String
+  warehouseId  String?
+  status       String   @default("draft")
+  remark       String?
+  createdBy    String?
+  updatedBy    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  items        MaterialIssueOrderItem[]
+
+  @@index([workOrderId])
+  @@index([status])
+  @@map("material_issue_orders")
+}
+
+model MaterialIssueOrderItem {
+  id               String   @id @default(cuid())
+  orderId          String
+  materialId       String
+  unitId           String
+  requiredQuantity Float    @default(0)
+  issuedQuantity   Float    @default(0)
+  pendingQuantity  Float    @default(0)
+  warehouseId      String?
+  remark           String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  order     MaterialIssueOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  material  Product            @relation(fields: [materialId], references: [id])
+  unit      Unit               @relation(fields: [unitId], references: [id])
+
+  @@index([orderId])
+  @@index([materialId])
+  @@map("material_issue_order_items")
+}
+
+model ProductionReport {
+  id               String   @id @default(cuid())
+  reportNo         String   @unique
+  workOrderId      String?
+  workOrderNo      String?
+  teamId           String?
+  teamName         String?
+  reporterId       String?
+  reporterName     String?
+  reportTime       DateTime @default(now())
+  productId        String?
+  productCode      String?
+  productName      String?
+  specification    String?
+  reportedQuantity Float    @default(0)
+  qualifiedQuantity Float   @default(0)
+  defectQuantity   Float    @default(0)
+  processCode      String?
+  processName      String?
+  remark           String?
+  createdBy        String?
+  updatedBy        String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([workOrderId])
+  @@index([reportTime])
+  @@map("production_reports")
+}
+
+model ProductionPlan {
+  id            String   @id @default(cuid())
+  orderId       String
+  orderNo       String?
+  name          String?
+  status        String   @default("draft")
+  productsJson  String
+  materialsJson String
+  notes         String?
+  createdBy     String
+  updatedBy     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  plannedStart  DateTime?
+  plannedFinish DateTime?
+  finishedWarehouseId String?
+  issueWarehouseId    String?
+  ownerId       String?
+
+  @@index([orderId])
+  @@index([status])
+  @@map("production_plans")
+}
+
+model Attribute {
+  id                     String                  @id @default(cuid())
+  name                   String
+  code                   String                  @unique
+  description            String?
+  isGlobal               Boolean                 @default(false)
+  isActive               Boolean                 @default(true)
+  sortOrder              Int                     @default(0)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  values                 AttributeValue[]
+  productAttributeLines  ProductAttributeLine[]
+  variantAttributeValues VariantAttributeValue[]
+
+  @@index([name])
+  @@map("attributes")
+}
+
+model AttributeValue {
+  id            String                      @id @default(cuid())
+  attributeId   String
+  name          String
+  code          String?
+  value         String?
+  sortOrder     Int                         @default(0)
+  isActive      Boolean                     @default(true)
+  createdAt     DateTime                    @default(now())
+  updatedAt     DateTime                    @updatedAt
+  attribute     Attribute                   @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  lineValues    ProductAttributeLineValue[]
+  variantValues VariantAttributeValue[]
+
+  @@unique([attributeId, name])
+  @@index([attributeId])
+  @@map("attribute_values")
+}
+
+model ProductAttributeLine {
+  id          String                      @id @default(cuid())
+  productId   String
+  attributeId String
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
+  product     Product                     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  attribute   Attribute                   @relation(fields: [attributeId], references: [id])
+  values      ProductAttributeLineValue[]
+
+  @@unique([productId, attributeId])
+  @@index([productId])
+  @@index([attributeId])
+  @@map("product_attribute_lines")
+}
+
+model ProductAttributeLineValue {
+  id               String               @id @default(cuid())
+  lineId           String
+  attributeValueId String
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  line             ProductAttributeLine @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  attributeValue   AttributeValue       @relation(fields: [attributeValueId], references: [id])
+
+  @@unique([lineId, attributeValueId])
+  @@index([lineId])
+  @@index([attributeValueId])
+  @@map("product_attribute_line_values")
+}
+
+model VariantAttributeValue {
+  id               String         @id @default(cuid())
+  variantId        String
+  attributeId      String
+  attributeValueId String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  variant          ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  attribute        Attribute      @relation(fields: [attributeId], references: [id])
+  attributeValue   AttributeValue @relation(fields: [attributeValueId], references: [id])
+
+  @@unique([variantId, attributeId])
+  @@index([variantId])
+  @@index([attributeId])
+  @@index([attributeValueId])
+  @@map("variant_attribute_values")
+}
+
+/// 委外订单主表
+model SubcontractOrder {
+  id                   String   @id @default(cuid())
+  orderNo              String   @unique
+  supplierId           String
+  supplierName         String?
+  status               String   @default("draft")
+  orderDate            DateTime @default(now())
+  expectedDeliveryDate DateTime?
+  currency             String   @default("CNY")
+  totalAmount          Float?
+  moId                 String?
+  remark               String?
+  createdBy            String?
+  updatedBy            String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  items                SubcontractOrderItem[]
+  receipts             SubcontractReceipt[]
+
+  @@index([supplierId])
+  @@index([status])
+  @@index([orderDate])
+  @@map("subcontract_orders")
+}
+
+/// 委外订单明细
+model SubcontractOrderItem {
+  id                  String  @id @default(cuid())
+  orderId             String
+  workOrderId         String
+  routingWorkcenterId String?
+  operationId         String
+  productId           String
+  productCode         String?
+  productName         String?
+  unitId              String?
+  quantity            Float   @default(0)
+  price               Float?
+  amount              Float?
+  dueDate             DateTime?
+  status              String  @default("pending")
+  remark              String?
+
+  order               SubcontractOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  receipts            SubcontractReceiptItem[]
+
+  @@index([orderId])
+  @@index([workOrderId])
+  @@index([routingWorkcenterId])
+  @@index([operationId])
+  @@unique([orderId, workOrderId, operationId])
+  @@map("subcontract_order_items")
+}
+
+/// 委外收货主表
+model SubcontractReceipt {
+  id           String   @id @default(cuid())
+  receiptNo    String   @unique
+  orderId      String
+  supplierId   String?
+  receivedDate DateTime @default(now())
+  warehouseId  String?
+  qcStatus     String?
+  status       String   @default("draft")
+  createdBy    String?
+  updatedBy    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  order        SubcontractOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  items        SubcontractReceiptItem[]
+
+  @@index([orderId])
+  @@index([receivedDate])
+  @@index([status])
+  @@map("subcontract_receipts")
+}
+
+/// 委外收货明细
+model SubcontractReceiptItem {
+  id               String   @id @default(cuid())
+  receiptId        String
+  orderItemId      String
+  receivedQuantity Float    @default(0)
+  qcResult         String?
+  warehouseId      String?
+  remark           String?
+
+  receipt          SubcontractReceipt   @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  orderItem        SubcontractOrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@index([receiptId])
+  @@index([orderItemId])
+  @@map("subcontract_receipt_items")
 }

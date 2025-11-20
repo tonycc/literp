@@ -1,4 +1,4 @@
-import apiClient from '../../../shared/services/api';
+import apiClient from '@/shared/services/api';
 
 export interface SystemSettings {
   id: string;

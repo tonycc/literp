@@ -1,8 +1,9 @@
 import { useState, useCallback } from 'react';
 import type { ProductInfo, ProductFormData } from '@zyerp/shared';
 import { productService } from '../services/product.service';
-import { useMessage } from '../../../shared/hooks';
+import { useMessage } from '@/shared/hooks';
 import type { ProductListParams } from '../services/product.service';
+import type { ProductCreateWithVariantsInput } from '@zyerp/shared';
 
 export const useProduct = () => {
   const [products, setProducts] = useState<ProductInfo[]>([]);
@@ -49,7 +50,6 @@ export const useProduct = () => {
     try {
       const response = await productService.createProduct(data);
       if (response.success) {
-        message.success('创建产品成功');
         return response.data;
       } else {
         message.error(response.message || '创建产品失败');
@@ -64,13 +64,31 @@ export const useProduct = () => {
     }
   }, [message]);
 
+  const handleCreateProductWithVariants = useCallback(async (data: ProductCreateWithVariantsInput) => {
+    setLoading(true);
+    try {
+      const response = await productService.createProductWithVariants(data);
+      if (response.success) {
+        return response.data;
+      } else {
+        message.error(response.message || '创建产品及变体失败');
+        throw new Error(response.message || '创建产品及变体失败');
+      }
+    } catch (error) {
+      console.error('创建产品及变体失败:', error);
+      message.error('创建产品及变体失败');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [message]);
+
   // 更新产品
   const handleUpdateProduct = useCallback(async (id: string, data: ProductFormData) => {
     setLoading(true);
     try {
       const response = await productService.updateProduct(id, data);
       if (response.success) {
-        message.success('更新产品成功');
         return response.data;
       } else {
         message.error(response.message || '更新产品失败');
@@ -170,6 +188,8 @@ export const useProduct = () => {
     }
   }, [message, fetchProducts]);
 
+  
+
   return {
     products,
     loading,
@@ -178,6 +198,7 @@ export const useProduct = () => {
     pageSize,
     fetchProducts,
     createProduct: handleCreateProduct,
+    createProductWithVariants: handleCreateProductWithVariants,
     updateProduct: handleUpdateProduct,
     deleteProduct: handleDeleteProduct,
     toggleProductStatus: handleToggleProductStatus,

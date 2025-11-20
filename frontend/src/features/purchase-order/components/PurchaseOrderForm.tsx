@@ -1,347 +1,248 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Form,
-  Input,
-  Select,
-  DatePicker,
-  InputNumber,
-  Button,
-  Table,
-  Space,
-  Card,
-  Row,
-  Col,
-  Divider,
-  message,
-  Popconfirm
-} from 'antd';
-import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import React, { useState } from 'react';
+import { Card, Row, Col } from 'antd';
+import { ProForm, ProFormDatePicker, ProFormSelect, ProFormTextArea, ProFormDigit, ProFormList } from '@ant-design/pro-components';
+ 
 import type { FormInstance } from 'antd/es/form';
-import type { ColumnsType } from 'antd/es/table';
+ 
 import dayjs, { type Dayjs } from 'dayjs';
-import type { PurchaseOrderFormData, PurchaseOrderItem } from '../types';
+import type { PurchaseOrderFormData } from '@zyerp/shared';
+import { PurchaseOrderStatus } from '@zyerp/shared';
+import { useMessage } from '@/shared/hooks';
+import { productService } from '@/features/product/services/product.service';
+import { useUnitOptions } from '@/shared/hooks/useUnitOptions';
+import { useWarehouseOptions } from '@/shared/hooks/useWarehouseOptions';
+import { supplierService } from '@/features/supplier-management/services/supplier.service';
+import { PURCHASE_ORDER_STATUS_VALUE_ENUM_PRO } from '@/shared/constants/purchase-order';
+import { GLOBAL_CURRENCY_OPTIONS } from '@/shared/constants/currency';
 
-const { Option } = Select;
-const { TextArea } = Input;
+type ItemForm = {
+  productId?: string;
+  unitId?: string;
+  warehouseId?: string;
+  quantity?: number;
+  price?: number;
+  specification?: string;
+};
 
-// 表单内部使用的接口，日期字段为 Dayjs 对象
 interface FormValues {
-  supplierId: string;
-  orderDate: Dayjs;
-  expectedDeliveryDate: Dayjs;
+  supplierId?: string;
+  orderDate?: Dayjs;
+  expectedDeliveryDate?: Dayjs;
   remark?: string;
+  items?: ItemForm[];
+  status?: PurchaseOrderStatus;
+  currency?: string;
 }
 
 interface PurchaseOrderFormProps {
   form: FormInstance;
-  onSubmit: (values: PurchaseOrderFormData) => void;
+  initialValues?: Partial<PurchaseOrderFormData>;
+  onSubmit: (values: PurchaseOrderFormData) => void | Promise<void>;
   loading?: boolean;
 }
 
-// 模拟供应商数据
-const mockSuppliers = [
-  { id: 'SUP001', name: '上海精密机械有限公司', code: 'SHJM001' },
-  { id: 'SUP002', name: '北京液压设备厂', code: 'BJYY002' },
-  { id: 'SUP003', name: '深圳电机制造有限公司', code: 'SZDJ003' },
-  { id: 'SUP004', name: '天津传动设备公司', code: 'TJCD004' },
-  { id: 'SUP005', name: '广州轴承制造厂', code: 'GZZC005' }
-];
-
-// 模拟产品数据
-const mockProducts = [
-  { value: 'FP001', label: '精密齿轮', code: 'FP001', specification: '模数2.5，齿数40，材质45#钢', unit: '件' },
-  { value: 'FP002', label: '液压缸体', code: 'FP002', specification: '缸径100mm，行程200mm，工作压力16MPa', unit: '台' },
-  { value: 'FP003', label: '电机外壳', code: 'FP003', specification: '铝合金材质，防护等级IP65，尺寸200×150×100mm', unit: '个' },
-  { value: 'FP004', label: '传动轴', code: 'FP004', specification: '直径50mm，长度500mm，材质40Cr', unit: '根' },
-  { value: 'FP005', label: '精密轴承', code: 'FP005', specification: '内径30mm，外径62mm，宽度16mm，精度P5', unit: '套' }
-];
-
-const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
-  form,
-  onSubmit
-}) => {
-  const [items, setItems] = useState<PurchaseOrderItem[]>([]);
+const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ form, initialValues, onSubmit }) => {
+  const message = useMessage();
   const [totalAmount, setTotalAmount] = useState(0);
+  const { options: unitOptions } = useUnitOptions({ isActive: true });
+  const { options: warehouseOptions } = useWarehouseOptions({ isActive: true });
 
-  // 添加产品项
-  const addItem = () => {
-    const newItem: PurchaseOrderItem = {
-      id: `temp_${Date.now()}`,
-      productCode: '',
-      productName: '',
-      brand: '',
-      specification: '',
-      quantity: 1,
-      unit: '',
-      unitPrice: 0,
-      subtotal: 0,
-      batchNumber: ''
-    };
-    setItems([...items, newItem]);
+  const onValuesChange = (_: unknown, all: unknown) => {
+    const values = all as FormValues;
+    const list: ItemForm[] = Array.isArray(values.items) ? (values.items as ItemForm[]) : [];
+    const total = list.reduce((sum, it) => sum + Number(it.quantity || 0) * Number(it.price || 0), 0);
+    setTotalAmount(Number(total.toFixed(2)));
   };
 
-  // 删除产品项
-  const removeItem = (index: number) => {
-    const newItems = items.filter((_, i) => i !== index);
-    setItems(newItems);
-  };
-
-  // 更新产品项
-  const updateItem = (index: number, field: keyof PurchaseOrderItem, value: string | number) => {
-    const newItems = [...items];
-    newItems[index] = { ...newItems[index], [field]: value };
-
-    // 如果是产品选择，自动填充相关信息
-    if (field === 'productCode') {
-      const product = mockProducts.find(p => p.code === value);
-      if (product) {
-        newItems[index] = {
-          ...newItems[index],
-          productName: product.label,
-          specification: product.specification,
-          unit: product.unit
-        };
-      }
-    }
-
-    // 自动计算小计
-    if (field === 'quantity' || field === 'unitPrice') {
-      newItems[index].subtotal = newItems[index].quantity * newItems[index].unitPrice;
-    }
-
-    setItems(newItems);
-  };
-
-  // 计算总金额
-  useEffect(() => {
-    const total = items.reduce((sum, item) => sum + item.subtotal, 0);
-    setTotalAmount(total);
-  }, [items]);
-
-  // 处理表单提交
-  const handleFinish = (values: FormValues) => {
-    if (items.length === 0) {
+  const handleFinish = () => {
+    const raw = form.getFieldsValue() as FormValues;
+    const list: ItemForm[] = Array.isArray(raw.items) ? (raw.items as ItemForm[]) : [];
+    if (list.length === 0) {
       message.error('请至少添加一个产品');
       return;
     }
-
-    // 验证所有产品项是否完整
-    const invalidItems = items.filter(item => 
-      !item.productCode || !item.quantity || !item.unitPrice || !item.batchNumber
-    );
-
-    if (invalidItems.length > 0) {
-      message.error('请完善所有产品信息');
+    const invalid = list.filter((it) => !it?.productId || !Number(it?.quantity || 0));
+    if (invalid.length > 0) {
+      message.error('请完善产品信息');
       return;
     }
-
-    const formData: PurchaseOrderFormData = {
-      supplierId: values.supplierId,
-      items: items,
-      orderDate: values.orderDate.format('YYYY-MM-DD'),
-      expectedDeliveryDate: values.expectedDeliveryDate.format('YYYY-MM-DD'),
-      remark: values.remark
+    const formatDate = (v: unknown): string => {
+      if (typeof v === 'string' && v) return v;
+      const maybe = v as { format?: (f: string) => string } | undefined;
+      if (maybe && typeof maybe.format === 'function') return maybe.format('YYYY-MM-DD');
+      return dayjs().format('YYYY-MM-DD');
     };
-
+  const formData: PurchaseOrderFormData = {
+    supplierId: String(raw.supplierId || ''),
+    status: (raw.status as PurchaseOrderStatus) || PurchaseOrderStatus.DRAFT,
+    currency: typeof raw.currency === 'string' && raw.currency ? raw.currency : 'CNY',
+    orderDate: formatDate(raw.orderDate),
+    expectedDeliveryDate: formatDate(raw.expectedDeliveryDate),
+    remark: raw.remark,
+    items: list.map((it) => ({
+      productId: String(it.productId || ''),
+        unitId: it.unitId ? String(it.unitId) : undefined,
+        warehouseId: it.warehouseId ? String(it.warehouseId) : undefined,
+        quantity: Number(it.quantity || 0),
+        price: Number(it.price || 0),
+      })),
+    };
     onSubmit(formData);
   };
 
-  // 产品表格列定义
-  const columns: ColumnsType<PurchaseOrderItem> = [
-    {
-      title: '产品编码',
-      dataIndex: 'productCode',
-      width: 150,
-      render: (value, record, index) => (
-        <Select
-          value={value}
-          placeholder="选择产品"
-          style={{ width: '100%' }}
-          showSearch
-          filterOption={(input, option) =>
-            String(option?.children || '').toLowerCase().includes(input.toLowerCase())
-          }
-          onChange={(val) => updateItem(index, 'productCode', val)}
-        >
-          {mockProducts.map(product => (
-            <Option key={product.code} value={product.code}>
-              {product.code} - {product.label}
-            </Option>
-          ))}
-        </Select>
-      )
-    },
-    {
-      title: '产品名称',
-      dataIndex: 'productName',
-      width: 120,
-      render: (value) => value || '-'
-    },
-    {
-      title: '规格',
-      dataIndex: 'specification',
-      width: 200,
-      ellipsis: true,
-      render: (value) => value || '-'
-    },
-    {
-      title: '数量',
-      dataIndex: 'quantity',
-      width: 100,
-      render: (value, record, index) => (
-        <InputNumber
-          value={value}
-          min={1}
-          precision={0}
-          style={{ width: '100%' }}
-          onChange={(val) => updateItem(index, 'quantity', val || 1)}
-        />
-      )
-    },
-    {
-      title: '单位',
-      dataIndex: 'unit',
-      width: 60,
-      render: (value) => value || '-'
-    },
-    {
-      title: '单价',
-      dataIndex: 'unitPrice',
-      width: 100,
-      render: (value, record, index) => (
-        <InputNumber
-          value={value}
-          min={0}
-          precision={2}
-          style={{ width: '100%' }}
-          onChange={(val) => updateItem(index, 'unitPrice', val || 0)}
-        />
-      )
-    },
-    {
-      title: '小计',
-      dataIndex: 'subtotal',
-      width: 100,
-      render: (value) => `¥${value.toFixed(2)}`
-    },
-    {
-      title: '操作',
-      width: 80,
-      render: (_, record, index) => (
-        <Popconfirm
-          title="确定删除这个产品吗？"
-          onConfirm={() => removeItem(index)}
-          okText="确定"
-          cancelText="取消"
-        >
-          <Button
-            type="text"
-            danger
-            size="small"
-            icon={<DeleteOutlined />}
-          />
-        </Popconfirm>
-      )
-    }
-  ];
+  const initialList = Array.isArray(initialValues?.items)
+    ? (initialValues?.items || []).map((it) => ({
+        productId: String(it.productId || ''),
+        unitId: it.unitId ? String(it.unitId) : undefined,
+        warehouseId: it.warehouseId ? String(it.warehouseId) : undefined,
+        quantity: Number(it.quantity || 1),
+        price: typeof it.price === 'number' ? it.price : 0,
+      }))
+    : [{}];
 
   return (
-    <Form
+    <ProForm<PurchaseOrderFormData>
       form={form}
-      layout="vertical"
-      onFinish={handleFinish}
       initialValues={{
-        orderDate: dayjs(),
-        expectedDeliveryDate: dayjs().add(30, 'day')
+        orderDate: initialValues?.orderDate ? dayjs(initialValues.orderDate) : dayjs(),
+        expectedDeliveryDate: initialValues?.expectedDeliveryDate ? dayjs(initialValues.expectedDeliveryDate) : dayjs().add(30, 'day'),
+        supplierId: initialValues?.supplierId,
+        status: PurchaseOrderStatus.DRAFT,
+        currency: 'CNY',
+        remark: initialValues?.remark,
       }}
+      onFinish={handleFinish}
+      onValuesChange={onValuesChange}
+      layout="vertical"
+      submitter={false}
     >
       <Card title="基本信息" size="small" style={{ marginBottom: 16 }}>
         <Row gutter={16}>
           <Col span={8}>
-            <Form.Item
-              label="订单日期"
-              name="orderDate"
-              rules={[{ required: true, message: '请选择订单日期' }]}
-            >
-              <DatePicker style={{ width: '100%' }} />
-            </Form.Item>
+            <ProFormDatePicker name="orderDate" label="订单日期" rules={[{ required: true, message: '请选择订单日期' }]} />
           </Col>
           <Col span={8}>
-            <Form.Item
-              label="预期交付日期"
-              name="expectedDeliveryDate"
-              rules={[{ required: true, message: '请选择预期交付日期' }]}
-            >
-              <DatePicker style={{ width: '100%' }} />
-            </Form.Item>
+            <ProFormDatePicker name="expectedDeliveryDate" label="预期交付日期" rules={[{ required: true, message: '请选择预期交付日期' }]} />
           </Col>
           <Col span={8}>
-            <Form.Item
-              label="供应商"
+            <ProFormSelect
               name="supplierId"
+              label="供应商"
+              placeholder="请选择供应商"
               rules={[{ required: true, message: '请选择供应商' }]}
-            >
-              <Select
-                placeholder="请选择供应商"
-                showSearch
-                filterOption={(input, option) =>
-                  String(option?.children || '').toLowerCase().includes(input.toLowerCase())
-                }
-              >
-                {mockSuppliers.map(supplier => (
-                  <Option key={supplier.id} value={supplier.id}>
-                    {supplier.name}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
+              showSearch
+              request={async ({ keyWords }) => {
+                const res = await supplierService.getList({ page: 1, pageSize: 20, keyword: keyWords });
+                return (res.data || []).map((s) => ({ label: s.name, value: s.id }));
+              }}
+            />
+          </Col>
+          
+        </Row>
+        <Row gutter={16}>
+          <Col span={8}>
+            <ProFormSelect
+              name="status"
+              label="状态"
+              valueEnum={PURCHASE_ORDER_STATUS_VALUE_ENUM_PRO}
+              rules={[{ required: true, message: '请选择状态' }]}
+            />
+          </Col>
+          <Col span={8}>
+            <ProFormSelect
+              name="currency"
+              label="币种"
+              options={GLOBAL_CURRENCY_OPTIONS}
+              rules={[{ required: true, message: '请选择币种' }]}
+            />
           </Col>
         </Row>
         <Row>
           <Col span={24}>
-            <Form.Item label="备注" name="remark">
-              <TextArea rows={2} placeholder="请输入备注信息" />
-            </Form.Item>
+            <ProFormTextArea name="remark" label="备注" fieldProps={{ rows: 2, placeholder: '请输入备注信息' }} />
           </Col>
         </Row>
       </Card>
 
-      <Card 
-        title="产品清单" 
-        size="small"
-        extra={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={addItem}
-          >
-            添加产品
-          </Button>
-        }
-      >
-        <Table
-          columns={columns}
-          dataSource={items}
-          rowKey="id"
-          pagination={false}
-          scroll={{ x: '100%' }}
-          locale={{ emptyText: '暂无产品，请点击"添加产品"按钮添加' }}
-        />
-        
-        <Divider />
-        
+      <Card title="产品清单" size="small" style={{ marginBottom: 16 }}>
+        <Row style={{ fontWeight: 600, marginBottom: 8 }}>
+          <Col span={8}>产品</Col>
+          <Col span={4}>单价</Col>
+          <Col span={4}>数量</Col>
+          <Col span={4}>单位</Col>
+          <Col span={4}>仓库</Col>
+        </Row>
+        <ProFormList
+          name="items"
+          initialValue={initialList}
+          creatorButtonProps={{ creatorButtonText: '添加产品' }}
+          copyIconProps={false}
+          deleteIconProps={{ tooltipText: '移除' }}
+        >
+          {(f) => (
+            <>
+              <Row gutter={16} style={{ marginBottom: 8 }}>
+                <Col span={8}>
+                  <ProFormSelect
+                    name={["productId"]}
+                    label={false}
+                    showSearch
+                    rules={[{ required: true, message: '请选择产品' }]}
+                    request={async ({ keyWords }) => {
+                      const res = await productService.getProductOptions({});
+                      const list = res.data || [];
+                      const filtered = keyWords ? list.filter((p) => (p.name || '').includes(keyWords) || (p.code || '').includes(keyWords)) : list;
+                      return filtered.map((p) => ({ label: `${p.name}${p.code ? ` (${p.code})` : ''}`, value: p.id, data: p }));
+                    }}
+                    fieldProps={{
+                      filterOption: (input, option) => String(option?.label || '').toLowerCase().includes(input.toLowerCase()),
+                      allowClear: true,
+                      onChange: async (value, option) => {
+                        const all = form.getFieldsValue() as FormValues;
+                        const list: ItemForm[] = Array.isArray(all.items) ? ([...(all.items as ItemForm[])]) : [];
+                        const idx = typeof f.name === 'number' ? f.name : Number(f.name);
+                        const current = list[idx] || {};
+                        let unitIdFromOption = '';
+                        let warehouseIdFromOption = '';
+                        let specificationFromOption = '';
+                        const optData = (option as unknown as { data?: { unit?: { name: string; symbol: string }; specification?: string } })?.data;
+                        if (optData) {
+                          specificationFromOption = optData.specification || '';
+                        }
+                        const detail = await productService.getProductById(String(value));
+                        const d = detail.data as unknown as { unitId?: string; defaultWarehouseId?: string; specification?: string };
+                        unitIdFromOption = String(d?.unitId || '');
+                        warehouseIdFromOption = String(d?.defaultWarehouseId || '');
+                        specificationFromOption = specificationFromOption || String(d?.specification || '');
+                        list[idx] = { ...current, productId: String(value || ''), unitId: unitIdFromOption || current.unitId, warehouseId: warehouseIdFromOption || current.warehouseId, specification: specificationFromOption || current.specification };
+                        form.setFieldsValue({ items: list });
+                      },
+                    }}
+                  />
+                </Col>
+                <Col span={4}>
+                  <ProFormDigit name={["price"]} label={false} min={0} fieldProps={{ precision: 2 }} rules={[{ required: true, message: '请输入单价' }]} />
+                </Col>
+                <Col span={4}>
+                  <ProFormDigit name={["quantity"]} label={false} min={1} rules={[{ required: true, message: '请输入数量' }]} />
+                </Col>
+                <Col span={4}>
+                  <ProFormSelect name={["unitId"]} label={false} options={unitOptions} showSearch />
+                </Col>
+                <Col span={4}>
+                  <ProFormSelect name={["warehouseId"]} label={false} options={warehouseOptions} showSearch />
+                </Col>
+              </Row>
+            </>
+          )}
+        </ProFormList>
         <Row justify="end">
           <Col>
-            <Space size="large">
-              <span>产品总数：{items.length} 项</span>
-              <span style={{ fontSize: 16, fontWeight: 'bold' }}>
-                订单总金额：¥{totalAmount.toFixed(2)}
-              </span>
-            </Space>
+            <span style={{ fontSize: 16, fontWeight: 'bold' }}>订单总金额：¥{totalAmount.toFixed(2)}</span>
           </Col>
         </Row>
       </Card>
-    </Form>
+    </ProForm>
   );
 };
 

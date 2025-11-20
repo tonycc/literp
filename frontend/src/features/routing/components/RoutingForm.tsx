@@ -8,13 +8,13 @@ import { Row, Col } from 'antd';
 import type { FormInstance } from 'antd';
 import type { RoutingInfo, RoutingWorkcenterInfo, RoutingFormData, WorkcenterOption } from '@zyerp/shared';
 import { routingService } from '../services/routing.service';
-import { useMessage } from '../../../shared/hooks';
+import { useMessage } from '@/shared/hooks';
 import RoutingOperationsList from './RoutingOperationsList';
 
 interface RoutingFormProps {
   form: FormInstance;
   initialValues?: Partial<RoutingInfo>;
-  onSubmit?: (values: RoutingFormData) => void;
+  onSubmit?: (values: RoutingFormData) => Promise<void>;
   // 下方工序列表相关 props（由页面层传入以保持状态统一）
   operations?: RoutingWorkcenterInfo[];
   onAddOperation?: () => void;
@@ -74,7 +74,7 @@ const RoutingForm: React.FC<RoutingFormProps> = ({
 
   return (
     <>
-    <ProForm
+    <ProForm<RoutingFormData>
       form={form}
       initialValues={initialValues}
       onFinish={handleSubmit}

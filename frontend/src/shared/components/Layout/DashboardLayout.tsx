@@ -17,7 +17,7 @@ import {
   ApartmentOutlined,
   ControlOutlined,
   ShoppingOutlined,
-  ClusterOutlined,
+  ClusterOutlined
 } from '@ant-design/icons';
 import { useAuth } from '../../../features/auth';
 import { NotificationButton } from '../../../features/notification-management';
@@ -34,15 +34,17 @@ const NotificationManagement = React.lazy(() => import('../../../features/notifi
 const DepartmentManagement = React.lazy(() => import('../../../features/department-management/components/DepartmentManagement'));
 const ProductManagement = React.lazy(() => import('../../../features/product/pages/ProductManagement'));
 const ProductCategoryManagement = React.lazy(() => import('../../../features/product/pages/ProductCategoryManagement'));
-const BomManagement = React.lazy(() => import('../../../features/bom'));
+const ProductVariantsManagement = React.lazy(() => import('../../../features/product-variants/pages/ProductVariantsManagement'));
+const AttributeManagement = React.lazy(() => import('../../../features/attributes/pages/AttributeManagement'));
+const BomManagement = React.lazy(() => import('../../../features/bom/pages/BomManagement'));
 const SupplierManagement = React.lazy(() => import('../../../features/supplier-management/components/SupplierManagement'));
 const SupplierPriceManagement = React.lazy(() => import('../../../features/supplier-management/components/SupplierPriceManagement'));
 const CustomerManagement = React.lazy(() => import('../../../features/customer-management/components/CustomerManagement'));
 const CustomerPriceListManagement = React.lazy(() => import('../../../features/customer-price-list/components/CustomerPriceListManagement'));
-const PurchaseOrderManagement = React.lazy(() => import('../../../features/purchase-order/components/PurchaseOrderManagement'));
+const PurchaseOrderManagement = React.lazy(() => import('../../../features/purchase-order/pages/PurchaseOrderManagement'));
 const PurchaseReceiptManagement = React.lazy(() => import('../../../features/purchase-receipt/components/PurchaseReceiptManagement'));
 const PurchaseReturnManagement = React.lazy(() => import('../../../features/purchase-return/components/PurchaseReturnManagement').then(module => ({ default: module.PurchaseReturnManagement })));
-const SalesOrderManagement = React.lazy(() => import('../../../features/sales-order').then(module => ({ default: module.SalesOrderManagement })));
+const SalesOrderManagement = React.lazy(() => import('../../../features/sales-order/components/SalesOrderManagement'));
 const SalesReceiptManagement = React.lazy(() => import('../../../features/sales-receipt/components/SalesReceiptManagement'));
 const SalesReturnManagement = React.lazy(() => import('../../../features/sales-return/components/SalesReturnManagement'));
 const InventoryManagement = React.lazy(() => import('../../../features/inventory/pages/InventoryManagement'));
@@ -51,10 +53,19 @@ const ProductionOrderList = React.lazy(() => import('../../../features/productio
 const ProductionRecordList = React.lazy(() => import('../../../features/production-record').then(module => ({ default: module.ProductionRecordList })));
 const ProductionInboundManagement = React.lazy(() => import('../../../features/production-inbound/components/ProductionInboundManagement'));
 const ProductionPlanManagement = React.lazy(() => import('../../../features/production-plan').then(module => ({ default: module.ProductionPlanManagement })));
+const ProductionPlanListPage = React.lazy(() => import('../../../features/production-plan').then(module => ({ default: module.ProductionPlanList })));
+const ManufacturingOrderManagement = React.lazy(() => import('../../../features/manufacturing-order/pages/ManufacturingOrderManagement'));
+const WorkOrderScheduling = React.lazy(() => import('../../../features/work-order/pages/WorkOrderScheduling'));
+const WorkOrderBoard = React.lazy(() => import('../../../features/work-order/pages/WorkOrderBoard'));
+const MaterialIssueManagement = React.lazy(() => import('../../../features/material-issue').then(module => ({ default: module.MaterialIssueManagement })));
+const MaterialIssueDetailPage = React.lazy(() => import('../../../features/material-issue').then(module => ({ default: module.MaterialIssueDetailPage })));
+const ProductionReportManagement = React.lazy(() => import('../../../features/production-report').then(module => ({ default: module.ProductionReportManagement })));
 const Homepage = React.lazy(() => import('../../../features/homepage/components/Homepage'));
 const OperationManagement = React.lazy(() => import('../../../features/operation/pages/OperationManagement'));
 const RoutingManagement = React.lazy(() => import('../../../features/routing/pages/RoutingManagement'));
 const WorkcenterManagement = React.lazy(() => import('../../../features/workcenter/pages/WorkcenterManagement'));
+const SubcontractOrderManagement = React.lazy(() => import('../../../features/subcontract-management/pages/SubcontractOrderManagement'));
+const SubcontractReceiptManagement = React.lazy(() => import('../../../features/subcontract-management/pages/SubcontractReceiptManagement'));
 
 
 // 扩展菜单项类型，添加权限配置
@@ -67,10 +78,53 @@ interface MenuItemWithPermissions extends MenuDataItem {
 const allMenuData: MenuItemWithPermissions[] = [
  
   {
+    path: '/production-planning',
+    name:'生产计划',
+    icon: <ClusterOutlined />,
+    children: [
+      {
+        path: '/production-plan',
+        name: '生产计划',
+        icon: <ClusterOutlined />,
+      },
+      {
+        path: '/production-plan-list',
+        name: '生产计划列表',
+        icon: <ClusterOutlined />,
+      },
+      {
+        path: '/manufacturing-order',
+        name: '制造订单',
+        icon: <ClusterOutlined />,
+      }, 
+    ],
+  },
+
+  {
     path: '/production-management',
     name:'生产管理',
     icon: <ClusterOutlined />,
     children: [
+       {
+        path: '/work-order-scheduling',
+        name: '生产工单',
+        icon: <ClusterOutlined />,
+      },
+      {
+        path: '/work-order-board',
+        name: '工单看板',
+        icon: <ClusterOutlined />,
+      },
+      {
+        path: '/production-report',
+        name: '生产报工',
+        icon: <ClusterOutlined />,
+      },
+      {
+        path: '/material-issue',
+        name: '生产领料',
+        icon: <ClusterOutlined />,
+      },
       {
         path: '/production-order',
         name: '生产工单',
@@ -86,9 +140,21 @@ const allMenuData: MenuItemWithPermissions[] = [
         name: '生产入库',
         icon: <ClusterOutlined />,
       },
+    ],
+  },
+  {
+    path: '/subcontract-management',
+    name:'委外管理',
+    icon: <ClusterOutlined />,
+    children: [
       {
-        path: '/production-plan',
-        name: '生产计划预览',
+        path: '/subcontract-order',
+        name: '委外订单',
+        icon: <ClusterOutlined />,
+      },
+      {
+        path: '/subcontract-receipt',
+        name: '委外入库',
         icon: <ClusterOutlined />,
       },
     ],
@@ -173,6 +239,11 @@ const allMenuData: MenuItemWithPermissions[] = [
       {
         path: '/product-categories',
         name: '产品类目管理',
+        icon: <ShoppingOutlined />,
+      },
+      {
+        path: '/attributes',
+        name: '属性与属性值',
         icon: <ShoppingOutlined />,
       },
       {
@@ -283,7 +354,8 @@ const DashboardLayout: React.FC = () => {
     '/purchase-management': ['/purchase-order', '/purchase-receipt', '/purchase-return'],
     '/sales-management': ['/sales-order', '/sales-receipt', '/sales-return'],
     '/inventory-management': ['/inventory', '/outbound-order', '/other-inbound'],
-    '/production-management': ['/production-order', '/production-record', '/production-inbound', '/production-plan'],
+    '/production-management': ['/production-order', '/manufacturing-order', '/work-order-scheduling', '/production-record', '/production-inbound', '/production-plan', '/material-issue', '/production-report'],
+    '/subcontract-management': ['/subcontract-order', '/subcontract-receipt'],
     '/base-data': ['/products', '/bom', '/operations', '/routings', '/suppliers', '/supplier-bomprice', '/customers', '/customer-bomprice'],
     '/system': ['/users', '/departments', '/roles', '/permissions', '/settings'],
   }), []);
@@ -385,7 +457,7 @@ const DashboardLayout: React.FC = () => {
     try {
       await logout();
       message.success('退出登录成功');
-      navigate('/login');
+      void navigate('/login');
     } catch {
       message.error('退出登录失败');
     }
@@ -396,13 +468,13 @@ const DashboardLayout: React.FC = () => {
       key: 'profile',
       icon: <UserOutlined />,
       label: '个人资料',
-      onClick: () => navigate('/profile'),
+      onClick: () => { void navigate('/profile') },
     },
     {
       key: 'settings',
       icon: <SettingOutlined />,
       label: '个人设置',
-      onClick: () => navigate('/settings'),
+      onClick: () => { void navigate('/settings') },
     },
     {
       type: 'divider' as const,
@@ -459,7 +531,7 @@ const DashboardLayout: React.FC = () => {
       }}
       menuItemRender={(item, dom) => (
         <div onClick={() => {
-          navigate(item.path || '/');
+          void navigate(item.path || '/');
           
           // 如果点击的是二级菜单项，收起对应的一级菜单
           const currentPath = item.path || '';
@@ -504,11 +576,20 @@ const DashboardLayout: React.FC = () => {
       >
         <div style={{ padding: '10px' }}>
           <React.Suspense fallback={<div>加载中...</div>}>
-            <Routes>
+        <Routes>
               <Route path="/production-order" element={<ProductionOrderList />} />
+              <Route path="/manufacturing-order" element={<ManufacturingOrderManagement />} />
+              <Route path="/work-order-scheduling" element={<WorkOrderScheduling />} />
+              <Route path="/work-order-board" element={<WorkOrderBoard />} />
+              <Route path="/material-issue" element={<MaterialIssueManagement />} />
+              <Route path="/material-issue/:id" element={<MaterialIssueDetailPage />} />
+              <Route path="/production-report" element={<ProductionReportManagement />} />
               <Route path="/production-record" element={<ProductionRecordList />} />
               <Route path="/production-inbound" element={<ProductionInboundManagement />} />
+              <Route path="/subcontract-order" element={<SubcontractOrderManagement />} />
+              <Route path="/subcontract-receipt" element={<SubcontractReceiptManagement />} />
               <Route path="/production-plan" element={<ProductionPlanManagement />} />
+              <Route path="/production-plan-list" element={<ProductionPlanListPage />} />
               <Route path="/purchase-order" element={<PurchaseOrderManagement />} />
               <Route path="/purchase-receipt" element={<PurchaseReceiptManagement />} />
               <Route path="/purchase-return" element={<PurchaseReturnManagement />} />
@@ -523,6 +604,9 @@ const DashboardLayout: React.FC = () => {
               <Route path="/customers" element={<CustomerManagement />} />
               <Route path="/customer-bomprice" element={<CustomerPriceListManagement />} />
               <Route path="/products" element={<ProductManagement />} />
+              <Route path="/products/:id/variants" element={<ProductVariantsManagement />} />
+              
+              <Route path="/attributes" element={<AttributeManagement />} />
               <Route path="/product-categories" element={<ProductCategoryManagement />} />
               <Route path="/bom" element={<BomManagement />} />
               <Route path="/operations" element={<OperationManagement />} />
@@ -547,3 +631,4 @@ const DashboardLayout: React.FC = () => {
 };
 
 export default DashboardLayout;
+          <Route path="/bom" element={<BomManagement />} />

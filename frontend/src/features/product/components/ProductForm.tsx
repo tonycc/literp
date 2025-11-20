@@ -14,23 +14,24 @@ import {
 } from 'antd';
 import {
   SaveOutlined,
-  CloseOutlined
+  CloseOutlined,
 } from '@ant-design/icons';
 import { ProductType, ProductStatus, PRODUCT_TYPE_OPTIONS, PRODUCT_STATUS_OPTIONS, ACQUISITION_METHOD_OPTIONS } from '@zyerp/shared';
 import type { ProductInfo, ProductFormData, ProductCategoryOption } from '@zyerp/shared';
 import { productCategoryService } from '../services/productCategory.service';
 import { productService } from '../services/product.service';
-import { unitService, type UnitOption } from '../../../shared/services/unit.service';
-import { warehouseService, type WarehouseOption } from '../../../shared/services/warehouse.service';
-import { useMessage } from '../../../shared/hooks';
+import { unitService, type UnitOption } from '@/shared/services/unit.service';
+import { warehouseService, type WarehouseOption } from '@/shared/services/warehouse.service';
+import { useMessage } from '@/shared/hooks';
 import ProductImageUpload from './ProductImageUpload';
+import { AttributesService } from '../../attributes/services/attributes.service';
 
 const { Option } = Select;
 
 interface ProductFormProps {
   product?: ProductInfo;
   visible: boolean;
-  onSave: (data: ProductFormData) => Promise<void>;
+  onSave: (data: ProductFormData & { singleAttributeId?: string; singleAttributeName?: string; singleAttributeValue?: string }) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
 }
@@ -40,9 +41,10 @@ const ProductForm: React.FC<ProductFormProps> = ({
   visible,
   onSave,
   onCancel,
-  loading = false
+  loading = false,
 }) => {
   const [form] = Form.useForm();
+  const singleAttrId = Form.useWatch('singleAttributeId', form);
   const message = useMessage();
 
   const [codeGenerated, setCodeGenerated] = useState(false);
@@ -53,6 +55,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const [unitOptions, setUnitOptions] = useState<UnitOption[]>([]);
   // 仓库选项状态
   const [warehouseOptions, setWarehouseOptions] = useState<WarehouseOption[]>([]);
+  const [attributeOptions, setAttributeOptions] = useState<{ label: string; value: string }[]>([]);
+  const [attributeValuesMap, setAttributeValuesMap] = useState<Record<string, { label: string; value: string }[]>>({});
   // 使用共享包统一选项定义
   const productTypeOptions = PRODUCT_TYPE_OPTIONS;
   const productStatusOptions = PRODUCT_STATUS_OPTIONS;
@@ -79,6 +83,14 @@ const ProductForm: React.FC<ProductFormProps> = ({
         // 获取仓库选项
         const warehouseOpts = await warehouseService.getOptions();
         setWarehouseOptions(warehouseOpts);
+
+        // 获取属性选项
+        const attrResp = await AttributesService.getAttributes({ page: 1, pageSize: 1000 });
+        if (attrResp.success) {
+          const opts = (attrResp.data || []).map(a => ({ label: a.name, value: a.id }));
+          const seen = new Set<string>();
+          setAttributeOptions(opts.filter(o => { if (seen.has(o.value)) return false; seen.add(o.value); return true; }));
+        }
       } catch (error) {
         console.error('获取选项数据失败:', error);
       }
@@ -98,7 +110,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
           code: product.code,
           name: product.name,
           type: product.type,
-          categoryId: product.categoryId,
+          categoryCode: product.category?.code || product.categoryId,
           unitId: product.unitId,
           defaultWarehouseId: product.warehouse?.id,
           model: product.model,
@@ -116,7 +128,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
           reorderPoint: product.reorderPoint,
           status: product.status,
           description: product.description,
-          remark: product.remark
+          remark: product.remark,
         });
         setCodeGenerated(true);
       } else {
@@ -130,7 +142,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
         setCodeGenerated(false);
       }
     }
-  }, [visible, product, form]);
+  }, [visible, product, form, message]);
 
   // 生成产品编码
   const generateProductCode = () => {
@@ -250,30 +262,29 @@ const ProductForm: React.FC<ProductFormProps> = ({
         <Card title="基本信息" size="small" style={{ marginBottom: 16 }}>
           <Row gutter={16}>
             <Col span={8}>
-              <Form.Item
-                label="产品编码"
-                name="code"
-                rules={[
-                  { required: true, message: '请输入产品编码' },
-                  { validator: validateProductCode }
-                ]}
-                validateTrigger="onBlur"
-              >
-                <Input
-                  placeholder="产品编码，格式：字母+数字"
-                  addonAfter={
-                    !product && (
-                      <Button
-                        type="link"
-                        size="small"
-                        onClick={generateProductCode}
-                        disabled={codeGenerated}
-                      >
-                        生成
-                      </Button>
-                    )
-                  }
-                />
+              <Form.Item label="产品编码">
+                <Space.Compact style={{ width: '100%' }}>
+                  <Form.Item
+                    name="code"
+                    rules={[
+                      { required: true, message: '请输入产品编码' },
+                      { validator: validateProductCode }
+                    ]}
+                    validateTrigger="onBlur"
+                    noStyle
+                  >
+                    <Input placeholder="产品编码，格式：字母+数字" />
+                  </Form.Item>
+                  {!product && (
+                    <Button
+                      type="primary"
+                      onClick={generateProductCode}
+                      disabled={codeGenerated}
+                    >
+                      生成
+                    </Button>
+                  )}
+                </Space.Compact>
               </Form.Item>
             </Col>
             <Col span={8}>
@@ -311,7 +322,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
               <Col span={8}>
               <Form.Item
               label="产品类目"
-              name="categoryId"
+              name="categoryCode"
               rules={[{ required: true, message: '请选择产品类目' }]}
             >
               <Select placeholder="选择产品类目">
@@ -349,8 +360,11 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 </Select>
               </Form.Item>
             </Col>
+            
            
           </Row>
+
+          
 
           <Row gutter={16}>
              <Col span={8}>
@@ -400,7 +414,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
             </Col>
           </Row>
         </Card>
-        <Card title="成本与库存" size="small" style={{ marginBottom: 16 }}>
+
+        <Card title="成本" size="small" style={{ marginBottom: 16 }}>
           <Row gutter={16}>
             <Col span={8}>
               <Form.Item
@@ -421,42 +436,88 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 />
               </Form.Item>
             </Col>
-            <Col span={8}>
+             <Col span={8}>
               <Form.Item
-                label="安全库存下限"
-                name="safetyStockMin"
+                label="最低安全库存"
+                name="lowestSafeStock"
                 rules={[
-                  { validator: validateStock('安全库存下限') }
+                  { validator: validateStock('最低安全库存') }
                 ]}
                 validateTrigger="onChange"
               >
                 <InputNumber
-                  placeholder="安全库存下限"
-                  min={0}
-                  max={9999999}
+                  placeholder="最低安全库存"
                   style={{ width: '100%' }}
+                  precision={2}
+                  min={0}
+                  max={99999999.99}
+                  addonAfter={unitOptions.find(u => u.value === form.getFieldValue('unitId'))?.label || '件'}
                 />
               </Form.Item>
             </Col>
-            <Col span={8}>
+             <Col span={8}>
               <Form.Item
-                label="安全库存上限"
-                name="safetyStockMax"
+                label="最高安全库存"
+                name="highestSafeStock"
                 rules={[
-                  { validator: validateStock('安全库存上限') }
+                  { validator: validateStock('最高安全库存') }
                 ]}
                 validateTrigger="onChange"
               >
                 <InputNumber
-                  placeholder="安全库存上限"
-                  min={0}
-                  max={9999999}
+                  placeholder="最高安全库存"
                   style={{ width: '100%' }}
+                  precision={2}
+                  min={0}
+                  max={99999999.99}
+                  addonAfter={unitOptions.find(u => u.value === form.getFieldValue('unitId'))?.label || '件'}
                 />
               </Form.Item>
             </Col>
           </Row>
         </Card>
+
+        {!product && (
+          <Card title="产品属性" size="small" style={{ marginBottom: 16 }}>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item label="属性名称" name="singleAttributeId">
+                  <Select
+                    placeholder="选择属性名称"
+                    options={attributeOptions}
+                    onChange={async (attrId) => {
+                      form.setFieldsValue({ singleAttributeValue: undefined });
+                      const resp = await AttributesService.getAttributeValues(attrId);
+                      if (resp.success) {
+                        const opts = (resp.data || []).map(v => ({ label: v.name, value: v.name }));
+                        setAttributeValuesMap(prev => ({ ...prev, [attrId]: opts }));
+                        const found = attributeOptions.find(o => o.value === attrId);
+                        form.setFieldsValue({ singleAttributeName: found?.label });
+                      } else {
+                        message.error('获取属性值失败');
+                      }
+                    }}
+                    allowClear
+                    showSearch
+                  />
+                </Form.Item>
+                <Form.Item name="singleAttributeName" hidden>
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label="属性值" name="singleAttributeValue">
+                  <Select
+                    placeholder="选择属性值"
+                    options={attributeValuesMap[singleAttrId as string] || []}
+                    allowClear
+                    showSearch
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+          </Card>
+        )}
 
         <Card title="产品图片" size="small" style={{ marginBottom: 16 }}>
           <Row gutter={16}>

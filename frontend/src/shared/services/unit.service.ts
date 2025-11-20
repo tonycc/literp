@@ -3,10 +3,11 @@
  */
 
 import apiClient from './api';
+import { mapPaginatedResponse } from './pagination';
 import type { 
   UnitInfo, 
   UnitQueryParams, 
-  UnitListResponse,
+  PaginatedResponse,
   ApiResponse 
 } from '@zyerp/shared';
 
@@ -23,9 +24,9 @@ class UnitService {
   /**
    * 获取单位列表
    */
-  async getUnits(params?: UnitQueryParams): Promise<UnitListResponse> {
+  async getUnits(params?: UnitQueryParams): Promise<PaginatedResponse<UnitInfo>> {
     // 转换前端参数为后端期望的格式
-    const backendParams: any = {};
+    const backendParams: Record<string, unknown> = {};
     if (params) {
       if (params.page !== undefined) backendParams.page = params.page;
       // 限制pageSize不超过100，以符合后端验证规则
@@ -37,28 +38,8 @@ class UnitService {
       if (params.sortOrder !== undefined) backendParams.sortOrder = params.sortOrder;
     }
     
-    const response = await apiClient.get<ApiResponse<{
-      data: UnitInfo[];
-      total: number;
-      page: number;
-      limit: number;
-      totalPages: number;
-    }>>(this.baseUrl, { params: backendParams });
-    
-    // 转换后端数据结构为前端期望的格式
-    const backendData = response.data.data!;
-    return {
-      success: response.data.success,
-      data: backendData.data,
-      message: response.data.message,
-      timestamp: new Date(response.data.timestamp),
-      pagination: {
-        page: backendData.page,
-        pageSize: backendData.limit,
-        total: backendData.total,
-        totalPages: backendData.totalPages,
-      },
-    };
+    const response = await apiClient.get<ApiResponse<unknown>>(this.baseUrl, { params: backendParams });
+    return mapPaginatedResponse<UnitInfo>(response.data);
   }
 
   /**

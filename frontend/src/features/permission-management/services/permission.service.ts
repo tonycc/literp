@@ -2,7 +2,7 @@
  * 权限管理 API 服务
  */
 
-import apiClient from '../../../shared/services/api';
+import apiClient from '@/shared/services/api';
 import type { Permission } from '@zyerp/shared';
 
 export interface PermissionListParams {

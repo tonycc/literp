@@ -7,7 +7,7 @@ import {
   Modal,
   Tag,
 } from 'antd';
-import { useMessage } from '../../../../shared/hooks/useMessage';
+import { useMessage } from '@/shared/hooks/useMessage';
 import {
   PlusOutlined,
   EditOutlined,

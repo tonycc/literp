@@ -9,18 +9,16 @@ import {
   Statistic,
   Progress,
   Tag,
-  Tabs,
+ 
   Form,
   Select,
   InputNumber,
   DatePicker,
   Alert,
   Typography,
-  Tree
 } from 'antd';
-import { useMessage, useModal } from '../../../shared/hooks';
+import { useMessage, useModal } from '@/shared/hooks';
 import type { ColumnsType } from 'antd/es/table';
-import type { DataNode } from 'antd/es/tree';
 
 // BOM成本相关类型定义（与后端保持一致）
 interface BomCostItem {
@@ -74,20 +72,12 @@ interface CostAnalysis {
     percentage: number;
   }[];
 }
-import {
-  CalculatorOutlined,
-  PieChartOutlined,
-  BarChartOutlined,
-  ExportOutlined,
-  ReloadOutlined,
-  SettingOutlined
-} from '@ant-design/icons';
+import { CalculatorOutlined, ExportOutlined, ReloadOutlined, SettingOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
 const { Text } = Typography;
-const { TabPane } = Tabs;
-const { RangePicker } = DatePicker;
+ 
 
 /**
  * BOM成本计算组件
@@ -344,22 +334,7 @@ const BomCostCalculator: React.FC = () => {
     message.success('成本报告导出成功');
   };
 
-  // 构建成本树数据
-  const buildCostTreeData = (items: BomCostItem[]): DataNode[] => {
-    return items.map(item => ({
-      title: (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>{item.materialName}</span>
-          <Space>
-            {renderCostType(item.costType)}
-            <Text strong>¥{item.totalCost.toFixed(2)}</Text>
-          </Space>
-        </div>
-      ),
-      key: item.id,
-      children: item.children ? buildCostTreeData(item.children) : undefined
-    }));
-  };
+ 
 
   return (
     <div className="bom-cost-calculator">

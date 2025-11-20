@@ -16,7 +16,8 @@ import {
 } from '@ant-design/icons';
 import type { OperationInfo, OperationQueryParams } from '@zyerp/shared';
 import operationService from '../services/operation.service';
-import { useMessage, useModal } from '../../../shared/hooks';
+import { useMessage, useModal } from '@/shared/hooks';
+import { normalizeTableParams } from '@/shared/utils/normalizeTableParams';
 
 interface OperationListProps {
   operations: OperationInfo[];
@@ -174,11 +175,12 @@ const OperationList: React.FC<OperationListProps> = ({
   // 处理表格请求
   const handleRequest: ProTableProps<OperationInfo, OperationQueryParams>['request'] = async (params) => {
     try {
+      const base = normalizeTableParams(params as any)
       const queryParams: OperationQueryParams = {
-        page: params.current || 1,
-        pageSize: params.pageSize || 20,
-        keyword: params.keyword,
-        isActive: params.isActive,
+        page: base.page,
+        pageSize: base.pageSize || 20,
+        keyword: (params as any).keyword,
+        isActive: (params as any).isActive,
       };
 
       // 清理空值参数

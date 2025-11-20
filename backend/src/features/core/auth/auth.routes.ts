@@ -6,7 +6,7 @@ import { Router } from 'express';
 import { authController } from './auth.controller';
 import { authenticateToken } from '../../../shared/middleware';
 
-const router = Router();
+const router: import('express').Router = Router();
 
 // 公开路由
 router.post('/login', authController.login.bind(authController));

@@ -1,19 +1,11 @@
-/**
- * 客户信息表单组件
- */
-
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
+import { Button, Row, Col, Card, Space } from 'antd';
 import {
-  Form,
-  Input,
-  Select,
-  Button,
-  Row,
-  Col,
-  Card,
-  Space,
-  message,
-} from 'antd';
+  ProForm,
+  ProFormText,
+  ProFormSelect,
+} from '@ant-design/pro-components';
+import type { ProFormInstance } from '@ant-design/pro-components';
 import {
   SaveOutlined,
   CloseOutlined,
@@ -25,13 +17,10 @@ import {
   DollarOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import type {
-  Customer,
-  CreateCustomerData,
-  UpdateCustomerData,
-} from '../types';
+import type { Customer, CreateCustomerData, UpdateCustomerData } from '@zyerp/shared';
+import { CUSTOMER_CATEGORY_OPTIONS, CUSTOMER_CREDIT_LEVEL_OPTIONS } from '@/shared/constants/customer';
 
-const { Option } = Select;
+type CustomerFormValues = CreateCustomerData & { id?: string };
 
 interface CustomerFormProps {
   customer?: Customer;
@@ -46,253 +35,185 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
   onCancel,
   loading = false,
 }) => {
-  const [form] = Form.useForm();
+  const formRef = useRef<ProFormInstance<CustomerFormValues> | undefined>(undefined);
   const isEdit = !!customer;
 
-  // 初始化表单数据
   useEffect(() => {
     if (customer) {
       const formData = {
         ...customer,
         establishedDate: customer.establishedDate ? dayjs(customer.establishedDate) : undefined,
-      };
-      form.setFieldsValue(formData);
+      } as Partial<CustomerFormValues>;
+      formRef.current?.setFieldsValue(formData);
     } else {
-      form.resetFields();
+      formRef.current?.resetFields();
     }
-  }, [customer, form]);
+  }, [customer]);
 
-  // 处理表单提交
-  const handleSubmit = async (values: Record<string, unknown>) => {
-    try {
-      const formData = {
-        ...values,
-        establishedDate: values.establishedDate ? (values.establishedDate as { format: (format: string) => string }).format('YYYY-MM-DD') : undefined,
-      };
-
-      if (isEdit) {
-        await onSubmit({ id: customer!.id, ...formData } as UpdateCustomerData);
-      } else {
-        await onSubmit(formData as CreateCustomerData);
-      }
-
-      message.success(isEdit ? '更新成功' : '创建成功');
-    } catch {
-      message.error(isEdit ? '更新失败' : '创建失败');
+  const handleSubmit = async (values: CustomerFormValues) => {
+    const formData: CustomerFormValues = {
+      ...values,
+      establishedDate: values.establishedDate
+        ? (values.establishedDate as unknown as { format: (fmt: string) => string }).format('YYYY-MM-DD')
+        : undefined,
+    };
+    if (isEdit) {
+      await onSubmit({ id: customer!.id, ...formData } as UpdateCustomerData);
+    } else {
+      await onSubmit(formData as CreateCustomerData);
     }
   };
 
-  // 生成客户编码
   const generateCode = () => {
     const timestamp = Date.now().toString().slice(-6);
     const code = `CUS${timestamp}`;
-    form.setFieldValue('code', code);
+    formRef.current?.setFieldsValue({ code } as Partial<CustomerFormValues>);
   };
 
   return (
-    <Card
-      title={
-        <Space>
-          <UserOutlined />
-          {isEdit ? '编辑客户信息' : '新增客户信息'}
-        </Space>
-      }
-      extra={
-        <Space>
-          <Button onClick={onCancel} icon={<CloseOutlined />}>
-            取消
-          </Button>
-          <Button
-            type="primary"
-            loading={loading}
-            icon={<SaveOutlined />}
-            onClick={() => form.submit()}
-          >
-            {isEdit ? '更新' : '保存'}
-          </Button>
-        </Space>
-      }
-    >
-      <Form
-        form={form}
-        layout="vertical"
+      <ProForm<CustomerFormValues>
+        formRef={formRef}
+        initialValues={customer ? { ...customer, establishedDate: customer.establishedDate ? dayjs(customer.establishedDate) : undefined } : undefined}
         onFinish={handleSubmit}
-        autoComplete="off"
+        layout="vertical"
+        submitter={{ render: () => null }}
       >
-        {/* 基本信息 */}
         <Card type="inner" title={<><UserOutlined /> 基本信息</>} style={{ marginBottom: 16 }}>
           <Row gutter={16}>
             <Col span={8}>
-              <Form.Item
-                label="客户编码"
+              <ProFormText
                 name="code"
+                label="客户编码"
+                placeholder="请输入客户编码"
                 rules={[
                   { required: true, message: '请输入客户编码' },
                   { pattern: /^[A-Z0-9]{3,20}$/, message: '客户编码格式不正确（3-20位大写字母和数字）' },
                 ]}
-              >
-                <Input
-                  placeholder="请输入客户编码"
-                  suffix={
-                    !isEdit && (
-                      <Button
-                        type="link"
-                        size="small"
-                        onClick={generateCode}
-                      >
-                        生成
-                      </Button>
-                    )
-                  }
-                />
-              </Form.Item>
+                fieldProps={{
+                  suffix: !isEdit ? (
+                    <Button type="link" size="small" onClick={generateCode}>生成</Button>
+                  ) : undefined,
+                }}
+              />
             </Col>
             <Col span={8}>
-              <Form.Item
-                label="客户名称"
+              <ProFormText
                 name="name"
+                label="客户名称"
+                placeholder="请输入客户名称"
                 rules={[
                   { required: true, message: '请输入客户名称' },
                   { min: 2, max: 100, message: '客户名称长度为2-100个字符' },
                 ]}
-              >
-                <Input placeholder="请输入客户名称" />
-              </Form.Item>
+              />
             </Col>
             <Col span={8}>
-              <Form.Item
-                label="客户分类"
+              <ProFormSelect
                 name="category"
+                label="客户分类"
+                placeholder="请选择客户分类"
                 rules={[{ required: true, message: '请选择客户分类' }]}
-              >
-                <Select placeholder="请选择客户分类">
-                  <Option value="enterprise">企业客户</Option>
-                  <Option value="individual">个人客户</Option>
-                  <Option value="government">政府客户</Option>
-                  <Option value="institution">机构客户</Option>
-                </Select>
-              </Form.Item>
+                options={CUSTOMER_CATEGORY_OPTIONS}
+              />
             </Col>
           </Row>
-
           <Row gutter={16}>
             <Col span={8}>
-              <Form.Item
-                label="联系人"
+              <ProFormText
                 name="contactPerson"
+                label="联系人"
+                placeholder="请输入联系人"
                 rules={[
                   { required: true, message: '请输入联系人' },
                   { min: 2, max: 50, message: '联系人姓名长度为2-50个字符' },
                 ]}
-              >
-                <Input placeholder="请输入联系人" prefix={<UserOutlined />} />
-              </Form.Item>
+                fieldProps={{ prefix: <UserOutlined /> }}
+              />
             </Col>
             <Col span={8}>
-              <Form.Item
-                label="联系电话"
+              <ProFormText
                 name="phone"
+                label="联系电话"
+                placeholder="请输入联系电话"
                 rules={[
                   { required: true, message: '请输入联系电话' },
                   { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码' },
                 ]}
-              >
-                <Input placeholder="请输入联系电话" prefix={<PhoneOutlined />} />
-              </Form.Item>
+                fieldProps={{ prefix: <PhoneOutlined /> }}
+              />
             </Col>
             <Col span={8}>
-              <Form.Item
-                label="邮箱"
+              <ProFormText
                 name="email"
+                label="邮箱"
+                placeholder="请输入邮箱"
                 rules={[{ type: 'email', message: '请输入正确的邮箱地址' }]}
-              >
-                <Input placeholder="请输入邮箱" prefix={<MailOutlined />} />
-              </Form.Item>
+                fieldProps={{ prefix: <MailOutlined /> }}
+              />
             </Col>
           </Row>
-
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item
-                label="地址"
+              <ProFormText
                 name="address"
-                rules={[
-                  { required: true, message: '请输入地址' },
-                  { min: 5, max: 200, message: '地址长度为5-200个字符' },
-                ]}
-              >
-                <Input placeholder="请输入地址" prefix={<HomeOutlined />} />
-              </Form.Item>
+                label="地址"
+                placeholder="请输入地址"
+                fieldProps={{ prefix: <HomeOutlined /> }}
+              />
             </Col>
             <Col span={6}>
-              <Form.Item
-                label="信用等级"
+              <ProFormSelect
                 name="creditLevel"
-                rules={[{ required: true, message: '请选择信用等级' }]}
-              >
-                <Select placeholder="请选择信用等级">
-                  <Option value="AAA">AAA</Option>
-                  <Option value="AA">AA</Option>
-                  <Option value="A">A</Option>
-                  <Option value="BBB">BBB</Option>
-                  <Option value="BB">BB</Option>
-                  <Option value="B">B</Option>
-                  <Option value="C">C</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={6}>
-              <Form.Item
-                label="状态"
-                name="status"
-                rules={[{ required: true, message: '请选择状态' }]}
-              >
-                <Select placeholder="请选择状态">
-                  <Option value="active">活跃</Option>
-                  <Option value="inactive">非活跃</Option>
-                  <Option value="suspended">暂停</Option>
-                  <Option value="blacklisted">黑名单</Option>
-                </Select>
-              </Form.Item>
+                label="信用等级"
+                placeholder="请选择信用等级"
+                options={CUSTOMER_CREDIT_LEVEL_OPTIONS}
+              />
             </Col>
           </Row>
         </Card>
-
-        {/* 财务信息 */}
         <Card type="inner" title={<><DollarOutlined /> 财务信息</>} style={{ marginBottom: 16 }}>
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item
-                label="银行账户"
+              <ProFormText
                 name="bankAccount"
+                label="银行账户"
+                placeholder="请输入银行账户"
                 rules={[{ pattern: /^[0-9]{16,19}$/, message: '银行账户格式不正确' }]}
-              >
-                <Input placeholder="请输入银行账户" prefix={<BankOutlined />} />
-              </Form.Item>
+                fieldProps={{ prefix: <BankOutlined /> }}
+              />
             </Col>
-             <Col span={12}>
-              <Form.Item
-                label="开户银行"
+            <Col span={12}>
+              <ProFormText
                 name="bankName"
-              >
-                <Input placeholder="请输入开户银行" />
-              </Form.Item>
+                label="开户银行"
+                placeholder="请输入开户银行"
+              />
             </Col>
           </Row>
-
-          <Row gutter={16}> 
+          <Row gutter={16}>
             <Col span={12}>
-              <Form.Item
-                label="付款方式"
+              <ProFormText
                 name="paymentMethod"
-              >
-                <Input placeholder="请输入付款方式" />
-              </Form.Item>
+                label="付款方式"
+                placeholder="请输入付款方式"
+              />
+            </Col>
+            <Col span={12}>
+              <ProFormText name="taxNumber" label="税号" placeholder="请输入税号" />
             </Col>
           </Row>
         </Card>
-      </Form>
-    </Card>
+        <Row>
+          <Col span={24} style={{ textAlign: 'right' }}>
+            <Space>
+              <Button onClick={onCancel} icon={<CloseOutlined />}>取消</Button>
+              <Button type="primary" loading={loading} icon={<SaveOutlined />} onClick={() => formRef.current?.submit?.()}>
+                {isEdit ? '更新' : '保存'}
+              </Button>
+            </Space>
+          </Col>
+        </Row>
+      </ProForm>
   );
 };
 

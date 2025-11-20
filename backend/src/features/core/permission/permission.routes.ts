@@ -6,7 +6,7 @@ import { Router } from 'express';
 import { permissionController } from './permission.controller';
 import { authenticateToken, requireRoles } from '../../../shared/middleware';
 
-const router = Router();
+const router: import('express').Router = Router();
 
 // 所有权限路由都需要认证
 router.use(authenticateToken);

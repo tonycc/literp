@@ -7,7 +7,7 @@ import { Modal, Form, Input } from 'antd';
 import type { Role, Permission } from '@zyerp/shared';
 import { permissionService } from '../../../permission-management/services/permission.service';
 import PermissionTree from '../PermissionTree';
-import { useMessage } from '../../../../shared/hooks/useMessage';
+import { useMessage } from '@/shared/hooks/useMessage';
 
 interface RoleFormData {
   name: string;

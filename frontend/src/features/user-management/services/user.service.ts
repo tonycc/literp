@@ -2,7 +2,7 @@
  * 用户服务
  */
 
-import apiClient from '../../../shared/services/api';
+import apiClient from '@/shared/services/api';
 import type { User, ApiResponse } from '@zyerp/shared';
 
 export interface UserListParams {

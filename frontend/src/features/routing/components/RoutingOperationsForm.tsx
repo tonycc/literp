@@ -10,12 +10,12 @@ import {
 import { Row, Col } from 'antd';
 import type { FormInstance } from 'antd';
 import type { RoutingWorkcenterInfo, CreateRoutingWorkcenterRequest } from '@zyerp/shared';
-import { useMessage } from '../../../shared/hooks';
+import { useMessage } from '@/shared/hooks';
 
 interface RoutingOperationsFormProps {
   form: FormInstance;
   initialValues?: Partial<RoutingWorkcenterInfo>;
-  onSubmit?: (values: Omit<CreateRoutingWorkcenterRequest, 'routingId'>) => void;
+  onSubmit?: (values: Omit<CreateRoutingWorkcenterRequest, 'routingId'>) => Promise<void>;
   onCancel?: () => void;
   workcenterOptions?: Array<{value: string, label: string, code: string}>;
   operationOptions?: Array<{value: string, label: string, code: string}>;
@@ -42,7 +42,7 @@ const RoutingOperationsForm: React.FC<RoutingOperationsFormProps> = ({
   };
 
   return (
-    <ProForm
+    <ProForm<Omit<CreateRoutingWorkcenterRequest, 'routingId'>>
       form={form}
       initialValues={initialValues}
       onFinish={handleSubmit}
