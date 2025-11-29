@@ -54,7 +54,7 @@ export const WorkOrderBoard: React.FC = () => {
   ), [])
 
   const grouped = useMemo(() => {
-    const m = new Map<string, WorkOrder[]>()
+    const m = new Map<string, WorkOrderDetail[]>()
     for (const g of groups) m.set(g.status, [])
     for (const r of rows) {
       const list = m.get(r.status) || []
@@ -75,7 +75,7 @@ export const WorkOrderBoard: React.FC = () => {
                 <div style={{ fontSize: 12, color: '#666' }}>序号：{wo.sequence}</div>
                 <div style={{ fontSize: 12, color: '#666' }}>工作中心：{wo.workcenterId ? (workcenterDict[wo.workcenterId] || '-') : '-'}</div>
                 <div style={{ fontSize: 12, color: '#666' }}>计划：{wo.plannedStart ? String(wo.plannedStart) : '-'} → {wo.plannedFinish ? String(wo.plannedFinish) : '-'}</div>
-                <Button type="link" onClick={() => navigate(`/work-order-scheduling?moId=${wo.moId}`)}>排产视图</Button>
+                <Button type="link" onClick={() => { void navigate(`/work-order-scheduling?moId=${wo.moId}`) }}>排产视图</Button>
               </div>
             ))}
           </ProCard>

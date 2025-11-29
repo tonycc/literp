@@ -1,62 +1,52 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Card, Table, Button, Space, Tag, App } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
+import React, { useState } from 'react';
+import { Button, Space, Tag } from 'antd';
+import { ProTable } from '@ant-design/pro-components';
+import type { ProColumns, ProTableProps, ActionType } from '@ant-design/pro-components';
+import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { Role } from '@zyerp/shared';
-import { roleService } from '../../services/role.service';
-import RoleForm from '../../components/RoleForm';
-import type { CreateRoleData, UpdateRoleData } from '../../services/role.service';
+import { roleService } from '../services/role.service';
+import RoleForm, { type RoleFormData } from './RoleForm';
 import { useMessage } from '@/shared/hooks/useMessage';
+import { useModal } from '@/shared/hooks/useModal';
+import { normalizeTableParams } from '@/shared/utils/normalizeTableParams';
 
-const RoleManagement: React.FC = () => {
-  const { modal } = App.useApp();
+const RoleList: React.FC = () => {
   const message = useMessage();
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [loading, setLoading] = useState(false);
+  const modal = useModal();
   const [formVisible, setFormVisible] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
+  const actionRef = React.useRef<ActionType | undefined>(undefined);
 
-  const columns: ColumnsType<Role> = [
+  const columns: ProColumns<Role>[] = [
     {
       title: '角色名称',
       dataIndex: 'name',
-      key: 'name',
+      ellipsis: true,
     },
 
     {
       title: '描述',
       dataIndex: 'description',
-      key: 'description',
+      ellipsis: true,
     },
     {
       title: '权限数量',
       dataIndex: 'permissions',
-      key: 'permissions',
-      render: (permissions: string[]) => (
-        <Tag color="green">{permissions.length} 个权限</Tag>
-      ),
+      render: (_, r) => (<Tag color="green">{Array.isArray(r.permissions) ? r.permissions.length : 0} 个权限</Tag>),
     },
     {
       title: '用户数量',
       dataIndex: 'userCount',
-      key: 'userCount',
-      render: (userCount: number) => (
-        <Tag color="blue">{userCount || 0} 个用户</Tag>
-      ),
+      render: (_, r) => (<Tag color="blue">{typeof r.userCount === 'number' ? r.userCount : 0} 个用户</Tag>),
     },
     {
       title: '创建时间',
       dataIndex: 'createdAt',
-      key: 'createdAt',
+      valueType: 'dateTime',
     },
     {
       title: '操作',
-      key: 'action',
+      valueType: 'option',
       render: (_, record: Role) => (
         <Space size="small">
           <Button 
@@ -79,32 +69,18 @@ const RoleManagement: React.FC = () => {
     },
   ];
 
-  // 获取角色列表
-  const fetchRoles = useCallback(async (page = 1, pageSize = 10) => {
+  const request: ProTableProps<Role, Record<string, unknown>>['request'] = async (params) => {
     try {
-      setLoading(true);
-      const response = await roleService.getRoles({
-        page,
-        limit: pageSize,
-      });
-      
-      setRoles(response.data);
-      setPagination({
-        current: response.page,
-        pageSize: response.limit,
-        total: response.total,
-      });
+      const base = normalizeTableParams(params);
+      const res = await roleService.getList({ page: base.page, limit: base.pageSize, search: typeof params['keyword'] === 'string' ? params['keyword'] : undefined });
+      return { data: res.data, success: res.success ?? true, total: res.pagination?.total ?? 0 };
     } catch {
       message.error('获取角色列表失败');
-    } finally {
-      setLoading(false);
+      return { data: [], success: false, total: 0 };
     }
-  }, []);
+  };
 
-  // 初始化数据
-  useEffect(() => {
-    fetchRoles();
-  }, [fetchRoles]);
+  // 初始化：无，交给 ProTable 的 request
 
   // 处理新增角色
   const handleAdd = () => {
@@ -122,19 +98,14 @@ const RoleManagement: React.FC = () => {
   const handleDelete = (role: Role) => {
     modal.confirm({
       title: '确认删除',
-      icon: <ExclamationCircleOutlined />,
       content: `确定要删除角色"${role.name}"吗？此操作不可恢复。`,
-      okText: '确定',
-      cancelText: '取消',
       onOk: async () => {
         try {
           await roleService.deleteRole(String(role.id));
           message.success('删除成功');
-          fetchRoles(pagination.current, pagination.pageSize);
+          void actionRef.current?.reload?.();
         } catch (error: unknown) {
-          // 提取具体的错误信息
           let errorMessage = '删除失败';
-          
           if (error && typeof error === 'object') {
             const axiosError = error as { response?: { data?: { message?: string } }; message?: string };
             if (axiosError.response?.data?.message) {
@@ -143,7 +114,6 @@ const RoleManagement: React.FC = () => {
               errorMessage = axiosError.message;
             }
           }
-          
           message.error(errorMessage);
         }
       },
@@ -151,20 +121,20 @@ const RoleManagement: React.FC = () => {
   };
 
   // 处理表单提交
-  const handleFormSubmit = async (values: CreateRoleData | UpdateRoleData) => {
+  const handleFormSubmit = async (values: RoleFormData) => {
     try {
       if (editingRole) {
         // 更新角色
-        await roleService.updateRole(String(editingRole.id), values as UpdateRoleData);
+        await roleService.updateRole(String(editingRole.id), values);
         message.success('更新成功');
       } else {
         // 创建角色
-        await roleService.createRole(values as CreateRoleData);
+        await roleService.createRole(values);
         message.success('创建成功');
       }
       
       setFormVisible(false);
-      fetchRoles(pagination.current, pagination.pageSize);
+      void actionRef.current?.reload?.();
     } catch (error: unknown) {
       // 提取具体的错误信息
       let errorMessage = editingRole ? '更新失败' : '创建失败';
@@ -183,36 +153,25 @@ const RoleManagement: React.FC = () => {
     }
   };
 
-  // 处理表格分页变化
-  const handleTableChange = (page: number, pageSize?: number) => {
-    fetchRoles(page, pageSize || pagination.pageSize);
-  };
+  // ProTable 自处理分页变化
 
   return (
-    <div style={{ padding: 0 }}>
-      <Card
-        title="角色管理"
-        styles={{ body: { padding: 12 } }}
-        extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-            新增角色
-          </Button>
-        }
-      >
-        <Table
+    <>
+  
+        <ProTable<Role>
           columns={columns}
-          dataSource={roles}
+          actionRef={actionRef}
+          form={{ name: 'roleListSearch' }}
+          request={request}
           rowKey="id"
-          loading={loading}
-          pagination={{
-            ...pagination,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条记录`,
-            onChange: handleTableChange,
-          }}
+          search={{ labelWidth: 'auto' }}
+          toolBarRender={() => [
+            <Button key="add" type="primary" icon={<PlusOutlined />} onClick={handleAdd}>新增角色</Button>,
+            <Button key="refresh" onClick={() => { void actionRef.current?.reload?.() }}>刷新</Button>,
+          ]}
+          pagination={{ showSizeChanger: true, showQuickJumper: true, showTotal: (total) => `共 ${total} 条记录` }}
+          scroll={{ x: 'max-content' }}
         />
-      </Card>
       
       <RoleForm
         visible={formVisible}
@@ -220,8 +179,8 @@ const RoleManagement: React.FC = () => {
         onCancel={() => setFormVisible(false)}
         onSubmit={handleFormSubmit}
       />
-    </div>
+    </>
   );
 };
 
-export default RoleManagement;
+export default RoleList;

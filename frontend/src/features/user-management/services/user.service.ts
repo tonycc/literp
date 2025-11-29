@@ -3,7 +3,8 @@
  */
 
 import apiClient from '@/shared/services/api';
-import type { User, ApiResponse } from '@zyerp/shared';
+import { mapPaginatedResponse } from '@/shared/services/pagination';
+import type { User, ApiResponse, PaginatedResponse } from '@zyerp/shared';
 
 export interface UserListParams {
   page?: number;
@@ -26,9 +27,9 @@ class UserService {
   /**
    * 获取用户列表
    */
-  async getUsers(params: UserListParams = {}): Promise<UserListResponse> {
-    const response = await apiClient.get<ApiResponse<UserListResponse>>('/users', { params });
-    return response.data.data!;
+  async getUsers(params: UserListParams = {}): Promise<PaginatedResponse<User>> {
+    const resp = await apiClient.get<ApiResponse<unknown>>('/users', { params });
+    return mapPaginatedResponse<User>(resp.data);
   }
 
   /**

@@ -6,6 +6,7 @@
 // 导出类型定义
 export * from './types/common';
 export * from './types/auth';
+export * from './types/user';
 export * from './types/notification';
 export * from './types/department';
 export * from './types/position';
@@ -29,6 +30,7 @@ export * from './types/mo';
 export * from './types/materialIssue';
 export * from './types/productionReport';
 export * from './types/subcontract-order';
+export * from './types/role';
  
 
 // 导出接口定义

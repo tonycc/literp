@@ -115,8 +115,7 @@ export class AuthService extends BaseService {
       where: { id: tokenRecord.id }
     });
 
-    // 格式化用户数据
-    const user = userService['formatUser'](tokenRecord.user);
+    const user = (await userService.getUserById(tokenRecord.user.id)) as User;
 
     // 生成新的令牌
     const tokens = await this.generateTokens(user);

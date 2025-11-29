@@ -3,6 +3,7 @@
  */
 
 import apiClient from '@/shared/services/api';
+import { mapPaginatedResponse } from '@/shared/services/pagination';
 import type {
   Department,
   DepartmentTreeNode,
@@ -16,6 +17,7 @@ import type {
   DepartmentMemberListResponse,
   AssignUserToDepartmentData,
   UpdateUserDepartmentData,
+  PaginatedResponse,
   ApiResponse,
   ID
 } from '@zyerp/shared';
@@ -32,6 +34,11 @@ export class DepartmentService {
       { params }
     );
     return response.data.data!;
+  }
+
+  async getList(params: DepartmentListParams = {}): Promise<PaginatedResponse<Department>> {
+    const response = await apiClient.get<ApiResponse<DepartmentListResponse>>(this.baseUrl, { params });
+    return mapPaginatedResponse<Department>(response.data);
   }
 
   /**
@@ -102,6 +109,14 @@ export class DepartmentService {
       { params: { ...params, departmentId: undefined } }
     );
     return response.data.data!;
+  }
+
+  async getMemberList(params: DepartmentMemberListParams): Promise<PaginatedResponse<DepartmentMember>> {
+    const response = await apiClient.get<ApiResponse<DepartmentMemberListResponse>>(
+      `${this.baseUrl}/${params.departmentId}/members`,
+      { params: { ...params, departmentId: undefined } }
+    );
+    return mapPaginatedResponse<DepartmentMember>(response.data);
   }
 
   /**

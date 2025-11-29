@@ -8,7 +8,7 @@ export interface TableParams {
 }
 
 export const normalizeTableParams = (
-  params: TableParams,
+  params: TableParams | Record<string, unknown>,
   attrPrefix: string = 'attr_'
 ): { page: number; pageSize: number; sortField?: string; sortOrder?: string; attributes?: Record<string, string | string[]> } => {
   const currentLike = params.current ?? params.page ?? 1;
@@ -37,4 +37,3 @@ export const normalizeTableParams = (
   if (Object.keys(attributes).length) result.attributes = attributes;
   return result;
 };
-

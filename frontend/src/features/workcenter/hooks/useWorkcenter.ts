@@ -50,7 +50,9 @@ export const useWorkcenter = () => {
         message.success('创建成功');
       }
       setIsModalVisible(false);
-      actionRef.current?.reload();
+      if (actionRef.current?.reload) {
+        void actionRef.current.reload();
+      }
     } catch (error) {
       console.error('保存失败:', error);
       message.error('保存失败');

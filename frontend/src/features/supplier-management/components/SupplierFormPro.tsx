@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Modal, Row, Col, Card, Button, Space, Input, Form, Select } from 'antd'
 import type { Supplier, CreateSupplierData } from '@zyerp/shared'
 import { SupplierStatus, SupplierCategory } from '@zyerp/shared'
 import { SUPPLIER_CATEGORY_OPTIONS } from '@/shared/constants/supplier'
+import { getDict } from '@/shared/services/dictionary.service'
 import { supplierService } from '../services/supplier.service'
 import { useMessage } from '@/shared/hooks/useMessage'
 
@@ -16,6 +17,7 @@ interface SupplierFormProps {
 const SupplierForm: React.FC<SupplierFormProps> = ({ visible, editingSupplier, onCancel, onSubmit }) => {
   const [form] = Form.useForm<CreateSupplierData>()
   const message = useMessage()
+  const [categoryOptions, setCategoryOptions] = useState<Array<{ label: string; value: string }>>(SUPPLIER_CATEGORY_OPTIONS)
 
   const initialValues: Partial<CreateSupplierData> = {
     code: '',
@@ -27,29 +29,31 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ visible, editingSupplier, o
   useEffect(() => {
     const load = async () => {
       if (visible) {
+        const dc = await getDict('supplier-category')
+        if (dc.options.length > 0) setCategoryOptions(dc.options)
         if (editingSupplier?.id) {
           const detail = await supplierService.getById(editingSupplier.id)
-          const d = detail.data as Supplier | undefined
+          const d = detail.data
           form.setFieldsValue({
             code: d?.code ?? '',
             name: d?.name ?? '',
             shortName: d?.shortName ?? '',
-            category: (d?.category as SupplierCategory) ?? SupplierCategory.MANUFACTURER,
-            status: (d?.status as SupplierStatus) ?? SupplierStatus.ACTIVE,
-            contactName: (d as Supplier)?.contactName ?? '',
-            phone: (d as Supplier)?.phone ?? '',
-            email: (d as Supplier)?.email ?? '',
+            category: typeof d?.category === 'string' ? d?.category : SupplierCategory.MANUFACTURER,
+            status: typeof d?.status === 'string' ? d?.status : SupplierStatus.ACTIVE,
+            contactName: d?.contactName ?? '',
+            phone: d?.phone ?? '',
+            email: d?.email ?? '',
             address: d?.address ?? '',
-            registeredCapital: (d as Supplier)?.registeredCapital ?? undefined,
-            creditLevel: (d as Supplier)?.creditLevel ?? '',
+            registeredCapital: d?.registeredCapital ?? undefined,
+            creditLevel: d?.creditLevel ?? '',
             remark: d?.remark ?? '',
           })
         } else {
           form.setFieldsValue({
             code: '',
             name: '',
-            category: initialValues.category!,
-            status: initialValues.status!,
+            category: initialValues.category,
+            status: initialValues.status,
             shortName: '',
             contactName: '',
             phone: '',
@@ -63,7 +67,7 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ visible, editingSupplier, o
       }
     }
     void load()
-  }, [visible, editingSupplier, form])
+  }, [visible, editingSupplier, form, initialValues.category, initialValues.status])
 
   return (
     <Modal
@@ -74,9 +78,11 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ visible, editingSupplier, o
       destroyOnHidden
       width={1000}
     >
-      <Form form={form} layout="vertical" onFinish={async (values: CreateSupplierData) => {
-        await onSubmit(values)
-        message.success(editingSupplier ? '更新成功' : '创建成功')
+      <Form form={form} layout="vertical" onFinish={(values: CreateSupplierData) => {
+        void (async () => {
+          await onSubmit(values)
+          message.success(editingSupplier ? '更新成功' : '创建成功')
+        })()
       }}>
         <Card size="small" title="基本信息" style={{ marginBottom: 16 }}>
           <Row gutter={16}>
@@ -113,9 +119,9 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ visible, editingSupplier, o
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item name="category" label="分类" rules={[{ required: true, message: '请选择分类' }]}>
-                <Select placeholder="选择分类" options={SUPPLIER_CATEGORY_OPTIONS} allowClear showSearch />
-              </Form.Item>
+            <Form.Item name="category" label="分类" rules={[{ required: true, message: '请选择分类' }]}> 
+                <Select placeholder="选择分类" options={categoryOptions} allowClear showSearch />
+            </Form.Item>
             </Col>
           </Row>
           <Row gutter={16}>

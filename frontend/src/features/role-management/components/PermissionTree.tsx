@@ -17,7 +17,14 @@ import {
   FileOutlined,
   AuditOutlined,
   BankOutlined,
+  ShoppingOutlined,
+  ShopOutlined,
+  ToolOutlined,
+  CodeSandboxOutlined,
+  BarChartOutlined,
+  NotificationOutlined,
 } from '@ant-design/icons';
+import { PERMISSION_RESOURCE_OPTIONS } from '@/features/permission-management/constants/permission';
 
 interface PermissionTreeProps {
   permissions: Permission[];
@@ -35,6 +42,7 @@ interface TreeNode {
 
 // 资源图标映射
 const resourceIcons: Record<string, React.ReactNode> = {
+  // 系统管理
   user: <UserOutlined />,
   role: <TeamOutlined />,
   permission: <SafetyOutlined />,
@@ -43,18 +51,38 @@ const resourceIcons: Record<string, React.ReactNode> = {
   dashboard: <DashboardOutlined />,
   file: <FileOutlined />,
   log: <AuditOutlined />,
-};
-
-// 资源名称映射
-const resourceNames: Record<string, string> = {
-  user: '用户管理',
-  role: '角色管理',
-  permission: '权限管理',
-  department: '部门管理',
-  system: '系统管理',
-  dashboard: '仪表板',
-  file: '文件管理',
-  log: '日志管理',
+  notification: <NotificationOutlined />,
+  
+  // 产品与工程
+  product: <CodeSandboxOutlined />,
+  product_category: <CodeSandboxOutlined />,
+  attribute: <CodeSandboxOutlined />,
+  bom: <CodeSandboxOutlined />,
+  routing: <ToolOutlined />,
+  operation: <ToolOutlined />,
+  workcenter: <ToolOutlined />,
+  
+  // 销售与客户
+  customer: <UserOutlined />,
+  customer_price_list: <UserOutlined />,
+  sales_order: <ShoppingOutlined />,
+  
+  // 采购与供应商
+  supplier: <ShopOutlined />,
+  supplier_price: <ShopOutlined />,
+  purchase_order: <ShopOutlined />,
+  purchase_receipt: <ShopOutlined />,
+  purchase_return: <ShopOutlined />,
+  
+  // 生产与库存
+  inventory: <CodeSandboxOutlined />,
+  warehouse: <BankOutlined />,
+  manufacturing_order: <ToolOutlined />,
+  material_issue: <ToolOutlined />,
+  production_plan: <BarChartOutlined />,
+  production_record: <ToolOutlined />,
+  production_report: <BarChartOutlined />,
+  production_inbound: <CodeSandboxOutlined />,
 };
 
 const PermissionTree: React.FC<PermissionTreeProps> = ({
@@ -79,13 +107,17 @@ const PermissionTree: React.FC<PermissionTreeProps> = ({
 
     // 构建树形结构
     const nodes: TreeNode[] = Object.entries(groupedPermissions).map(([resource, perms]) => {
+      // 获取资源显示名称
+      const resourceOption = PERMISSION_RESOURCE_OPTIONS.find(opt => opt.value === resource);
+      const resourceLabel = resourceOption ? resourceOption.label : resource.toUpperCase();
+
       const resourceNode: TreeNode = {
         key: `resource-${resource}`,
         title: (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {resourceIcons[resource] || <PlusOutlined />}
             <span style={{ fontWeight: 500 }}>
-              {resourceNames[resource] || resource.toUpperCase()}
+              {resourceLabel}
             </span>
           </div>
         ),
@@ -132,15 +164,24 @@ const PermissionTree: React.FC<PermissionTreeProps> = ({
 
   // 获取选中的keys（包括半选中的父节点）
   const getCheckedKeys = () => {
-    // 只包含实际的权限ID
-    const checkedKeys = [...selectedPermissions];
+    // 收集当前树中所有有效的权限ID
+    const validPermissionIds = new Set<string>();
+    treeData.forEach(resourceNode => {
+      resourceNode.children?.forEach(child => {
+        validPermissionIds.add(child.key);
+      });
+    });
+
+    // 只保留实际存在于树中的权限ID
+    const checkedKeys = selectedPermissions.filter(key => validPermissionIds.has(key));
     const halfCheckedKeys: string[] = [];
 
     // 检查每个资源节点是否应该半选中或全选中
     treeData.forEach(resourceNode => {
       if (resourceNode.children) {
         const childKeys = resourceNode.children.map(child => child.key);
-        const selectedChildKeys = childKeys.filter(key => selectedPermissions.includes(key));
+        // 这里使用过滤后的 checkedKeys 进行判断
+        const selectedChildKeys = childKeys.filter(key => checkedKeys.includes(key));
         
         if (selectedChildKeys.length > 0 && selectedChildKeys.length < childKeys.length) {
           // 部分选中，显示为半选中

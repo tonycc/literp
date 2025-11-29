@@ -4,7 +4,6 @@
  */
 
 // 页面组件
-export { default as OperationPage } from './OperationPage'
 export { default as OperationManagement } from './pages/OperationManagement'
 
 // 组件

@@ -7,7 +7,6 @@ import {
   Tree,
   Card,
   Input,
-
   Spin,
 } from 'antd';
 import {
@@ -38,8 +37,7 @@ export const DepartmentTree: React.FC<DepartmentTreeProps> = ({
 
   const { tree, loading } = useDepartmentTree();
 
-  // 获取所有节点的 key
-  const getAllKeys = (nodes: DepartmentTreeNode[]): string[] => {
+  const getAllKeys = React.useCallback((nodes: DepartmentTreeNode[]): string[] => {
     let keys: string[] = [];
     nodes.forEach(node => {
       keys.push(String(node.id));
@@ -48,7 +46,7 @@ export const DepartmentTree: React.FC<DepartmentTreeProps> = ({
       }
     });
     return keys;
-  };
+  }, []);
 
   // 当树数据加载完成后，默认展开所有节点
   useEffect(() => {
@@ -57,11 +55,18 @@ export const DepartmentTree: React.FC<DepartmentTreeProps> = ({
       setExpandedKeys(allKeys);
       setAutoExpandParent(true);
     }
-  }, [tree]);
+  }, [tree, getAllKeys]);
 
   // 转换树数据格式
   const convertTreeData = (nodes: DepartmentTreeNode[]): TreeNode[] => {
-    return nodes.map(node => ({
+    const levelSeen = new Set<string>();
+    const deduped = nodes.filter((n) => {
+      const k = String(n.id);
+      if (levelSeen.has(k)) return false;
+      levelSeen.add(k);
+      return true;
+    });
+    return deduped.map(node => ({
       title: node.name,
       key: String(node.id),
       children: node.children ? convertTreeData(node.children) : undefined,

@@ -2,55 +2,11 @@
  * 认证相关类型定义
  */
 
-import type { ID, Timestamp } from './common';
-import type { Department, UserDepartment } from './department';
+import type { ID } from './common';
+import type { User } from './user';
+export type { User, Role, Permission } from './user';
 
-// 用户角色
-export enum UserRole {
-  ADMIN = 'admin',
-  USER = 'user',
-  GUEST = 'guest'
-}
-
-// 权限类型
-export interface Permission {
-  id: ID;
-  name: string;
-  code: string;
-  description?: string;
-  resource: string;
-  action: string;
-}
-
-// 角色类型
-export interface Role {
-  id: ID;
-  name: string;
-  code: string;
-  description?: string;
-  permissions: Permission[];
-  userCount?: number;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-}
-
-// 用户类型
-export interface User {
-  id: ID;
-  username: string;
-  email: string;
-  avatar?: string;
-  roles: Role[];
-  isActive: boolean;
-  lastLoginAt?: Timestamp;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-  
-  // 部门相关字段
-  departments?: UserDepartment[];
-  mainDepartment?: Department;
-  departmentId?: ID; // 主部门ID，用于向后兼容
-}
+// 用户相关类型已迁移至 ./user
 
 // 登录请求
 export interface LoginRequest {
@@ -92,7 +48,7 @@ export interface AuthState {
 
 // Auth Context Type
 export interface AuthContextType extends AuthState {
-  login: (username: string, password: string) => Promise<void>;
+  login: () => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }

@@ -2,19 +2,22 @@
  * 部门管理主页面
  */
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Tabs, Modal, Button, Card } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { DepartmentList } from './DepartmentList';
 import { DepartmentForm } from './DepartmentForm';
+import type { DepartmentFormValues } from './DepartmentForm';
 import { DepartmentTree } from './DepartmentTree';
 import { useDepartmentActions } from '../hooks/useDepartments';
-import type { Department, CreateDepartmentData, UpdateDepartmentData } from '@fennec/shared';
+import type { Department, CreateDepartmentData, UpdateDepartmentData } from '@zyerp/shared';
+import type { ProFormInstance } from '@ant-design/pro-components';
 
 export const DepartmentManagement: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<Department | undefined>();
   const [refreshKey, setRefreshKey] = useState(0);
+  const formRef = useRef<ProFormInstance<DepartmentFormValues> | undefined>(undefined);
 
   const { createDepartment, updateDepartment, loading } = useDepartmentActions();
 
@@ -40,7 +43,7 @@ export const DepartmentManagement: React.FC = () => {
       }
       setIsModalVisible(false);
       setEditingDepartment(undefined);
-      setRefreshKey(prev => prev + 1); // 触发刷新
+      setRefreshKey(prev => prev + 1);
     } catch {
       // 错误已在 hook 中处理
     }
@@ -57,10 +60,7 @@ export const DepartmentManagement: React.FC = () => {
       key: 'list',
       label: '部门列表',
       children: (
-        <DepartmentList
-          onEdit={handleEdit}
-          key={`list-${refreshKey}`}
-        />
+        <DepartmentList onEdit={handleEdit} onAdd={handleAdd} key={`list-${refreshKey}`} />
       ),
     },
     {
@@ -75,7 +75,7 @@ export const DepartmentManagement: React.FC = () => {
   ];
 
   return (
-    <div style={{ padding: 0 }}>
+    <>
       <Card>
          <Tabs
         defaultActiveKey="list"
@@ -100,16 +100,11 @@ export const DepartmentManagement: React.FC = () => {
         onCancel={handleCancel}
         footer={null}
         width={600}
-        destroyOnHidden
+        destroyOnClose
       >
-        <DepartmentForm
-          department={editingDepartment}
-          onSubmit={handleSubmit}
-          onCancel={handleCancel}
-          loading={loading}
-        />
+        <DepartmentForm department={editingDepartment} onSubmit={handleSubmit} onCancel={handleCancel} loading={loading} formRef={formRef} />
       </Modal>
-    </div>
+    </>
   );
 };
 

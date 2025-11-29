@@ -113,6 +113,9 @@ export class DepartmentService {
           },
           users: {
             select: { id: true }
+          },
+          userDepartments: {
+            select: { id: true }
           }
         }
       }),
@@ -150,6 +153,9 @@ export class DepartmentService {
         },
         users: {
           select: { id: true }
+        },
+        userDepartments: {
+          select: { id: true }
         }
       }
     });
@@ -175,6 +181,9 @@ export class DepartmentService {
         },
         users: {
           select: { id: true, username: true, email: true }
+        },
+        userDepartments: {
+          select: { id: true }
         }
       }
     });
@@ -770,7 +779,7 @@ export class DepartmentService {
       parent: department.parent,
       children: department.children,
       manager: department.manager,
-      userCount: department.users?.length || 0,
+      userCount: (department.userDepartments?.length ?? department.users?.length ?? 0),
       childrenCount: department.children?.length || 0
     };
   }

@@ -3,8 +3,9 @@
  * 权限管理功能模块
  */
 
-// Components
-export { default as PermissionManagementPage } from './components/PermissionManagement';
-export { default as PermissionForm } from './components/PermissionForm';
+// Pages
+export { default as PermissionManagementPage } from './pages/PermissionManagement';
 
-// Types 已统一到 @fennec/shared 或服务层导出
+// Components
+export { default as PermissionList } from './components/PermissionList';
+export { default as PermissionForm } from './components/PermissionForm';

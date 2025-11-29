@@ -3,20 +3,12 @@
  */
 
 import React, { useEffect } from 'react';
-import {
-  Form,
-  Input,
-  TreeSelect,
-  Switch,
-  Button,
-  Space,
-  Card,
-  Typography,
-} from 'antd';
+import { ProForm, ProFormText, ProFormTreeSelect, ProFormSwitch, ProFormSelect } from '@ant-design/pro-components';
+import type { ProFormInstance } from '@ant-design/pro-components';
+import { Row, Col } from 'antd';
 import { useDepartmentTree } from '../hooks/useDepartments';
 import type { Department, CreateDepartmentData, UpdateDepartmentData } from '@zyerp/shared';
-
-const { Title } = Typography;
+import { getUsers } from '@/shared/services';
 
 interface TreeSelectNode {
   title: string;
@@ -25,51 +17,37 @@ interface TreeSelectNode {
   disabled?: boolean;
   children?: TreeSelectNode[];
 }
-const { TextArea } = Input;
 
 interface DepartmentFormProps {
   department?: Department;
   onSubmit: (data: CreateDepartmentData | UpdateDepartmentData) => Promise<void>;
-  onCancel: () => void;
+  onCancel: (_onCancel: () => void) => void;
   loading?: boolean;
+  formRef?: React.MutableRefObject<ProFormInstance<DepartmentFormValues> | undefined>;
 }
 
-export const DepartmentForm: React.FC<DepartmentFormProps> = ({
-  department,
-  onSubmit,
-  onCancel,
-  loading = false,
-}) => {
-  const [form] = Form.useForm();
+export type DepartmentFormValues = {
+  name: string;
+  description?: string;
+  parentId?: string;
+  isActive?: boolean;
+  managerId?: string;
+};
+
+export const DepartmentForm: React.FC<DepartmentFormProps> = ({ department, onSubmit, onCancel: _onCancel, loading: _loading = false, formRef }) => {
   const { tree, loading: treeLoading } = useDepartmentTree();
 
-  // 初始化表单数据
-  useEffect(() => {
-    if (department) {
-      form.setFieldsValue({
-        name: department.name,
-        description: department.description,
-        parentId: department.parentId,
-      });
-    } else {
-      form.resetFields();
-    }
-  }, [department, form]);
+  useEffect(() => { /* 依赖 ProForm 的 initialValues，无需手动 setFields */ }, [department]);
 
   // 处理表单提交
-  const handleSubmit = async (values: {
-    name: string;
-    description?: string;
-    parentId?: string;
-    status?: boolean;
-  }) => {
-    const formData = {
+  const handleSubmit = async (values: DepartmentFormValues) => {
+    const formData: CreateDepartmentData | UpdateDepartmentData = {
       name: values.name,
       description: values.description,
       parentId: values.parentId || undefined,
-      ...(department && { status: values.status ? 'active' as const : 'inactive' as const }),
+      managerId: values.managerId || undefined,
+      ...(department ? { isActive: !!values.isActive } : { isActive: values.isActive ?? true })
     };
-
     await onSubmit(formData);
   };
 
@@ -87,91 +65,75 @@ export const DepartmentForm: React.FC<DepartmentFormProps> = ({
   const treeData = convertTreeData(tree);
 
   return (
-    <Card>
-      <Title level={4} style={{ marginBottom: 24 }}>
-        {department ? '编辑部门' : '新增部门'}
-      </Title>
-
-      <Form
-        form={form}
+    
+      <ProForm<DepartmentFormValues>
+        name="departmentForm"
+        formRef={formRef}
+        initialValues={{
+          name: department?.name ?? '',
+          description: department?.description ?? '',
+          parentId: department?.parentId ? String(department.parentId) : undefined,
+          isActive: department ? department.isActive : true,
+          managerId: department?.managerId ? String(department.managerId) : undefined,
+        }}
+        onFinish={async (v) => { await handleSubmit(v) }}
         layout="vertical"
-        onFinish={handleSubmit}
-        autoComplete="off"
       >
-        <Form.Item
-          label="部门名称"
-          name="name"
-          rules={[
-            { required: true, message: '请输入部门名称' },
-            { max: 50, message: '部门名称不能超过50个字符' },
-          ]}
-        >
-          <Input placeholder="请输入部门名称" />
-        </Form.Item>
-
-        <Form.Item
-          label="上级部门"
-          name="parentId"
-          help="不选择则为顶级部门"
-        >
-          <TreeSelect
-            placeholder="请选择上级部门"
-            allowClear
-            treeData={treeData}
-            loading={treeLoading}
-            showSearch
-            treeNodeFilterProp="title"
-            styles={{
-              popup: {
-                root: { maxHeight: 400, overflow: 'auto' }
-              }
-            }}
-          />
-        </Form.Item>
-
-        <Form.Item
-          label="部门描述"
-          name="description"
-          rules={[
-            { max: 200, message: '部门描述不能超过200个字符' },
-          ]}
-        >
-          <TextArea
-            placeholder="请输入部门描述"
-            rows={4}
-            showCount
-            maxLength={200}
-          />
-        </Form.Item>
-
-        {department && (
-          <Form.Item
-            label="状态"
-            name="status"
-            valuePropName="checked"
-          >
-            <Switch
-              checkedChildren="启用"
-              unCheckedChildren="禁用"
+        <Row gutter={16}>
+          <Col span={12}>
+            <ProFormText name="name" label="部门名称" rules={[{ required: true, message: '请输入部门名称' }, { max: 50 }]} />
+          </Col>
+          <Col span={12}>
+            <ProFormTreeSelect
+              name="parentId"
+              label="上级部门"
+              fieldProps={{
+                allowClear: true,
+                showSearch: true,
+                treeNodeFilterProp: 'title',
+                loading: treeLoading,
+                treeData: treeData,
+              }}
             />
-          </Form.Item>
-        )}
-
-        <Form.Item style={{ marginBottom: 0 }}>
-          <Space>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={loading}
-            >
-              {department ? '更新' : '创建'}
-            </Button>
-            <Button onClick={onCancel}>
-              取消
-            </Button>
-          </Space>
-        </Form.Item>
-      </Form>
-    </Card>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col span={12}>
+            <ProFormSelect
+              name="managerId"
+              label="负责人"
+              placeholder="请选择部门负责人"
+              fieldProps={{
+                showSearch: true,
+                filterOption: (input, option) => {
+                  let label = '';
+                  if (typeof option === 'object' && option) {
+                    const opt = option as { label?: unknown };
+                    if (typeof opt.label === 'string') {
+                      label = opt.label;
+                    }
+                  }
+                  return label.toLowerCase().includes(input.toLowerCase());
+                },
+              }}
+              request={async () => {
+                const res = await getUsers({ page: 1, pageSize: 200 });
+                const opts: Array<{ label: string; value: string }> = (res.data || []).map((u) => ({ label: u.username, value: String(u.id) }));
+                return opts;
+              }}
+            />
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col span={24}>
+            <ProFormText name="description" label="部门描述" />
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col span={12}>
+            <ProFormSwitch name="isActive" label="状态" />
+          </Col>
+        </Row>
+      </ProForm>
   );
 };

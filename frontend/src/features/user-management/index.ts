@@ -4,9 +4,9 @@
  */
 
 // Components
-export { default as UserManagementPage } from './components/UserManagement';
+export { default as UserManagementPage } from './pages/UserManagement';
 
 // Services
 export * from './services/user.service';
 
-// Types 已统一到 @fennec/shared 或服务层导出
+// Types 已统一到 @zyerp/shared 或服务层导出

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button, Row, Col, Card, Space } from 'antd';
 import {
   ProForm,
@@ -16,9 +16,9 @@ import {
   HomeOutlined,
   DollarOutlined,
 } from '@ant-design/icons';
-import dayjs from 'dayjs';
 import type { Customer, CreateCustomerData, UpdateCustomerData } from '@zyerp/shared';
 import { CUSTOMER_CATEGORY_OPTIONS, CUSTOMER_CREDIT_LEVEL_OPTIONS } from '@/shared/constants/customer';
+import { getDict } from '@/shared/services/dictionary.service'
 
 type CustomerFormValues = CreateCustomerData & { id?: string };
 
@@ -37,32 +37,41 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
 }) => {
   const formRef = useRef<ProFormInstance<CustomerFormValues> | undefined>(undefined);
   const isEdit = !!customer;
+  const [categoryOptions, setCategoryOptions] = useState<Array<{ label: string; value: string }>>(CUSTOMER_CATEGORY_OPTIONS)
+  const [creditOptions, setCreditOptions] = useState<Array<{ label: string; value: string }>>(CUSTOMER_CREDIT_LEVEL_OPTIONS)
 
   useEffect(() => {
     if (customer) {
-      const formData = {
-        ...customer,
-        establishedDate: customer.establishedDate ? dayjs(customer.establishedDate) : undefined,
-      } as Partial<CustomerFormValues>;
-      formRef.current?.setFieldsValue(formData);
+      formRef.current?.setFieldsValue({ ...customer } as Partial<CustomerFormValues>);
     } else {
       formRef.current?.resetFields();
     }
   }, [customer]);
 
-  const handleSubmit = async (values: CustomerFormValues) => {
-    const formData: CustomerFormValues = {
-      ...values,
-      establishedDate: values.establishedDate
-        ? (values.establishedDate as unknown as { format: (fmt: string) => string }).format('YYYY-MM-DD')
-        : undefined,
-    };
-    if (isEdit) {
-      await onSubmit({ id: customer!.id, ...formData } as UpdateCustomerData);
-    } else {
-      await onSubmit(formData as CreateCustomerData);
+  useEffect(() => {
+    let mounted = true
+    const run = async () => {
+      const dc = await getDict('customer-category')
+      const dl = await getDict('customer-credit-level')
+      if (mounted) {
+        if (dc.options.length > 0) setCategoryOptions(dc.options)
+        if (dl.options.length > 0) setCreditOptions(dl.options)
+      }
     }
-  };
+    void run()
+    return () => { mounted = false }
+  }, [])
+
+  const handleSubmit = async (values: CustomerFormValues) => {
+    const formData: CustomerFormValues = { ...values }
+    if (customer) {
+      const payload: UpdateCustomerData = { id: customer.id, ...formData }
+      await onSubmit(payload)
+    } else {
+      const payload: CreateCustomerData = { ...formData }
+      await onSubmit(payload)
+    }
+  }
 
   const generateCode = () => {
     const timestamp = Date.now().toString().slice(-6);
@@ -73,7 +82,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
   return (
       <ProForm<CustomerFormValues>
         formRef={formRef}
-        initialValues={customer ? { ...customer, establishedDate: customer.establishedDate ? dayjs(customer.establishedDate) : undefined } : undefined}
+        initialValues={customer ? { ...customer } : undefined}
         onFinish={handleSubmit}
         layout="vertical"
         submitter={{ render: () => null }}
@@ -113,7 +122,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
                 label="客户分类"
                 placeholder="请选择客户分类"
                 rules={[{ required: true, message: '请选择客户分类' }]}
-                options={CUSTOMER_CATEGORY_OPTIONS}
+                options={categoryOptions}
               />
             </Col>
           </Row>
@@ -166,7 +175,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
                 name="creditLevel"
                 label="信用等级"
                 placeholder="请选择信用等级"
-                options={CUSTOMER_CREDIT_LEVEL_OPTIONS}
+                options={creditOptions}
               />
             </Col>
           </Row>

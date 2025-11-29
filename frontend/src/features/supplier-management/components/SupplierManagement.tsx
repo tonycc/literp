@@ -15,6 +15,8 @@ import { useModal } from '@/shared/hooks/useModal';
 import type { Supplier } from '@zyerp/shared';
 import { SupplierStatus, SupplierCategory } from '@zyerp/shared';
 import { SUPPLIER_STATUS_VALUE_ENUM_PRO, SUPPLIER_CATEGORY_VALUE_ENUM_PRO } from '@/shared/constants/supplier';
+import { useEffect, useState } from 'react'
+import { getDict } from '@/shared/services/dictionary.service'
 import { supplierService } from '../services/supplier.service';
 import { useSupplier } from '../hooks/useSupplier';
 // 迁移到共享类型，移除本地类型与枚举
@@ -62,6 +64,27 @@ const SupplierManagement: React.FC = () => {
   };
 
   // 表格列定义
+  const [statusValueEnum, setStatusValueEnum] = useState<Record<string, { text: string; status?: 'Default' | 'Processing' | 'Success' | 'Warning' | 'Error' }>>(SUPPLIER_STATUS_VALUE_ENUM_PRO)
+  const [categoryValueEnum, setCategoryValueEnum] = useState<Record<string, { text: string }>>(SUPPLIER_CATEGORY_VALUE_ENUM_PRO)
+
+  useEffect(() => {
+    let mounted = true
+    const run = async () => {
+      const ds = await getDict('supplier-status')
+      const dc = await getDict('supplier-category')
+      if (mounted) {
+        if (Object.keys(ds.valueEnum).length > 0) setStatusValueEnum(ds.valueEnum)
+        if (Object.keys(dc.valueEnum).length > 0) {
+          const v: Record<string, { text: string }> = {}
+          Object.entries(dc.valueEnum).forEach(([k, val]) => { v[k] = { text: val.text } })
+          setCategoryValueEnum(v)
+        }
+      }
+    }
+    void run()
+    return () => { mounted = false }
+  }, [])
+
   const columns: ProColumns<Supplier>[] = [
     {
       title: '供应商编码',
@@ -92,7 +115,7 @@ const SupplierManagement: React.FC = () => {
       key: 'category',
       width: 120,
       valueType: 'select',
-      valueEnum: SUPPLIER_CATEGORY_VALUE_ENUM_PRO,
+      valueEnum: categoryValueEnum,
       render: (_, record: Supplier) => renderCategory(record.category as SupplierCategory)
     },
     {
@@ -101,7 +124,7 @@ const SupplierManagement: React.FC = () => {
       key: 'status',
       width: 80,
       valueType: 'select',
-      valueEnum: SUPPLIER_STATUS_VALUE_ENUM_PRO,
+      valueEnum: statusValueEnum,
       render: (_, record: Supplier) => renderStatus(record.status)
     },
     {

@@ -3,13 +3,17 @@
  */
 
 import apiClient from '@/shared/services/api';
-import type { Permission } from '@zyerp/shared';
+import { mapPaginatedResponse } from '@/shared/services/pagination';
+import type { PaginatedResponse, ApiResponse, Permission } from '@zyerp/shared';
 
 export interface PermissionListParams {
   page?: number;
   limit?: number;
   search?: string;
   resource?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  [key: string]: unknown;
 }
 
 export interface CreatePermissionData {
@@ -35,20 +39,27 @@ export interface PermissionListResponse {
   limit: number;
 }
 
-export interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-}
-
 class PermissionService {
   /**
-   * 获取权限列表
+   * 获取权限列表 (Standard)
+   */
+  async getList(params: PermissionListParams = {}): Promise<PaginatedResponse<Permission>> {
+    const response = await apiClient.get<ApiResponse<PermissionListResponse>>('/permissions', {
+      params: params as Record<string, unknown>,
+    });
+    return mapPaginatedResponse<Permission>(response.data);
+  }
+
+  /**
+   * 获取权限列表 (Legacy)
    */
   async getPermissions(params?: PermissionListParams): Promise<PermissionListResponse> {
     const response = await apiClient.get<ApiResponse<PermissionListResponse>>('/permissions', {
-      params,
+      params: params as Record<string, unknown>,
     });
+    if (!response.data.data) {
+       return { data: [], total: 0, page: 1, limit: 10 };
+    }
     return response.data.data;
   }
 
@@ -57,6 +68,9 @@ class PermissionService {
    */
   async getPermissionById(id: string): Promise<Permission> {
     const response = await apiClient.get<ApiResponse<Permission>>(`/permissions/${id}`);
+    if (!response.data.data) {
+      throw new Error('Permission not found');
+    }
     return response.data.data;
   }
 
@@ -65,6 +79,9 @@ class PermissionService {
    */
   async createPermission(data: CreatePermissionData): Promise<Permission> {
     const response = await apiClient.post<ApiResponse<Permission>>('/permissions', data);
+    if (!response.data.data) {
+      throw new Error('Failed to create permission');
+    }
     return response.data.data;
   }
 
@@ -73,6 +90,9 @@ class PermissionService {
    */
   async updatePermission(id: string, data: UpdatePermissionData): Promise<Permission> {
     const response = await apiClient.put<ApiResponse<Permission>>(`/permissions/${id}`, data);
+    if (!response.data.data) {
+      throw new Error('Failed to update permission');
+    }
     return response.data.data;
   }
 
@@ -88,7 +108,7 @@ class PermissionService {
    */
   async getAllPermissions(): Promise<Permission[]> {
     const response = await apiClient.get<ApiResponse<Permission[]>>('/permissions/all');
-    return response.data.data;
+    return response.data.data || [];
   }
 
   /**
@@ -96,7 +116,7 @@ class PermissionService {
    */
   async getPermissionsByResource(resource: string): Promise<Permission[]> {
     const response = await apiClient.get<ApiResponse<Permission[]>>(`/permissions/resource/${resource}`);
-    return response.data.data;
+    return response.data.data || [];
   }
 }
 

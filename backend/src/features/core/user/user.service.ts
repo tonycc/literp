@@ -3,9 +3,25 @@
  */
 
 import bcrypt from 'bcryptjs';
-import { User } from '@zyerp/shared';
+import type { User } from '@zyerp/shared';
+import type { Prisma } from '@prisma/client';
 import { AppError } from '../../../shared/middleware/error';
 import { BaseService } from '../../../shared/services/base.service';
+
+type DbUser = Prisma.UserGetPayload<{
+  include: {
+    userRoles: {
+      include: {
+        role: {
+          include: {
+            rolePermissions: { include: { permission: true } }
+          }
+        }
+      }
+    };
+    userDepartments: { include: { department: true } };
+  };
+}>;
 
 export class UserService extends BaseService {
   /**
@@ -80,7 +96,7 @@ export class UserService extends BaseService {
       }
     });
 
-    return this.formatUser(user);
+    return this.formatUser(user as DbUser);
   }
 
   /**
@@ -111,7 +127,7 @@ export class UserService extends BaseService {
       }
     });
 
-    return user ? this.formatUser(user) : null;
+    return user ? this.formatUser(user as DbUser) : null;
   }
 
   /**
@@ -142,7 +158,7 @@ export class UserService extends BaseService {
       }
     });
 
-    return user ? this.formatUser(user) : null;
+    return user ? this.formatUser(user as DbUser) : null;
   }
 
   /**
@@ -173,7 +189,7 @@ export class UserService extends BaseService {
       }
     });
 
-    return user ? this.formatUser(user) : null;
+    return user ? this.formatUser(user as DbUser) : null;
   }
 
   /**
@@ -204,7 +220,7 @@ export class UserService extends BaseService {
       }
     });
 
-    return user ? this.formatUser(user) : null;
+    return user ? this.formatUser(user as DbUser) : null;
   }
 
   /**
@@ -232,39 +248,38 @@ export class UserService extends BaseService {
     password: string;
     isActive: boolean;
     departmentId: string;
+    roleIds: string[];
   }>): Promise<User> {
-    const updateData: any = { ...data };
-    delete updateData.departmentId; // 部门单独处理
+    const { departmentId, ...updateData } = data;
 
-    // 如果更新密码，需要加密
-    if (data.password) {
-      updateData.password = await bcrypt.hash(data.password, 12);
+    const prismaData: Prisma.UserUpdateInput = {};
+    if (typeof updateData.username === 'string') prismaData.username = updateData.username;
+    if (typeof updateData.email === 'string') prismaData.email = updateData.email;
+    if (typeof updateData.isActive === 'boolean') prismaData.isActive = updateData.isActive;
+    if (typeof updateData.password === 'string' && updateData.password.length > 0) {
+      prismaData.password = await bcrypt.hash(updateData.password, 12);
     }
 
-    // 如果有部门更新，先处理部门关联
-    if (data.departmentId) {
-      // 删除现有的主部门关联
-      await this.prisma.userDepartment.deleteMany({
-        where: {
-          userId: id,
-          isMain: true
-        }
-      });
-
-      // 创建新的主部门关联
+    if (departmentId) {
+      await this.prisma.userDepartment.deleteMany({ where: { userId: id, isMain: true } });
       await this.prisma.userDepartment.create({
-        data: {
-          userId: id,
-          departmentId: data.departmentId,
-          position: 'employee',
-          isMain: true
-        }
+        data: { userId: id, departmentId, position: 'employee', isMain: true }
       });
     }
 
     const user = await this.prisma.user.update({
       where: { id },
-      data: updateData,
+      data: {
+        ...prismaData,
+        ...(Array.isArray(data.roleIds)
+          ? {
+              userRoles: {
+                deleteMany: {},
+                create: data.roleIds.map((roleId) => ({ roleId })),
+              },
+            }
+          : {}),
+      },
       include: {
         userRoles: {
           include: {
@@ -287,7 +302,7 @@ export class UserService extends BaseService {
       }
     });
 
-    return this.formatUser(user);
+    return this.formatUser(user as DbUser);
   }
 
   /**
@@ -312,7 +327,7 @@ export class UserService extends BaseService {
     const skip = (page - 1) * limit;
     
     // 构建查询条件
-    const where: any = {};
+    const where: Record<string, unknown> = {};
     
     if (search) {
       where.OR = [
@@ -326,7 +341,7 @@ export class UserService extends BaseService {
     }
     
     // 构建排序条件
-    const orderBy: any = {};
+    const orderBy: Record<string, 'asc' | 'desc'> = {};
     orderBy[sortBy] = sortOrder;
     
     // 获取总数
@@ -363,7 +378,7 @@ export class UserService extends BaseService {
     const totalPages = Math.ceil(total / limit);
     
     return {
-      data: users.map(user => this.formatUser(user)),
+      data: users.map(user => this.formatUser(user as DbUser)),
       total,
       page,
       limit,
@@ -383,22 +398,25 @@ export class UserService extends BaseService {
   /**
    * 格式化用户数据
    */
-  private formatUser(user: any): User {
-    const roles = user.userRoles?.map((ur: any) => ({
+  private formatUser(user: DbUser): User {
+    const roles = user.userRoles?.map((ur) => ({
       id: ur.role.id,
       name: ur.role.name,
-      description: ur.role.description,
-      permissions: ur.role.rolePermissions?.map((rp: any) => ({
+      code: ur.role.code ?? '',
+      description: ur.role.description ?? undefined,
+      permissions: ur.role.rolePermissions?.map((rp) => ({
         id: rp.permission.id,
         name: rp.permission.name,
-        description: rp.permission.description,
+        code: rp.permission.code,
+        description: rp.permission.description ?? undefined,
         resource: rp.permission.resource,
         action: rp.permission.action,
-      })) || []
+      })) || [],
+      createdAt: ur.role.createdAt,
+      updatedAt: ur.role.updatedAt,
     })) || [];
 
-    // 获取主部门
-    const mainDepartment = user.userDepartments?.find((ud: any) => ud.isMain)?.department;
+    const mainDepartment = user.userDepartments?.find((ud) => ud.isMain)?.department;
 
     return {
       id: user.id,
@@ -409,10 +427,10 @@ export class UserService extends BaseService {
       mainDepartment: mainDepartment ? {
         id: mainDepartment.id,
         name: mainDepartment.name,
-        code: mainDepartment.code,
-        description: mainDepartment.description,
-        parentId: mainDepartment.parentId,
-        managerId: mainDepartment.managerId,
+        code: mainDepartment.code ?? undefined,
+        description: mainDepartment.description ?? undefined,
+        parentId: mainDepartment.parentId ?? undefined,
+        managerId: mainDepartment.managerId ?? undefined,
         level: mainDepartment.level,
         sort: mainDepartment.sort,
         isActive: mainDepartment.isActive,

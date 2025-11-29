@@ -47,8 +47,8 @@ const WorkcenterList: React.FC<WorkcenterListProps> = ({ actionRef, onEdit, onAd
           return;
         }
       }
-      if (actionRef?.current) {
-        actionRef.current.reload();
+      if (actionRef?.current?.reload) {
+        void actionRef.current.reload();
       }
     } catch (error) {
       console.error('删除工作中心失败:', error);
@@ -161,7 +161,7 @@ const WorkcenterList: React.FC<WorkcenterListProps> = ({ actionRef, onEdit, onAd
           <Popconfirm
             title="确认删除"
             description="确定要删除这个工作中心吗？"
-            onConfirm={() => handleDelete(record.id)}
+            onConfirm={() => { void handleDelete(record.id) }}
             okText="确认"
             cancelText="取消"
           >
@@ -244,9 +244,11 @@ const WorkcenterList: React.FC<WorkcenterListProps> = ({ actionRef, onEdit, onAd
       scroll={{ x: 'max-content' }}
       dateFormatter="string"
       headerTitle={type === 'TEAM' ? '车间管理' : '工作中心管理'}
-      toolBarRender={() => {
+      toolBarRender={(action, rowsArg) => {
         const items: React.ReactNode[] = [];
-        const selectedCount = (selectedRowKeys ?? internalSelectedKeys).length;
+        const selectedCount = Array.isArray(rowsArg?.selectedRowKeys)
+          ? rowsArg.selectedRowKeys.length
+          : (selectedRowKeys ?? internalSelectedKeys).length;
         if (selectedCount > 0) {
           items.push(
             <Popconfirm
@@ -255,19 +257,22 @@ const WorkcenterList: React.FC<WorkcenterListProps> = ({ actionRef, onEdit, onAd
               description={`确定删除选中的 ${selectedCount} 条记录吗？`}
               okText="确认"
               cancelText="取消"
-              onConfirm={async () => {
-                try {
-                  const keys = selectedRowKeys ?? internalSelectedKeys;
-                  await Promise.all(keys.map((k) => handleDelete(String(k))));
-                  if (!onSelectChange) {
-                    setInternalSelectedKeys([]);
-                  }
-                  messageApi.success('批量删除完成');
-                } catch (e) {
-                  console.error('批量删除失败:', e);
-                  messageApi.error('批量删除失败');
-                }
-              }}
+                onConfirm={() => {
+                  void (async () => {
+                    try {
+                      const keys = (rowsArg?.selectedRowKeys ?? (selectedRowKeys ?? internalSelectedKeys));
+                      const keyList: React.Key[] = (keys || []).map(k => String(k))
+                      await Promise.all(keyList.map((k) => handleDelete(String(k))));
+                      if (!onSelectChange) {
+                        setInternalSelectedKeys([]);
+                      }
+                      messageApi.success('批量删除完成');
+                    } catch (e) {
+                      console.error('批量删除失败:', e);
+                      messageApi.error('批量删除失败');
+                    }
+                  })();
+                }}
             >
               <Button key="batch-delete" danger>
                 批量删除

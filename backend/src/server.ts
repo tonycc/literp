@@ -48,7 +48,11 @@ const startServer = async () => {
 
     // 静态资源：上传文件
     const uploadsDir = path.resolve(process.cwd(), 'uploads');
-    try { fs.mkdirSync(uploadsDir, { recursive: true }); } catch {}
+    try { fs.mkdirSync(uploadsDir, { recursive: true }); } 
+    catch (error) {
+      console.error('Failed to create uploads directory:', error);
+      process.exit(1);
+    }
     app.use('/uploads', express.static(uploadsDir));
 
     // API 路由

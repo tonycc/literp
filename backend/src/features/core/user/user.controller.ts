@@ -2,7 +2,7 @@
  * 用户控制器
  */
 
-import type { Request, Response, NextFunction } from 'express';
+import type { Request, Response } from 'express';
 import { userService } from './user.service';
 import { AppError } from '../../../shared/middleware/error';
 import { BaseController } from '../../../shared/controllers/base.controller';
@@ -13,8 +13,8 @@ export class UserController extends BaseController {
    * 创建用户
    */
   @ErrorHandler
-  async createUser(req: Request, res: Response, next: NextFunction) {
-    const { username, email, password, roleIds } = req.body;
+  async createUser(req: Request, res: Response) {
+    const { username, email, password, roleIds, departmentId } = req.body;
 
     // 基本验证
     if (!username || !email || !password) {
@@ -25,7 +25,8 @@ export class UserController extends BaseController {
       username,
       email,
       password,
-      roleIds
+      roleIds,
+      departmentId,
     });
 
     this.success(res, user, 'User created successfully');
@@ -35,7 +36,7 @@ export class UserController extends BaseController {
    * 获取用户列表
    */
   @ErrorHandler
-  async getUsers(req: Request, res: Response, next: NextFunction) {
+  async getUsers(req: Request, res: Response) {
     const { 
       page = 1, 
       limit = 10, 
@@ -64,7 +65,7 @@ export class UserController extends BaseController {
    * 根据ID获取用户
    */
   @ErrorHandler
-  async getUserById(req: Request, res: Response, next: NextFunction) {
+  async getUserById(req: Request, res: Response) {
     const { id } = req.params;
     
     if (!id) {
@@ -84,7 +85,7 @@ export class UserController extends BaseController {
    * 更新用户
    */
   @ErrorHandler
-  async updateUser(req: Request, res: Response, next: NextFunction) {
+  async updateUser(req: Request, res: Response) {
     const { id } = req.params;
     const updateData = req.body;
 
@@ -100,7 +101,7 @@ export class UserController extends BaseController {
    * 删除用户
    */
   @ErrorHandler
-  async deleteUser(req: Request, res: Response, next: NextFunction) {
+  async deleteUser(req: Request, res: Response) {
     const { id } = req.params;
 
     if (!id) {
@@ -115,7 +116,7 @@ export class UserController extends BaseController {
    * 更新用户状态
    */
   @ErrorHandler
-  async updateUserStatus(req: Request, res: Response, next: NextFunction) {
+  async updateUserStatus(req: Request, res: Response) {
     const { id } = req.params;
     const { isActive } = req.body;
 

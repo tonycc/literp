@@ -3,42 +3,10 @@
  */
 
 import apiClient from '@/shared/services/api';
-import type { Role, Permission } from '@zyerp/shared';
+import { mapPaginatedResponse } from '@/shared/services/pagination';
+import type { PaginatedResponse, ApiResponse, Role, Permission, RoleListParams, CreateRoleData, UpdateRoleData, AssignPermissionsData, RoleListResponse } from '@zyerp/shared';
 
-export interface RoleListParams {
-  page?: number;
-  limit?: number;
-  search?: string;
-}
-
-export interface CreateRoleData {
-  name: string;
-  description?: string;
-  permissionIds?: string[];
-}
-
-export interface UpdateRoleData {
-  name?: string;
-  description?: string;
-  permissionIds?: string[];
-}
-
-export interface AssignPermissionsData {
-  permissionIds: string[];
-}
-
-export interface RoleListResponse {
-  data: Role[];
-  total: number;
-  page: number;
-  limit: number;
-}
-
-export interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-}
+ 
 
 class RoleService {
   /**
@@ -46,9 +14,25 @@ class RoleService {
    */
   async getRoles(params?: RoleListParams): Promise<RoleListResponse> {
     const response = await apiClient.get<ApiResponse<RoleListResponse>>('/roles', {
-      params,
+      params: params as Record<string, unknown>,
     });
+    if (!response.data.data) {
+      return {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0,
+      };
+    }
     return response.data.data;
+  }
+
+  async getList(params: RoleListParams = {}): Promise<PaginatedResponse<Role>> {
+    const response = await apiClient.get<ApiResponse<RoleListResponse>>('/roles', {
+      params: params as Record<string, unknown>,
+    });
+    return mapPaginatedResponse<Role>(response.data);
   }
 
   /**
@@ -56,6 +40,9 @@ class RoleService {
    */
   async getRoleById(id: string): Promise<Role> {
     const response = await apiClient.get<ApiResponse<Role>>(`/roles/${id}`);
+    if (!response.data.data) {
+      throw new Error('Role not found');
+    }
     return response.data.data;
   }
 
@@ -64,6 +51,9 @@ class RoleService {
    */
   async createRole(data: CreateRoleData): Promise<Role> {
     const response = await apiClient.post<ApiResponse<Role>>('/roles', data);
+    if (!response.data.data) {
+      throw new Error('Failed to create role');
+    }
     return response.data.data;
   }
 
@@ -72,6 +62,9 @@ class RoleService {
    */
   async updateRole(id: string, data: UpdateRoleData): Promise<Role> {
     const response = await apiClient.put<ApiResponse<Role>>(`/roles/${id}`, data);
+    if (!response.data.data) {
+      throw new Error('Failed to update role');
+    }
     return response.data.data;
   }
 
@@ -87,6 +80,9 @@ class RoleService {
    */
   async assignPermissions(id: string, data: AssignPermissionsData): Promise<Role> {
     const response = await apiClient.post<ApiResponse<Role>>(`/roles/${id}/permissions`, data);
+    if (!response.data.data) {
+      throw new Error('Failed to assign permissions');
+    }
     return response.data.data;
   }
 
@@ -95,7 +91,7 @@ class RoleService {
    */
   async getRolePermissions(id: string): Promise<Permission[]> {
     const response = await apiClient.get<ApiResponse<Permission[]>>(`/roles/${id}/permissions`);
-    return response.data.data;
+    return response.data.data || [];
   }
 }
 

@@ -24,9 +24,9 @@ import { NotificationButton } from '../../../features/notification-management';
 import TabBar from '../TabBar';
 
 // 懒加载页面组件（统一指向各 feature 模块中的页面组件）
-const UserManagement = React.lazy(() => import('../../../features/user-management/components/UserManagement'));
-const RoleManagement = React.lazy(() => import('../../../features/role-management/components/RoleManagement'));
-const PermissionManagement = React.lazy(() => import('../../../features/permission-management/components/PermissionManagement'));
+const UserManagement = React.lazy(() => import('../../../features/user-management/pages/UserManagement'));
+const RoleManagement = React.lazy(() => import('../../../features/role-management/pages/RoleManagement'));
+const PermissionManagement = React.lazy(() => import('../../../features/permission-management/pages/PermissionManagement'));
 const FileManager = React.lazy(() => import('../../../features/file-management/components/FileManager'));
 const LogManagement = React.lazy(() => import('../../../features/log-management/pages/LogManagement'));
 const Settings = React.lazy(() => import('../../../features/system-settings/components/Settings'));

@@ -2,39 +2,11 @@
  * 角色服务
  */
 
-import type { Role, Permission } from '@zyerp/shared';
+import type { Role, Permission, CreateRoleData, UpdateRoleData, RoleListParams, RoleListResponse } from '@zyerp/shared';
 import { prisma } from '../../../config/database';
 import { AppError } from '../../../shared/middleware/error';
 
-export interface CreateRoleData {
-  name: string;
-  code?: string;
-  description?: string;
-  permissionIds?: string[];
-}
-
-export interface UpdateRoleData {
-  name?: string;
-  code?: string;
-  description?: string;
-  permissionIds?: string[];
-}
-
-export interface RoleListParams {
-  page?: number;
-  limit?: number;
-  search?: string;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-}
-
-export interface RoleListResponse {
-  data: Role[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
+ 
 
 export class RoleService {
   /**

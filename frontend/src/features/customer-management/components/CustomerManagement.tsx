@@ -21,6 +21,8 @@ import {
 } from '@ant-design/icons';
 import type { Customer, CustomerCategory, CustomerStatus, CreditLevel, CustomerListParams } from '../types';
 import { CUSTOMER_CATEGORY_VALUE_ENUM_PRO, CUSTOMER_CREDIT_LEVEL_VALUE_ENUM_PRO, CUSTOMER_STATUS_VALUE_ENUM_PRO } from '@/shared/constants/customer';
+import { useEffect, useState } from 'react'
+import { getDict } from '@/shared/services/dictionary.service'
 import { customerService } from '../services/customer.service';
 import { normalizeTableParams } from '@/shared/utils/normalizeTableParams';
 import { useMessage } from '@/shared/hooks';
@@ -111,6 +113,34 @@ const CustomerManagement: React.FC = () => {
   };
 
   // 表格列定义
+  const [categoryValueEnum, setCategoryValueEnum] = useState<Record<string, { text: string }>>(CUSTOMER_CATEGORY_VALUE_ENUM_PRO)
+  const [statusValueEnum, setStatusValueEnum] = useState<Record<string, { text: string; status?: 'Default' | 'Processing' | 'Success' | 'Warning' | 'Error' }>>(CUSTOMER_STATUS_VALUE_ENUM_PRO)
+  const [creditValueEnum, setCreditValueEnum] = useState<Record<string, { text: string }>>(CUSTOMER_CREDIT_LEVEL_VALUE_ENUM_PRO)
+
+  useEffect(() => {
+    let mounted = true
+    const run = async () => {
+      const dc = await getDict('customer-category')
+      const ds = await getDict('customer-status')
+      const dl = await getDict('customer-credit-level')
+      if (mounted) {
+        if (Object.keys(dc.valueEnum).length > 0) {
+          const v: Record<string, { text: string }> = {}
+          Object.entries(dc.valueEnum).forEach(([k, val]) => { v[k] = { text: val.text } })
+          setCategoryValueEnum(v)
+        }
+        if (Object.keys(ds.valueEnum).length > 0) setStatusValueEnum(ds.valueEnum)
+        if (Object.keys(dl.valueEnum).length > 0) {
+          const v2: Record<string, { text: string }> = {}
+          Object.entries(dl.valueEnum).forEach(([k, val]) => { v2[k] = { text: val.text } })
+          setCreditValueEnum(v2)
+        }
+      }
+    }
+    void run()
+    return () => { mounted = false }
+  }, [])
+
   const columns: ProColumns<Customer> = [
     {
       title: '客户编码',
@@ -140,7 +170,7 @@ const CustomerManagement: React.FC = () => {
       width: 120,
       render: (_, record) => getCategoryTag(record.category),
       valueType: 'select',
-      valueEnum: CUSTOMER_CATEGORY_VALUE_ENUM_PRO,
+      valueEnum: categoryValueEnum,
     },
     {
       title: '联系人',
@@ -173,7 +203,7 @@ const CustomerManagement: React.FC = () => {
       width: 100,
       render: (_, record) => getCreditLevelTag(record.creditLevel),
       valueType: 'select',
-      valueEnum: CUSTOMER_CREDIT_LEVEL_VALUE_ENUM_PRO,
+      valueEnum: creditValueEnum,
     },
     {
       title: '信用额度',
@@ -189,7 +219,7 @@ const CustomerManagement: React.FC = () => {
       width: 100,
       render: (_, record) => getStatusTag(record.status),
       valueType: 'select',
-      valueEnum: CUSTOMER_STATUS_VALUE_ENUM_PRO,
+      valueEnum: statusValueEnum,
     },
     {
       title: '创建时间',

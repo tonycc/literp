@@ -208,7 +208,9 @@ export class PermissionService {
       code: permission.code,
       description: permission.description || undefined,
       resource: permission.resource,
-      action: permission.action
+      action: permission.action,
+      createdAt: permission.createdAt,
+      updatedAt: permission.updatedAt
     };
   }
 }

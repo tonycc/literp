@@ -39,10 +39,14 @@ import materialIssueRoutes from '../features/business/material-issue/material-is
 import productionReportRoutes from '../features/business/production-report/production-report.routes';
 import subcontractOrderRoutes from '../features/business/subcontract-management/subcontract-order.routes';
 import subcontractReceiptRoutes from '../features/business/subcontract-management/subcontract-receipt.routes';
+import dictionariesRouter from './dictionaries';
+
+
 
 const router: import('express').Router = Router();
 
 // API 路由
+router.use('/dictionaries', dictionariesRouter);
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/roles', roleRoutes);
