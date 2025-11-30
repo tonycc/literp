@@ -23,9 +23,10 @@ export class ProductVariantsService {
   }
 
   static async getVariants(
-    productId: string,
+    productId: string | undefined,
     params: PaginationParams & Record<string, unknown>,
   ): Promise<{ data: VariantInfo[]; success: boolean; total: number }> {
+    const url = productId ? `/products/${productId}/variants` : '/product-variants';
     const response = await apiClient.get<ApiResponse<{
       data: VariantInfo[];
       pagination?: { total: number; page: number; pageSize: number; totalPages: number };
@@ -33,12 +34,12 @@ export class ProductVariantsService {
       page?: number;
       pageSize?: number;
       totalPages?: number;
-    }>>(`/products/${productId}/variants`, { params });
+    }>>(url, { params });
 
     const payload = (response.data.data ?? {}) as { data?: VariantInfo[]; pagination?: { total?: number }; total?: number }
-    const total = (payload.pagination?.total ?? payload.total ?? 0) as number
+    const total = payload.pagination?.total ?? payload.total ?? 0
     return {
-      data: (payload.data || []) as VariantInfo[],
+      data: (payload.data) as VariantInfo[],
       success: response.data.success,
       total,
     };
@@ -46,7 +47,19 @@ export class ProductVariantsService {
 
   static async batchCreate(
     productId: string,
-    variants: Array<{ name: string; code: string; barcode?: string; variantAttributes?: Array<{ name: string; value: string }> }>,
+    variants: Array<{ 
+      name: string; 
+      code: string; 
+      sku?: string; 
+      barcode?: string; 
+      variantAttributes?: Array<{ name: string; value: string }>;
+      standardPrice?: number;
+      salePrice?: number;
+      purchasePrice?: number;
+      minStock?: number;
+      maxStock?: number;
+      safetyStock?: number;
+    }>,
   ): Promise<ApiResponse<{ success: number; failed: number; variants: VariantInfo[] }>> {
     const response = await apiClient.post<ApiResponse<{ success: number; failed: number; variants: VariantInfo[] }>>(
       `/products/${productId}/variants/batch`,
@@ -58,7 +71,7 @@ export class ProductVariantsService {
   static async updateVariant(
     productId: string,
     variantId: string,
-    payload: Partial<{ name: string; status: 'active' | 'inactive'; barcode?: string; qrCode?: string; minStock?: number; safetyStock?: number; maxStock?: number; reorderPoint?: number; standardPrice?: number; salePrice?: number; purchasePrice?: number; currency?: string }> & { variantAttributes?: Array<{ name: string; value: string }> },
+    payload: Partial<{ name: string; sku?: string; status: 'active' | 'inactive'; barcode?: string; qrCode?: string; minStock?: number; safetyStock?: number; maxStock?: number; reorderPoint?: number; standardPrice?: number; salePrice?: number; purchasePrice?: number; currency?: string }> & { variantAttributes?: Array<{ name: string; value: string }> },
   ): Promise<ApiResponse<VariantInfo>> {
     const response = await apiClient.patch<ApiResponse<VariantInfo>>(`/products/${productId}/variants/${variantId}`, payload);
     return response.data;

@@ -57,6 +57,7 @@ router.use('/dashboard', dashboardRoutes);
 router.use('/uploads', fileRoutes);
 router.use('/product-categories', productCategoryRoutes);
 router.use('/products', productRoutes);
+router.use('/product-variants', productVariantsRoutes); // 全局变体路由
 router.use('/products/:productId/variants', productVariantsRoutes);
 router.use('/products/:productId/attribute-lines', productAttributeLineRoutes);
 router.use('/material-issue', materialIssueRoutes);

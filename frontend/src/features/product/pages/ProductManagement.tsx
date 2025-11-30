@@ -57,8 +57,8 @@ const ProductManagement: React.FC = () => {
       } else {
         const hasVariantAttrs = !!(singleAttributeName && singleAttributeValue);
         if (hasVariantAttrs) {
-          const variantGenerateAttributes = [{ attributeName: singleAttributeName!, values: [singleAttributeValue!] }];
-          const attributeLines = [{ attributeName: singleAttributeName!, values: [singleAttributeValue!] }];
+          const variantGenerateAttributes = [{ attributeName: singleAttributeName, values: [singleAttributeValue] }];
+          const attributeLines = [{ attributeName: singleAttributeName, values: [singleAttributeValue] }];
           await createProductWithVariants({ ...productData, variantGenerateAttributes, attributeLines });
           message.success('产品及变体创建成功');
         } else {
@@ -68,7 +68,7 @@ const ProductManagement: React.FC = () => {
       }
       setIsModalVisible(false);
       setEditingProduct(undefined);
-      actionRef.current?.reload();
+      await actionRef.current?.reload();
     } catch (error) {
       console.error('产品保存失败:', error);
       message.error('操作失败，请重试');
@@ -90,13 +90,13 @@ const ProductManagement: React.FC = () => {
   // 删除产品处理
   const handleDelete = async (id: string) => {
     await deleteProduct(id);
-    actionRef.current?.reload(); // 手动刷新 ProTable
+    await actionRef.current?.reload(); // 手动刷新 ProTable
   };
 
   // 复制产品处理
   const handleCopy = async (id: string) => {
     await copyProduct(id);
-    actionRef.current?.reload(); // 手动刷新 ProTable
+    await actionRef.current?.reload(); // 手动刷新 ProTable
   };
 
   
@@ -111,7 +111,7 @@ const ProductManagement: React.FC = () => {
         onView={handleView}
         onDelete={handleDelete}
         onCopy={handleCopy}
-        onRefresh={fetchProducts}
+        onRefresh={() => { void fetchProducts(); }}
         
       />
 

@@ -47,16 +47,19 @@ export const useProduct = () => {
   // 创建产品
   const handleCreateProduct = useCallback(async (data: ProductFormData) => {
     setLoading(true);
+    console.log('[useProduct] handleCreateProduct input:', JSON.stringify(data, null, 2));
     try {
       const response = await productService.createProduct(data);
+      console.log('[useProduct] handleCreateProduct success response:', JSON.stringify(response, null, 2));
       if (response.success) {
         return response.data;
       } else {
+        console.error('[useProduct] handleCreateProduct failed response:', response);
         message.error(response.message || '创建产品失败');
         throw new Error(response.message || '创建产品失败');
       }
     } catch (error) {
-      console.error('创建产品失败:', error);
+      console.error('[useProduct] handleCreateProduct error:', error);
       message.error('创建产品失败');
       throw error;
     } finally {
@@ -66,16 +69,19 @@ export const useProduct = () => {
 
   const handleCreateProductWithVariants = useCallback(async (data: ProductCreateWithVariantsInput) => {
     setLoading(true);
+    console.log('[useProduct] handleCreateProductWithVariants input:', JSON.stringify(data, null, 2));
     try {
       const response = await productService.createProductWithVariants(data);
+      console.log('[useProduct] handleCreateProductWithVariants success response:', JSON.stringify(response, null, 2));
       if (response.success) {
         return response.data;
       } else {
+        console.error('[useProduct] handleCreateProductWithVariants failed response:', response);
         message.error(response.message || '创建产品及变体失败');
         throw new Error(response.message || '创建产品及变体失败');
       }
     } catch (error) {
-      console.error('创建产品及变体失败:', error);
+      console.error('[useProduct] handleCreateProductWithVariants error:', error);
       message.error('创建产品及变体失败');
       throw error;
     } finally {

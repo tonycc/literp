@@ -1,7 +1,7 @@
 import { BaseService } from '@/shared/services/base.service';
 import { Product, ProductVariant } from '@prisma/client';
 import { AppError } from '@/shared/middleware/error';
-import { ProductInfo, ProductQueryParams } from '@zyerp/shared';
+import { ProductInfo, VariantInfo, ProductQueryParams } from '@zyerp/shared';
 
 export class ProductVariantsService extends BaseService {
   constructor() {
@@ -14,32 +14,46 @@ export class ProductVariantsService extends BaseService {
       throw new AppError('Product not found', 404, 'PRODUCT_NOT_FOUND');
     }
     const combinations = this.generateCombinations(attributes);
-    const createdVariants: ProductInfo[] = [];
-    for (const combination of combinations) {
-      const keys = Object.keys(combination);
-      const values = keys.map(k => String(combination[k]));
-      const suffixName = values.join(' ');
-      const suffixCode = values.join('-');
-      const variantName = `${baseProduct.name} - ${suffixName}`;
-      const variantCode = `${baseProduct.code}-${suffixCode}`.toUpperCase();
-      const hash = this.buildVariantHash(combination);
-      const existsByHash = await this.prisma.productVariant.findFirst({ where: { productId, variantHash: hash } });
-      if (existsByHash) {
-        continue;
-      }
-      const created = await this.prisma.productVariant.create({ data: { productId, code: variantCode, name: variantName, variantHash: hash, isActive: true } });
-      for (const k of keys) {
-        const attr = await this.upsertAttribute(k);
-        const val = await this.upsertAttributeValue(attr.id, String(combination[k]));
-        await this.prisma.variantAttributeValue.upsert({
-          where: { variantId_attributeId: { variantId: created.id, attributeId: attr.id } },
-          update: { attributeValueId: val.id },
-          create: { variantId: created.id, attributeId: attr.id, attributeValueId: val.id },
+    
+    return this.prisma.$transaction(async (tx) => {
+      const createdVariants: ProductInfo[] = [];
+      for (const combination of combinations) {
+        const keys = Object.keys(combination);
+        const values = keys.map(k => String(combination[k]));
+        const suffixName = values.join(' ');
+        const suffixCode = values.join('-');
+        const variantName = `${baseProduct.name} - ${suffixName}`;
+        const variantCode = `${baseProduct.code}-${suffixCode}`.toUpperCase();
+        const hash = this.buildVariantHash(combination);
+        
+        const existsByHash = await tx.productVariant.findFirst({ where: { productId, variantHash: hash } });
+        if (existsByHash) {
+          continue;
+        }
+        
+        const created = await tx.productVariant.create({ 
+          data: { 
+            productId, 
+            code: variantCode, 
+            sku: variantCode, // 默认使用变体编码作为SKU
+            name: variantName, 
+            variantHash: hash, 
+            isActive: true 
+          } 
         });
+        for (const k of keys) {
+          const attr = await this.upsertAttribute(k, tx);
+          const val = await this.upsertAttributeValue(attr.id, String(combination[k]), tx);
+          await tx.variantAttributeValue.upsert({
+            where: { variantId_attributeId: { variantId: created.id, attributeId: attr.id } },
+            update: { attributeValueId: val.id },
+            create: { variantId: created.id, attributeId: attr.id, attributeValueId: val.id },
+          });
+        }
+        createdVariants.push(this.formatVariantLite(created, baseProduct));
       }
-      createdVariants.push(this.formatVariantLite(created, baseProduct));
-    }
-    return createdVariants;
+      return createdVariants;
+    });
   }
 
   private generateCombinations(attributes: any): any[] {
@@ -65,40 +79,43 @@ export class ProductVariantsService extends BaseService {
   }
 
   async updateVariant(productId: string, variantId: string, data: Partial<ProductVariant> & { variantAttributes?: Array<{ name: string; value: string }> }): Promise<ProductInfo> {
-    const variant = await this.prisma.productVariant.findUnique({ where: { id: variantId } });
-    if (!variant || variant.productId !== productId) {
-      throw new Error('Variant not found');
-    }
-    const updated = await this.prisma.productVariant.update({ where: { id: variantId }, data: {
-      name: data.name,
-      status: (data as any).status,
-      barcode: (data as any).barcode,
-      qrCode: (data as any).qrCode,
-      standardPrice: (data as any).standardPrice,
-      salePrice: (data as any).salePrice,
-      purchasePrice: (data as any).purchasePrice,
-      currency: (data as any).currency,
-      minStock: (data as any).minStock,
-      safetyStock: (data as any).safetyStock,
-      maxStock: (data as any).maxStock,
-      reorderPoint: (data as any).reorderPoint,
-      updatedAt: new Date()
-    } });
-    const attrs = Array.isArray((data as any)?.variantAttributes) ? ((data as any).variantAttributes as Array<{ name: string; value: string }>) : []
-    for (const item of attrs) {
-      const attrName = String(item?.name || '').trim()
-      const valName = String(item?.value || '').trim()
-      if (!attrName || !valName) continue
-      const attr = await this.upsertAttribute(attrName)
-      const val = await this.upsertAttributeValue(attr.id, valName)
-      await this.prisma.variantAttributeValue.upsert({
-        where: { variantId_attributeId: { variantId, attributeId: attr.id } },
-        update: { attributeValueId: val.id },
-        create: { variantId, attributeId: attr.id, attributeValueId: val.id },
-      })
-    }
-    const baseProduct = await this.prisma.product.findUnique({ where: { id: productId } });
-    return this.formatVariantLite(updated, baseProduct as Product);
+    return this.prisma.$transaction(async (tx) => {
+      const variant = await tx.productVariant.findUnique({ where: { id: variantId } });
+      if (!variant || variant.productId !== productId) {
+        throw new Error('Variant not found');
+      }
+      const updated = await tx.productVariant.update({ where: { id: variantId }, data: {
+        name: data.name,
+        sku: (data as any).sku,
+        status: (data as any).status,
+        barcode: (data as any).barcode,
+        qrCode: (data as any).qrCode,
+        standardPrice: (data as any).standardPrice,
+        salePrice: (data as any).salePrice,
+        purchasePrice: (data as any).purchasePrice,
+        currency: (data as any).currency,
+        minStock: (data as any).minStock,
+        safetyStock: (data as any).safetyStock,
+        maxStock: (data as any).maxStock,
+        reorderPoint: (data as any).reorderPoint,
+        updatedAt: new Date()
+      } });
+      const attrs = Array.isArray((data as any)?.variantAttributes) ? ((data as any).variantAttributes as Array<{ name: string; value: string }>) : []
+      for (const item of attrs) {
+        const attrName = String(item?.name || '').trim()
+        const valName = String(item?.value || '').trim()
+        if (!attrName || !valName) continue
+        const attr = await this.upsertAttribute(attrName, tx)
+        const val = await this.upsertAttributeValue(attr.id, valName, tx)
+        await tx.variantAttributeValue.upsert({
+          where: { variantId_attributeId: { variantId, attributeId: attr.id } },
+          update: { attributeValueId: val.id },
+          create: { variantId, attributeId: attr.id, attributeValueId: val.id },
+        })
+      }
+      const baseProduct = await tx.product.findUnique({ where: { id: productId } });
+      return this.formatVariantLite(updated, baseProduct as Product);
+    });
   }
 
   async deleteVariant(productId: string, variantId: string): Promise<void> {
@@ -113,7 +130,7 @@ export class ProductVariantsService extends BaseService {
    * 获取产品变体（分页）
    * 返回结构：{ data: ProductInfo[], pagination: { total, page, pageSize, totalPages } }
    */
-  async getVariants(productId: string, queryParams: Partial<ProductQueryParams>) {
+  async getVariants(productId: string | undefined, queryParams: Partial<ProductQueryParams>) {
     const page = Number((queryParams as any).current ?? queryParams.page ?? 1) || 1;
     const pageSize = Number(queryParams.pageSize ?? (queryParams as any).limit ?? 20) || 20;
     const keyword = String(queryParams.keyword || queryParams.name || queryParams.code || '');
@@ -138,12 +155,14 @@ export class ProductVariantsService extends BaseService {
       });
     }
     const where: any = {
-      productId,
+      ...(productId ? { productId } : {}),
       ...(keyword
         ? {
             OR: [
               { name: { contains: keyword, mode: 'insensitive' } },
               { code: { contains: keyword, mode: 'insensitive' } },
+              { sku: { contains: keyword, mode: 'insensitive' } },
+              { product: { name: { contains: keyword, mode: 'insensitive' } } },
             ],
           }
         : {}),
@@ -155,10 +174,15 @@ export class ProductVariantsService extends BaseService {
       take: pageSize,
       orderBy: { [sortField]: sortOrder as any },
       where,
-      include: { attributeValues: { include: { attribute: true, attributeValue: true } }, variantStocks: true },
+      include: { 
+        attributeValues: { include: { attribute: true, attributeValue: true } }, 
+        variantStocks: false, // 移除库存关联查询，提升性能
+        product: true // 必须关联 product 以支持全局查询时返回产品信息
+      },
     });
-    const baseProduct = await this.prisma.product.findUnique({ where: { id: productId } });
-    const variants: ProductInfo[] = items.map((v) => this.formatVariantLite(v, baseProduct as Product));
+    // 如果没有 productId，baseProduct 为 null，此时 formatVariantLite 内部需要处理
+    const baseProduct = productId ? await this.prisma.product.findUnique({ where: { id: productId } }) : null;
+    const variants: VariantInfo[] = items.map((v) => this.formatVariantLite(v, baseProduct || (v as any).product));
     return { data: variants, pagination: { total, page, pageSize, totalPages: Math.ceil(total / pageSize) } };
   }
 
@@ -171,30 +195,31 @@ export class ProductVariantsService extends BaseService {
     return keys.map(k => `${k}=${String(attrs[k])}`).join('|')
   }
 
-  private async upsertAttribute(name: string) {
+  private async upsertAttribute(name: string, tx: any = this.prisma) {
     const raw = String(name || '').trim()
     let code = raw.toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '')
     if (!code) code = raw || 'ATTR'
-    let found = await this.prisma.attribute.findFirst({ where: { OR: [ { code }, { AND: [{ name: raw }, { NOT: { code: '' } }] } ] } })
+    let found = await tx.attribute.findFirst({ where: { OR: [ { code }, { AND: [{ name: raw }, { NOT: { code: '' } }] } ] } })
     if (!found) {
       // 如果按“非空 code 的同名”未找到，再尝试仅按名称匹配（兼容历史数据 code 为空的记录）
-      found = await this.prisma.attribute.findFirst({ where: { name: raw } })
+      found = await tx.attribute.findFirst({ where: { name: raw } })
     }
     if (found) return found
-    return this.prisma.attribute.create({ data: { name: raw || '属性', code } })
+    return tx.attribute.create({ data: { name: raw || '属性', code } })
   }
 
-  private async upsertAttributeValue(attributeId: string, name: string) {
-    const found = await this.prisma.attributeValue.findFirst({ where: { attributeId, name } })
+  private async upsertAttributeValue(attributeId: string, name: string, tx: any = this.prisma) {
+    const found = await tx.attributeValue.findFirst({ where: { attributeId, name } })
     if (found) return found
-    return this.prisma.attributeValue.create({ data: { attributeId, name } })
+    return tx.attributeValue.create({ data: { attributeId, name } })
   }
 
-  private formatVariantLite(variant: ProductVariant & { attributeValues?: any[]; variantStocks?: any[] }, baseProduct: Product): ProductInfo {
+  private formatVariantLite(variant: ProductVariant & { attributeValues?: any[]; variantStocks?: any[] }, baseProduct: Product): VariantInfo {
     return {
       id: variant.id,
       code: variant.code,
       name: variant.name || `${baseProduct.name}`,
+      productName: baseProduct.name,
       type: baseProduct.type as any,
       categoryId: baseProduct.categoryId as any,
       unitId: baseProduct.unitId as any,
@@ -207,6 +232,7 @@ export class ProductVariantsService extends BaseService {
       version: baseProduct.version ?? 1,
       parentId: baseProduct.id,
       // 扩展变体维度字段
+      sku: (variant as any).sku,
       barcode: (variant as any).barcode,
       qrCode: (variant as any).qrCode,
       standardPrice: (variant as any).standardPrice,
@@ -217,14 +243,14 @@ export class ProductVariantsService extends BaseService {
       safetyStock: (variant as any).safetyStock,
       maxStock: (variant as any).maxStock,
       reorderPoint: (variant as any).reorderPoint,
-      currentStock: Array.isArray((variant as any).variantStocks) ? (variant as any).variantStocks.reduce((sum: number, s: any) => sum + (s.quantity || 0), 0) : undefined,
-      reservedStock: Array.isArray((variant as any).variantStocks) ? (variant as any).variantStocks.reduce((sum: number, s: any) => sum + (s.reservedQuantity || 0), 0) : undefined,
+      // currentStock: Array.isArray((variant as any).variantStocks) ? (variant as any).variantStocks.reduce((sum: number, s: any) => sum + (s.quantity || 0), 0) : undefined,
+      // reservedStock: Array.isArray((variant as any).variantStocks) ? (variant as any).variantStocks.reduce((sum: number, s: any) => sum + (s.reservedQuantity || 0), 0) : undefined,
       variantAttributes: Array.isArray(variant.attributeValues)
         ? variant.attributeValues.map((av: any) => ({ name: av.attribute?.name, value: av.attributeValue?.name }))
         : undefined,
-    } as ProductInfo
+    } as VariantInfo
   }
-  async getVariantStock(productId: string, variantId: string, _query: any) {
+  async getVariantStock(productId: string, variantId: string) {
     const variant = await this.prisma.productVariant.findUnique({ where: { id: variantId } });
     if (!variant || variant.productId !== productId) throw new AppError('Variant not found', 404, 'VARIANT_NOT_FOUND');
     const stocks = await this.prisma.variantStock.findMany({ where: { variantId } });
@@ -234,7 +260,7 @@ export class ProductVariantsService extends BaseService {
     return { currentStock, reservedStock, availableStock };
   }
 
-  async adjustVariantStock(productId: string, variantId: string, payload: { type: 'inbound' | 'outbound' | 'reserve' | 'release'; delta: number; warehouseId: string; unitId: string }, _userId: string) {
+  async adjustVariantStock(productId: string, variantId: string, payload: { type: 'inbound' | 'outbound' | 'reserve' | 'release'; delta: number; warehouseId: string; unitId: string }) {
     const variant = await this.prisma.productVariant.findUnique({ where: { id: variantId } });
     if (!variant || variant.productId !== productId) throw new AppError('Variant not found', 404, 'VARIANT_NOT_FOUND');
     const delta = Math.max(0, Number(payload.delta || 0));

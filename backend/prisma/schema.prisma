@@ -993,6 +993,7 @@ model ProductVariant {
   id              String                  @id @default(cuid())
   productId       String
   code            String                  @unique
+  sku             String?                 @unique
   name            String?
   variantHash     String
   priceDelta      Float?

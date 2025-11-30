@@ -8,8 +8,11 @@ import { ProductService } from '../product/product.service';
  * 统一使用 BaseController 响应与错误处理
  */
 export class ProductVariantsController extends BaseController {
-  constructor(private readonly productVariantsService: ProductVariantsService) {
+  private readonly productVariantsService: ProductVariantsService;
+
+  constructor(productVariantsService: ProductVariantsService) {
     super();
+    this.productVariantsService = productVariantsService;
   }
 
   /**
@@ -57,15 +60,14 @@ export class ProductVariantsController extends BaseController {
 
   public getVariantStock = this.asyncHandler(async (req: Request, res: Response) => {
     const { productId, variantId } = req.params as { productId: string; variantId: string };
-    const result = await this.productVariantsService.getVariantStock(productId, variantId, req.query || {});
+    const result = await this.productVariantsService.getVariantStock(productId, variantId);
     this.success(res, result, '获取变体库存成功');
   });
 
   public adjustVariantStock = this.asyncHandler(async (req: Request, res: Response) => {
     const { productId, variantId } = req.params as { productId: string; variantId: string };
-    const userId = this.getUserId(req);
     const payload = req.body as { type: 'inbound' | 'outbound' | 'reserve' | 'release'; delta: number; warehouseId: string; unitId: string };
-    const result = await this.productVariantsService.adjustVariantStock(productId, variantId, payload, userId);
+    const result = await this.productVariantsService.adjustVariantStock(productId, variantId, payload);
     this.success(res, result, '变体库存调整成功');
   });
 

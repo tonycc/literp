@@ -167,6 +167,8 @@ export interface ProductInfo {
 
 
 export interface VariantInfo extends ProductInfo {
+  productName?: string;
+  sku?: string;
   standardPrice?: number;
   salePrice?: number;
   purchasePrice?: number;
@@ -185,6 +187,7 @@ export interface VariantInfo extends ProductInfo {
 export interface ProductFormData {
   // 基本信息 - 必填字段
   code?: string;                       // 产品编码（新增时可选，编辑时必填）
+  sku?: string;                        // SKU
   name: string;                        // 产品名称
   type: ProductType;                   // 产品属性
   categoryId: string;                  // 产品类目
@@ -200,9 +203,9 @@ export interface ProductFormData {
   qrCode?: string;                     // 二维码
   
   // 成本与库存信息
-  standardCost?: number;               // 标准成本
-  averageCost?: number;                // 平均成本
-  latestCost?: number;                 // 最新成本
+  salePrice?: number;                  // 销售价格
+  standardPrice?: number;              // 标准价格
+  purchasePrice?: number;              // 采购价格
   safetyStock?: number;                // 安全库存
   safetyStockMin?: number;             // 安全库存下限
   safetyStockMax?: number;             // 安全库存上限
@@ -235,6 +238,7 @@ export interface ProductFormData {
 export interface VariantCreateInput {
   name: string;
   code: string;
+  sku?: string;
   barcode?: string;
   variantAttributes?: Array<{ name: string; value: string }>;
 }

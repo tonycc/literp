@@ -16,7 +16,7 @@ import {
   SaveOutlined,
   CloseOutlined,
 } from '@ant-design/icons';
-import { ProductType, ProductStatus, PRODUCT_TYPE_OPTIONS, PRODUCT_STATUS_OPTIONS, ACQUISITION_METHOD_OPTIONS } from '@zyerp/shared';
+import { ProductType, ProductStatus, PRODUCT_TYPE_OPTIONS, ACQUISITION_METHOD_OPTIONS } from '@zyerp/shared';
 import type { ProductInfo, ProductFormData, ProductCategoryOption } from '@zyerp/shared';
 import { productCategoryService } from '../services/productCategory.service';
 import { productService } from '../services/product.service';
@@ -44,7 +44,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
   loading = false,
 }) => {
   const [form] = Form.useForm();
-  const singleAttrId = Form.useWatch('singleAttributeId', form);
+  const singleAttrId = Form.useWatch('singleAttributeId', form) as string;
   const message = useMessage();
 
   const [codeGenerated, setCodeGenerated] = useState(false);
@@ -59,7 +59,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const [attributeValuesMap, setAttributeValuesMap] = useState<Record<string, { label: string; value: string }[]>>({});
   // 使用共享包统一选项定义
   const productTypeOptions = PRODUCT_TYPE_OPTIONS;
-  const productStatusOptions = PRODUCT_STATUS_OPTIONS;
   const acquisitionMethodOptions = ACQUISITION_METHOD_OPTIONS;
 
 
@@ -69,35 +68,59 @@ const ProductForm: React.FC<ProductFormProps> = ({
   // 获取产品类别、单位和仓库选项
   useEffect(() => {
     const fetchOptions = async () => {
-      try {
-        // 获取产品类别选项
-        const response = await productCategoryService.getOptions({ isActive: true });
-        if (response.success && response.data) {
-          setProductCategoryOptions(response.data);
+      // 并行请求，互不阻塞，且单独捕获错误
+      const loadCategories = async () => {
+        try {
+          const response = await productCategoryService.getOptions({ isActive: true });
+          if (response.success && response.data) {
+            setProductCategoryOptions(response.data);
+          }
+        } catch (error) {
+          console.error('获取产品类别选项失败:', error);
         }
-        
-        // 获取单位选项
-        const unitOpts = await unitService.getOptions();
-        setUnitOptions(unitOpts);
-        
-        // 获取仓库选项
-        const warehouseOpts = await warehouseService.getOptions();
-        setWarehouseOptions(warehouseOpts);
+      };
 
-        // 获取属性选项
-        const attrResp = await AttributesService.getAttributes({ page: 1, pageSize: 1000 });
-        if (attrResp.success) {
-          const opts = (attrResp.data || []).map(a => ({ label: a.name, value: a.id }));
-          const seen = new Set<string>();
-          setAttributeOptions(opts.filter(o => { if (seen.has(o.value)) return false; seen.add(o.value); return true; }));
+      const loadUnits = async () => {
+        try {
+          const unitOpts = await unitService.getOptions();
+          setUnitOptions(unitOpts);
+        } catch (error) {
+          console.error('获取单位选项失败:', error);
         }
-      } catch (error) {
-        console.error('获取选项数据失败:', error);
-      }
+      };
+
+      const loadWarehouses = async () => {
+        try {
+          const warehouseOpts = await warehouseService.getOptions();
+          setWarehouseOptions(warehouseOpts);
+        } catch (error) {
+          console.error('获取仓库选项失败:', error);
+        }
+      };
+
+      const loadAttributes = async () => {
+        try {
+          const attrResp = await AttributesService.getAttributes({ page: 1, pageSize: 1000 });
+          if (attrResp.success) {
+            const opts = (attrResp.data || []).map(a => ({ label: a.name, value: a.id }));
+            const seen = new Set<string>();
+            setAttributeOptions(opts.filter(o => { if (seen.has(o.value)) return false; seen.add(o.value); return true; }));
+          }
+        } catch (error) {
+          console.error('获取属性选项失败:', error);
+        }
+      };
+
+      await Promise.all([
+        loadCategories(),
+        loadUnits(),
+        loadWarehouses(),
+        loadAttributes()
+      ]);
     };
 
     if (visible) {
-      fetchOptions();
+      void fetchOptions();
     }
   }, [visible]);
 
@@ -146,7 +169,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
   // 生成产品编码
   const generateProductCode = () => {
-    const type = form.getFieldValue('type');
+    const type = form.getFieldValue('type') as ProductType;
     
     let prefix = 'PRD';
     if (type === ProductType.RAW_MATERIAL) prefix = 'RM';
@@ -165,13 +188,15 @@ const ProductForm: React.FC<ProductFormProps> = ({
   // 表单提交
   const handleSubmit = async () => {
     try {
-      const values = await form.validateFields();
+      const values = await form.validateFields() as ProductFormData;
       const formData: ProductFormData = {
         ...values,
       };
+      console.log('[ProductForm] handleSubmit values:', JSON.stringify(formData, null, 2));
       await onSave(formData);
     } catch (error) {
       console.error('表单验证失败:', error);
+      console.error('[ProductForm] handleSubmit error:', error);
     }
   };
 
@@ -257,12 +282,16 @@ const ProductForm: React.FC<ProductFormProps> = ({
       <Form
         form={form}
         layout="vertical"
-        onFinish={handleSubmit}
+        onFinish={() => void handleSubmit()}
       >
         <Card title="基本信息" size="small" style={{ marginBottom: 16 }}>
           <Row gutter={16}>
             <Col span={8}>
-              <Form.Item label="产品编码">
+              <Form.Item
+                label="产品编码"
+                required
+                style={{ marginBottom: 0 }}
+              >
                 <Space.Compact style={{ width: '100%' }}>
                   <Form.Item
                     name="code"
@@ -287,6 +316,17 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 </Space.Compact>
               </Form.Item>
             </Col>
+            {!product && (
+              <Col span={8}>
+                <Form.Item
+                  name="sku"
+                  label="SKU"
+                  tooltip="如果不填将自动生成"
+                >
+                  <Input placeholder="请输入SKU" />
+                </Form.Item>
+              </Col>
+            )}
             <Col span={8}>
               <Form.Item
                 label="产品名称"
@@ -300,7 +340,12 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 <Input placeholder="产品名称" />
               </Form.Item>
             </Col>
-            <Col span={8}>
+           
+          
+          </Row>
+
+          <Row gutter={16}>
+             <Col span={8}>
               <Form.Item
                 label="产品属性"
                 name="type"
@@ -315,10 +360,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 </Select>
               </Form.Item>
             </Col>
-          
-          </Row>
-
-          <Row gutter={16}>
               <Col span={8}>
               <Form.Item
               label="产品类目"
@@ -345,21 +386,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
               <Input placeholder="如：500ml、1kg、XL等" />
               </Form.Item>
             </Col>
-            <Col span={8}>
-              <Form.Item
-                label="计量单位"
-                name="unitId"
-                rules={[{ required: true, message: '请选择计量单位' }]}
-              >
-                <Select placeholder="选择计量单位" showSearch>
-                  {unitOptions.map((unit, index) => (
-                    <Option key={unit.value || `unit-${index}`} value={unit.value}>
-                      {unit.label}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
+           
             
            
           </Row>
@@ -399,81 +426,143 @@ const ProductForm: React.FC<ProductFormProps> = ({
             </Col>
              <Col span={8}>
               <Form.Item
-                label="产品状态"
-                name="status"
-                rules={[{ required: true, message: '请选择产品状态' }]}
+                label="计量单位"
+                name="unitId"
+                rules={[{ required: true, message: '请选择计量单位' }]}
               >
-                <Select placeholder="选择产品状态">
-                  {productStatusOptions.map(option => (
-                    <Option key={option.value} value={option.value}>
-                      {option.label}
+                <Select placeholder="选择计量单位" showSearch>
+                  {unitOptions.map((unit, index) => (
+                    <Option key={unit.value || `unit-${index}`} value={unit.value}>
+                      {unit.label}
                     </Option>
                   ))}
                 </Select>
               </Form.Item>
             </Col>
+             
           </Row>
         </Card>
 
-        <Card title="成本" size="small" style={{ marginBottom: 16 }}>
+        <Card title="成本与价格" size="small" style={{ marginBottom: 16 }}>
           <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item
-                label="标准成本"
-                name="standardCost"
-                rules={[
-                  { validator: validateCost('标准成本') }
-                ]}
-                validateTrigger="onChange"
-              >
-                <InputNumber
-                  placeholder="标准成本"
-                  style={{ width: '100%' }}
-                  precision={2}
-                  min={0}
-                  max={99999999.99}
-                  addonAfter="元"
-                />
-              </Form.Item>
-            </Col>
-             <Col span={8}>
-              <Form.Item
-                label="最低安全库存"
-                name="lowestSafeStock"
-                rules={[
-                  { validator: validateStock('最低安全库存') }
-                ]}
-                validateTrigger="onChange"
-              >
-                <InputNumber
-                  placeholder="最低安全库存"
-                  style={{ width: '100%' }}
-                  precision={2}
-                  min={0}
-                  max={99999999.99}
-                  addonAfter={unitOptions.find(u => u.value === form.getFieldValue('unitId'))?.label || '件'}
-                />
-              </Form.Item>
-            </Col>
-             <Col span={8}>
-              <Form.Item
-                label="最高安全库存"
-                name="highestSafeStock"
-                rules={[
-                  { validator: validateStock('最高安全库存') }
-                ]}
-                validateTrigger="onChange"
-              >
-                <InputNumber
-                  placeholder="最高安全库存"
-                  style={{ width: '100%' }}
-                  precision={2}
-                  min={0}
-                  max={99999999.99}
-                  addonAfter={unitOptions.find(u => u.value === form.getFieldValue('unitId'))?.label || '件'}
-                />
-              </Form.Item>
-            </Col>
+            {!product && (
+              <>
+                <Col span={8}>
+                  <Form.Item
+                    label="标准价格"
+                    name="standardPrice"
+                    rules={[
+                      { validator: validateCost('标准价格') }
+                    ]}
+                    validateTrigger="onChange"
+                  >
+                    <InputNumber
+                      placeholder="标准价格"
+                      style={{ width: '100%' }}
+                      precision={2}
+                      min={0}
+                      max={99999999.99}
+                      addonAfter="元"
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item
+                    label="销售价格"
+                    name="salePrice"
+                    rules={[
+                      { validator: validateCost('销售价格') }
+                    ]}
+                    validateTrigger="onChange"
+                  >
+                    <InputNumber
+                      placeholder="销售价格"
+                      style={{ width: '100%' }}
+                      precision={2}
+                      min={0}
+                      max={99999999.99}
+                      addonAfter="元"
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item
+                    label="采购价格"
+                    name="purchasePrice"
+                    rules={[
+                      { validator: validateCost('采购价格') }
+                    ]}
+                    validateTrigger="onChange"
+                  >
+                    <InputNumber
+                      placeholder="采购价格"
+                      style={{ width: '100%' }}
+                      precision={2}
+                      min={0}
+                      max={99999999.99}
+                      addonAfter="元"
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item
+                    label="安全库存"
+                    name="safetyStock"
+                    rules={[
+                      { validator: validateStock('安全库存') }
+                    ]}
+                    validateTrigger="onChange"
+                  >
+                    <InputNumber
+                      placeholder="安全库存"
+                      style={{ width: '100%' }}
+                      precision={2}
+                      min={0}
+                      max={99999999.99}
+                      addonAfter={unitOptions.find(u => u.value === form.getFieldValue('unitId'))?.label || '件'}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item
+                    label="最低库存"
+                    name="minStock"
+                    rules={[
+                      { validator: validateStock('最低库存') }
+                    ]}
+                    validateTrigger="onChange"
+                  >
+                    <InputNumber
+                      placeholder="最低库存"
+                      style={{ width: '100%' }}
+                      precision={2}
+                      min={0}
+                      max={99999999.99}
+                      addonAfter={unitOptions.find(u => u.value === form.getFieldValue('unitId'))?.label || '件'}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item
+                    label="最高库存"
+                    name="maxStock"
+                    rules={[
+                      { validator: validateStock('最高库存') }
+                    ]}
+                    validateTrigger="onChange"
+                  >
+                    <InputNumber
+                      placeholder="最高库存"
+                      style={{ width: '100%' }}
+                      precision={2}
+                      min={0}
+                      max={99999999.99}
+                      addonAfter={unitOptions.find(u => u.value === form.getFieldValue('unitId'))?.label || '件'}
+                    />
+                  </Form.Item>
+                </Col>
+              </>
+            )}
           </Row>
         </Card>
 
@@ -485,17 +574,19 @@ const ProductForm: React.FC<ProductFormProps> = ({
                   <Select
                     placeholder="选择属性名称"
                     options={attributeOptions}
-                    onChange={async (attrId) => {
+                    onChange={(attrId: string) => {
                       form.setFieldsValue({ singleAttributeValue: undefined });
-                      const resp = await AttributesService.getAttributeValues(attrId);
-                      if (resp.success) {
-                        const opts = (resp.data || []).map(v => ({ label: v.name, value: v.name }));
-                        setAttributeValuesMap(prev => ({ ...prev, [attrId]: opts }));
-                        const found = attributeOptions.find(o => o.value === attrId);
-                        form.setFieldsValue({ singleAttributeName: found?.label });
-                      } else {
-                        message.error('获取属性值失败');
-                      }
+                      void (async () => {
+                        const resp = await AttributesService.getAttributeValues(attrId);
+                        if (resp.success) {
+                          const opts = (resp.data || []).map(v => ({ label: v.name, value: v.name }));
+                          setAttributeValuesMap(prev => ({ ...prev, [attrId]: opts }));
+                          const found = attributeOptions.find(o => o.value === attrId);
+                          form.setFieldsValue({ singleAttributeName: found?.label });
+                        } else {
+                          message.error('获取属性值失败');
+                        }
+                      })();
                     }}
                     allowClear
                     showSearch
@@ -509,7 +600,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 <Form.Item label="属性值" name="singleAttributeValue">
                   <Select
                     placeholder="选择属性值"
-                    options={attributeValuesMap[singleAttrId as string] || []}
+                    options={attributeValuesMap[singleAttrId] || []}
                     allowClear
                     showSearch
                   />
@@ -526,11 +617,11 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 label="产品图片"
                 name="images"
                 valuePropName="fileList"
-                getValueFromEvent={(e) => {
+                getValueFromEvent={(e: unknown) => {
                   if (Array.isArray(e)) {
-                    return e;
+                    return e as unknown[];
                   }
-                  return e?.fileList;
+                  return (e as { fileList: unknown[] })?.fileList;
                 }}
               >
                 <ProductImageUpload maxCount={5} />
