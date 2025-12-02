@@ -23,6 +23,12 @@ import {
   Drawer
 } from 'antd';
 import { useMessage } from '@/shared/hooks';
+import { 
+  BOM_STATUS, 
+  BOM_STATUS_MAP, 
+  BOM_STATUS_OPTIONS,
+  BOM_HISTORY_ACTION
+} from '@/shared/constants/bom';
 import type { ColumnsType } from 'antd/es/table';
 import {
   PlusOutlined,
@@ -75,6 +81,18 @@ interface BomVersionHistory {
   description: string;
 }
 
+interface BomVersionFormValues {
+  bomCode: string;
+  bomName: string;
+  version: string;
+  status: string;
+  isDefault: boolean;
+  effectiveDate: dayjs.Dayjs;
+  expiryDate?: dayjs.Dayjs;
+  changeReason: string;
+  description?: string;
+}
+
 /**
  * BOM版本管理组件
  */
@@ -95,7 +113,7 @@ const BomVersionManager: React.FC = () => {
   const [currentBomId, setCurrentBomId] = useState<string>('');
   
   // 表单实例
-  const [versionForm] = Form.useForm();
+  const [versionForm] = Form.useForm<BomVersionFormValues>();
 
   // 模拟数据
   const mockVersions: BomVersion[] = [
@@ -153,7 +171,7 @@ const BomVersionManager: React.FC = () => {
     {
       id: '1',
       bomId: 'BOM001',
-      action: 'created',
+      action: BOM_HISTORY_ACTION.CREATED,
       versionId: '1',
       version: 'V1.0',
       operator: '张三',
@@ -163,7 +181,7 @@ const BomVersionManager: React.FC = () => {
     {
       id: '2',
       bomId: 'BOM001',
-      action: 'activated',
+      action: BOM_HISTORY_ACTION.ACTIVATED,
       versionId: '1',
       version: 'V1.0',
       operator: '王五',
@@ -173,7 +191,7 @@ const BomVersionManager: React.FC = () => {
     {
       id: '3',
       bomId: 'BOM001',
-      action: 'created',
+      action: BOM_HISTORY_ACTION.CREATED,
       versionId: '2',
       version: 'V1.1',
       operator: '李四',
@@ -183,7 +201,7 @@ const BomVersionManager: React.FC = () => {
   ];
 
   useEffect(() => {
-    loadData();
+    void loadData();
   }, []); // 空依赖数组是合理的，因为loadData函数在组件内部定义，不会改变
 
   const loadData = async () => {
@@ -202,13 +220,7 @@ const BomVersionManager: React.FC = () => {
 
   // 版本状态渲染
   const renderVersionStatus = (status: string) => {
-    const statusConfig = {
-      draft: { color: 'default', text: '草稿' },
-      active: { color: 'success', text: '生效' },
-      inactive: { color: 'warning', text: '失效' },
-      archived: { color: 'default', text: '归档' }
-    };
-    const config = statusConfig[status as keyof typeof statusConfig];
+    const config = BOM_STATUS_MAP[status] || { color: 'default', text: status };
     return <Tag color={config.color}>{config.text}</Tag>;
   };
 
@@ -307,7 +319,7 @@ const BomVersionManager: React.FC = () => {
               type="link"
               size="small"
               icon={<CopyOutlined />}
-              onClick={() => handleCopyVersion(record)}
+              onClick={() => { void handleCopyVersion(record); }}
             />
           </Tooltip>
           <Tooltip title="历史">
@@ -321,7 +333,7 @@ const BomVersionManager: React.FC = () => {
           {record.status === 'draft' && (
             <Popconfirm
               title="确定删除此版本吗？"
-              onConfirm={() => handleDeleteVersion(record.id)}
+              onConfirm={() => { void handleDeleteVersion(record.id); }}
               okText="确定"
               cancelText="取消"
             >
@@ -352,7 +364,7 @@ const BomVersionManager: React.FC = () => {
     versionForm.setFieldsValue({
       ...version,
       effectiveDate: dayjs(version.effectiveDate),
-      expiryDate: version.expiryDate ? dayjs(version.expiryDate) : null
+      expiryDate: version.expiryDate ? dayjs(version.expiryDate) : undefined
     });
     setVersionModalVisible(true);
   };
@@ -403,7 +415,8 @@ const BomVersionManager: React.FC = () => {
       const formattedValues = {
         ...values,
         effectiveDate: values.effectiveDate.format('YYYY-MM-DD'),
-        expiryDate: values.expiryDate ? values.expiryDate.format('YYYY-MM-DD') : undefined
+        expiryDate: values.expiryDate ? values.expiryDate.format('YYYY-MM-DD') : undefined,
+        status: values.status as BomVersion['status']
       };
 
       if (editingVersion) {
@@ -415,11 +428,8 @@ const BomVersionManager: React.FC = () => {
         const newVersion: BomVersion = {
           id: Date.now().toString(),
           bomId: 'BOM001',
-          bomCode: 'BOM001',
-          bomName: '新BOM',
           createdBy: '当前用户',
           createdAt: new Date().toISOString(),
-          isDefault: false,
           ...formattedValues
         };
         setVersions(prev => [...prev, newVersion]);
@@ -452,12 +462,12 @@ const BomVersionManager: React.FC = () => {
   // 渲染操作历史图标
   const renderHistoryIcon = (action: string) => {
     const iconMap = {
-      created: <PlusOutlined style={{ color: '#52c41a' }} />,
-      updated: <EditOutlined style={{ color: '#1890ff' }} />,
-      activated: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
-      deactivated: <ClockCircleOutlined style={{ color: '#faad14' }} />,
-      archived: <ExclamationCircleOutlined style={{ color: '#8c8c8c' }} />,
-      copied: <CopyOutlined style={{ color: '#722ed1' }} />
+      [BOM_HISTORY_ACTION.CREATED]: <PlusOutlined style={{ color: '#52c41a' }} />,
+      [BOM_HISTORY_ACTION.UPDATED]: <EditOutlined style={{ color: '#1890ff' }} />,
+      [BOM_HISTORY_ACTION.ACTIVATED]: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
+      [BOM_HISTORY_ACTION.DEACTIVATED]: <ClockCircleOutlined style={{ color: '#faad14' }} />,
+      [BOM_HISTORY_ACTION.ARCHIVED]: <ExclamationCircleOutlined style={{ color: '#8c8c8c' }} />,
+      [BOM_HISTORY_ACTION.COPIED]: <CopyOutlined style={{ color: '#722ed1' }} />
     };
     return iconMap[action as keyof typeof iconMap] || <HistoryOutlined />;
   };
@@ -508,7 +518,7 @@ const BomVersionManager: React.FC = () => {
       <Modal
         title={editingVersion ? '编辑版本' : '新增版本'}
         open={versionModalVisible}
-        onOk={handleSaveVersion}
+        onOk={() => { void handleSaveVersion(); }}
         onCancel={() => setVersionModalVisible(false)}
         width={800}
         destroyOnHidden
@@ -556,13 +566,15 @@ const BomVersionManager: React.FC = () => {
               <Form.Item
                 name="status"
                 label="状态"
+                initialValue={BOM_STATUS.DRAFT}
                 rules={[{ required: true, message: '请选择状态' }]}
               >
                 <Select>
-                  <Option value="draft">草稿</Option>
-                  <Option value="active">生效</Option>
-                  <Option value="inactive">失效</Option>
-                  <Option value="archived">归档</Option>
+                  {BOM_STATUS_OPTIONS.map(option => (
+                    <Option key={option.value} value={option.value}>
+                      {option.label}
+                    </Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>

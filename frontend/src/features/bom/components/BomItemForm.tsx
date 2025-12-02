@@ -1,7 +1,7 @@
 import React from 'react';
 import { ModalForm, ProFormSelect } from '@ant-design/pro-components';
 import type { FormInstance } from 'antd';
-import { bomService } from '../services/bom.service';
+import { BomService } from '../services/bom.service';
 import { useMessage } from '@/shared/hooks';
 
 interface BomItemFormProps {
@@ -11,6 +11,10 @@ interface BomItemFormProps {
   initialChildBomId?: string;
   onSubmit: (payload: { childBomId: string }) => Promise<void> | void;
   form?: FormInstance;
+}
+
+interface BomItemFormValues {
+  childBomId: string;
 }
 
 /**
@@ -28,7 +32,7 @@ const BomItemForm: React.FC<BomItemFormProps> = ({
   const message = useMessage();
 
   return (
-    <ModalForm
+    <ModalForm<BomItemFormValues>
       form={form}
       open={open}
       onOpenChange={onOpenChange}
@@ -57,8 +61,8 @@ const BomItemForm: React.FC<BomItemFormProps> = ({
         request={async () => {
           if (!materialId) return [];
           try {
-            const res = await bomService.getBomOptions({ _productId: materialId, activeOnly: true });
-            const options = Array.isArray(res.data) ? res.data : [];
+            const res = await BomService.getList({ productId: materialId, status: 'active', pageSize: 100 });
+            const options = res.data || [];
             return options.map((b) => ({
               value: b.id,
               label: `${b.code} ${b.name}（${b.version}）`,

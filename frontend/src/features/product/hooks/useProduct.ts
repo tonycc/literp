@@ -47,10 +47,8 @@ export const useProduct = () => {
   // 创建产品
   const handleCreateProduct = useCallback(async (data: ProductFormData) => {
     setLoading(true);
-    console.log('[useProduct] handleCreateProduct input:', JSON.stringify(data, null, 2));
     try {
       const response = await productService.createProduct(data);
-      console.log('[useProduct] handleCreateProduct success response:', JSON.stringify(response, null, 2));
       if (response.success) {
         return response.data;
       } else {
@@ -69,10 +67,8 @@ export const useProduct = () => {
 
   const handleCreateProductWithVariants = useCallback(async (data: ProductCreateWithVariantsInput) => {
     setLoading(true);
-    console.log('[useProduct] handleCreateProductWithVariants input:', JSON.stringify(data, null, 2));
     try {
       const response = await productService.createProductWithVariants(data);
-      console.log('[useProduct] handleCreateProductWithVariants success response:', JSON.stringify(response, null, 2));
       if (response.success) {
         return response.data;
       } else {

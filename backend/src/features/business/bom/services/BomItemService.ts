@@ -151,6 +151,8 @@ export class BomItemService {
             isPhantom: itemData.isPhantom || false,
             processInfo: itemData.processInfo || null,
             remark: itemData.remark || null,
+            scrapRate: itemData.scrapRate || 0,
+            fixedScrap: itemData.fixedScrap || 0,
             effectiveDate: effectiveDate,
             expiryDate: expiryDate,
             childBomId: itemData.childBomId || null,
@@ -198,8 +200,6 @@ export class BomItemService {
         if (!material) {
           return { success: false, message: '物料不存在' };
         }
-      } else {
-        return { success: false, message: '物料或物料变体必须至少选择一个' };
       }
 
       // 检查单位是否存在
@@ -266,6 +266,8 @@ export class BomItemService {
             ...(itemData.isPhantom !== undefined && { isPhantom: itemData.isPhantom }),
             ...(itemData.processInfo !== undefined && { processInfo: itemData.processInfo }),
             ...(itemData.remark !== undefined && { remark: itemData.remark }),
+            ...(itemData.scrapRate !== undefined && { scrapRate: itemData.scrapRate }),
+            ...(itemData.fixedScrap !== undefined && { fixedScrap: itemData.fixedScrap }),
             ...(effectiveDate !== null && { effectiveDate }),
             ...(expiryDate !== null && { expiryDate }),
             ...(itemData.childBomId !== undefined && { childBomId: itemData.childBomId }),
@@ -415,6 +417,8 @@ export class BomItemService {
               !!existing.isPhantom !== !!item.isPhantom ||
               (existing.processInfo ?? undefined) !== (item.processInfo ?? undefined) ||
               (existing.remark ?? undefined) !== (item.remark ?? undefined) ||
+              existing.scrapRate.toNumber() !== (item.scrapRate || 0) ||
+              existing.fixedScrap.toNumber() !== (item.fixedScrap || 0) ||
               (existing.effectiveDate ? existing.effectiveDate.getTime() : undefined) !== (effectiveDate ? effectiveDate.getTime() : undefined) ||
               (existing.expiryDate ? existing.expiryDate.getTime() : undefined) !== (expiryDate ? expiryDate.getTime() : undefined) ||
               (existing.childBomId ?? undefined) !== (item.childBomId ?? undefined)
@@ -433,6 +437,8 @@ export class BomItemService {
                   isPhantom: item.isPhantom,
                   processInfo: item.processInfo,
                   remark: item.remark,
+                  scrapRate: item.scrapRate || 0,
+                  fixedScrap: item.fixedScrap || 0,
                   effectiveDate,
                   expiryDate,
                   childBomId: item.childBomId,
@@ -457,6 +463,8 @@ export class BomItemService {
                 isPhantom: item.isPhantom || false,
                 processInfo: item.processInfo ?? null,
                 remark: item.remark ?? null,
+                scrapRate: item.scrapRate || 0,
+                fixedScrap: item.fixedScrap || 0,
                 effectiveDate,
                 expiryDate,
                 childBomId: item.childBomId ?? null,
@@ -533,6 +541,8 @@ export class BomItemService {
         isPhantom: item.isPhantom,
         processInfo: item.processInfo,
         remark: item.remark,
+        scrapRate: item.scrapRate,
+        fixedScrap: item.fixedScrap,
         effectiveDate: item.effectiveDate,
         expiryDate: item.expiryDate,
         childBomId: item.childBomId,

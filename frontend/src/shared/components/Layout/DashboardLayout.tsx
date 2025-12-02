@@ -1,29 +1,22 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import ProLayout from '@ant-design/pro-layout';
 import { PageContainer } from '@ant-design/pro-components';
-import type { MenuDataItem } from '@ant-design/pro-layout';
-import { Avatar, Dropdown, Space } from 'antd';
+import { Avatar, Dropdown, Space, Popover, Row, Col, Typography, theme } from 'antd';
 import { useMessage, usePermissions } from '../../hooks';
+import { allMenuData, type MenuItemWithPermissions } from '../../config/menu';
 import {
   UserOutlined,
-  TeamOutlined,
   SettingOutlined,
-  LogoutOutlined,
-  SafetyCertificateOutlined,
-  FileOutlined,
-  FileTextOutlined,
-  BellOutlined,
-  ApartmentOutlined,
-  ControlOutlined,
-  ShoppingOutlined,
-  ClusterOutlined
+  LogoutOutlined
 } from '@ant-design/icons';
 import { useAuth } from '../../../features/auth';
 import { NotificationButton } from '../../../features/notification-management';
 import TabBar from '../TabBar';
 
-// 懒加载页面组件（统一指向各 feature 模块中的页面组件）
+const { Title } = Typography;
+
+// 懒加载页面组件
 const UserManagement = React.lazy(() => import('../../../features/user-management/pages/UserManagement'));
 const RoleManagement = React.lazy(() => import('../../../features/role-management/pages/RoleManagement'));
 const PermissionManagement = React.lazy(() => import('../../../features/permission-management/pages/PermissionManagement'));
@@ -68,279 +61,125 @@ const SubcontractOrderManagement = React.lazy(() => import('../../../features/su
 const SubcontractReceiptManagement = React.lazy(() => import('../../../features/subcontract-management/pages/SubcontractReceiptManagement'));
 
 
-// 扩展菜单项类型，添加权限配置
-interface MenuItemWithPermissions extends MenuDataItem {
-  permissions?: string[]; // 访问此菜单所需的权限
-  adminOnly?: boolean; // 是否仅管理员可见
-}
+// Mega Menu Content Component
+const MegaMenuContent: React.FC<{
+  items: MenuItemWithPermissions[];
+  onItemClick: (path: string) => void;
+}> = ({ items, onItemClick }) => {
+  const { token } = theme.useToken();
 
-// 菜单配置（带权限）
-const allMenuData: MenuItemWithPermissions[] = [
- 
-  {
-    path: '/production-planning',
-    name:'生产计划',
-    icon: <ClusterOutlined />,
-    children: [
-      {
-        path: '/production-plan',
-        name: '生产计划',
-        icon: <ClusterOutlined />,
-      },
-      {
-        path: '/production-plan-list',
-        name: '生产计划列表',
-        icon: <ClusterOutlined />,
-      },
-      {
-        path: '/manufacturing-order',
-        name: '制造订单',
-        icon: <ClusterOutlined />,
-      }, 
-    ],
-  },
+  const { groups, noGroup } = useMemo(() => {
+    const groups: Record<string, MenuItemWithPermissions[]> = {};
+    const noGroup: MenuItemWithPermissions[] = [];
 
-  {
-    path: '/production-management',
-    name:'生产管理',
-    icon: <ClusterOutlined />,
-    children: [
-       {
-        path: '/work-order-scheduling',
-        name: '生产工单',
-        icon: <ClusterOutlined />,
-      },
-      {
-        path: '/work-order-board',
-        name: '工单看板',
-        icon: <ClusterOutlined />,
-      },
-      {
-        path: '/production-report',
-        name: '生产报工',
-        icon: <ClusterOutlined />,
-      },
-      {
-        path: '/material-issue',
-        name: '生产领料',
-        icon: <ClusterOutlined />,
-      },
-      {
-        path: '/production-order',
-        name: '生产工单',
-        icon: <ClusterOutlined />,
-      },
-      {
-        path: '/production-record',
-        name: '生产记录',
-        icon: <ClusterOutlined />,
-      },
-      {
-        path: '/production-inbound',
-        name: '生产入库',
-        icon: <ClusterOutlined />,
-      },
-    ],
-  },
-  {
-    path: '/subcontract-management',
-    name:'委外管理',
-    icon: <ClusterOutlined />,
-    children: [
-      {
-        path: '/subcontract-order',
-        name: '委外订单',
-        icon: <ClusterOutlined />,
-      },
-      {
-        path: '/subcontract-receipt',
-        name: '委外入库',
-        icon: <ClusterOutlined />,
-      },
-    ],
-  },
-  {
-    path: '/purchase-management',
-    name:'采购管理',
-    icon: <ClusterOutlined />,
-    children: [
-      {
-        path: '/purchase-order',
-        name: '采购订单',
-        icon: <ClusterOutlined />,
-      },
-      {
-        path: '/purchase-receipt',
-        name: '采购入库',
-        icon: <ClusterOutlined />,
-      },
-      {
-        path: '/purchase-return',
-        name: '采购退货',
-        icon: <ClusterOutlined />,
-      },
-    ],
-  },
-  {
-    path: '/sales-management',
-    name:'销售管理',
-    icon: <ClusterOutlined />,
-    children: [
-      {
-        path: '/sales-order',
-        name: '销售订单',
-        icon: <ClusterOutlined />,
-      },
-      {
-        path: '/sales-receipt',
-        name: '销售出库',
-        icon: <ClusterOutlined />,
-      },
-      {
-        path: '/sales-return',
-        name: '销售退货',
-        icon: <ClusterOutlined />,
-      },
-    ],
-  },
-  {
-    path: '/inventory-management',
-    name:'库存管理',
-    icon: <ClusterOutlined />,
-    children: [
-      {
-        path: '/inventory',
-        name: '库存信息',
-        icon: <ClusterOutlined />,
-      },
-      {
-        path: '/outbound-order',
-        name: '出库单列表',
-        icon: <ClusterOutlined />,
-      },
-      {
-        path:'/other-inbound',
-        name: '其他入库单',
-        icon: <ClusterOutlined />,
-      },
-    ],
-  },
- 
-  {
-    path: '/base-data',
-    name: '基础资料',
-    icon: <ShoppingOutlined />,
-    children: [
-      {
-        path: '/products',
-        name: '产品信息',
-        icon: <ShoppingOutlined />,
-      },
-      {
-        path: '/product-categories',
-        name: '产品类目管理',
-        icon: <ShoppingOutlined />,
-      },
-      {
-        path: '/attributes',
-        name: '属性与属性值',
-        icon: <ShoppingOutlined />,
-      },
-      {
-        path: '/bom',
-        name: 'BOM管理',
-        icon: <ClusterOutlined />,
-      },
-      {
-        path: '/operations',
-        name: '工序管理',
-        icon: <ClusterOutlined />,
-      },
-      {
-        path: '/routings',
-        name: '工艺路线管理',
-        icon: <ClusterOutlined />,
-      },
-      {
-        path: '/workcenters',
-        name: '工作中心管理',
-        icon: <ClusterOutlined />,
-      },
-       {
-        path: '/suppliers',
-        name: '供应商信息',
-        icon: <ClusterOutlined />,
-      },
-      {
-        path: '/supplier-bomprice',
-        name: '供应商价格表',
-        icon: <ClusterOutlined />,
-      },
-       {
-        path: '/customers',
-        name: '客户信息',
-        icon: <ClusterOutlined />,
-      },
-      {
-        path: '/customer-bomprice',
-        name: '客户价格表',
-        icon: <ClusterOutlined />,
-      },
-    ],
-  },
-  {
-    path: '/system',
-    name: '系统管理',
-    icon: <ControlOutlined />,
-    children: [
-      {
-        path: '/users',
-        name: '用户管理',
-        icon: <UserOutlined />,
-        permissions: ['user:read', 'user:create', 'user:update', 'user:delete'],
-      },
-      {
-        path: '/departments',
-        name: '部门管理',
-        icon: <ApartmentOutlined />,
-        permissions: ['department:read', 'department:create', 'department:update', 'department:delete'],
-      },
-      {
-        path: '/roles',
-        name: '角色管理',
-        icon: <TeamOutlined />,
-        permissions: ['role:read', 'role:create', 'role:update', 'role:delete'],
-      },
-      {
-        path: '/permissions',
-        name: '权限管理',
-        icon: <SafetyCertificateOutlined />,
-        permissions: ['permission:read', 'permission:create', 'permission:update', 'permission:delete'],
-      },
-      {
-        path: '/settings',
-        name: '系统设置',
-        icon: <SettingOutlined />,
-        permissions: ['system:admin'],
-      },
-    ],
-  },
-  {
-    path: '/notifications',
-    name: '通知管理',
-    icon: <BellOutlined />,
-  },
-  {
-    path: '/files',
-    name: '文件管理',
-    icon: <FileOutlined />,
-  },
-  {
-    path: '/logs',
-    name: '日志管理',
-    icon: <FileTextOutlined />,
-  },
-];
+    items.forEach(item => {
+      if (item.group) {
+        if (!groups[item.group]) groups[item.group] = [];
+        groups[item.group].push(item);
+      } else {
+        noGroup.push(item);
+      }
+    });
+    return { groups, noGroup };
+  }, [items]);
+
+  const groupKeys = Object.keys(groups);
+  const hasGroups = groupKeys.length > 0;
+
+  return (
+    <div style={{ 
+      padding: hasGroups ? '16px 24px' : '8px', 
+      // 使用 width 或 minWidth 来确保宽度撑开
+      width: hasGroups ? '800px' : 'auto',
+      minWidth: hasGroups ? '400px' : 'auto',
+      maxWidth: '100vw', 
+    }}>
+      {hasGroups ? (
+        <Row gutter={[32, 24]}>
+          {groupKeys.map(groupName => (
+            // 改为 3 列布局 (24/8 = 3)
+            <Col span={8} key={groupName}>
+              <Title level={5} style={{ 
+                fontSize: '15px', 
+                color: token.colorTextSecondary, 
+                marginBottom: '16px',
+                fontWeight: 600,
+                borderBottom: `1px solid ${token.colorBorderSecondary}`,
+                paddingBottom: '8px'
+              }}>
+                {groupName}
+              </Title>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {groups[groupName].map(item => (
+                  <div 
+                    key={item.path} 
+                    onClick={() => onItemClick(item.path || '/')}
+                    style={{ 
+                      cursor: 'pointer', 
+                      padding: '4px 8px',
+                      borderRadius: token.borderRadius,
+                      color: token.colorText,
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = token.colorFillTertiary}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    {item.icon}
+                    <span>{item.name}</span>
+                  </div>
+                ))}
+              </div>
+            </Col>
+          ))}
+          {noGroup.length > 0 && (
+             <Col span={24}>
+               <div style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, margin: '8px 0' }} />
+               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+                 {noGroup.map(item => (
+                   <div 
+                    key={item.path} 
+                    onClick={() => onItemClick(item.path || '/')}
+                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                   >
+                     {item.icon}
+                     <span>{item.name}</span>
+                   </div>
+                 ))}
+               </div>
+             </Col>
+          )}
+        </Row>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+           {noGroup.map(item => (
+              <div 
+                key={item.path} 
+                onClick={() => onItemClick(item.path || '/')}
+                style={{ 
+                  cursor: 'pointer', 
+                  padding: '8px 12px',
+                  borderRadius: token.borderRadius,
+                  color: token.colorText,
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = token.colorFillTertiary}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                {item.icon}
+                <span>{item.name}</span>
+              </div>
+            ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const DashboardLayout: React.FC = () => {
   const message = useMessage();
@@ -348,110 +187,48 @@ const DashboardLayout: React.FC = () => {
   const { hasAnyPermission, isAdmin } = usePermissions();
   const navigate = useNavigate();
   const location = useLocation();
-  
-  // 路径到菜单的映射配置
-  const pathToMenuMapping = useMemo(() => ({
-    '/purchase-management': ['/purchase-order', '/purchase-receipt', '/purchase-return'],
-    '/sales-management': ['/sales-order', '/sales-receipt', '/sales-return'],
-    '/inventory-management': ['/inventory', '/outbound-order', '/other-inbound'],
-    '/production-management': ['/production-order', '/manufacturing-order', '/work-order-scheduling', '/production-record', '/production-inbound', '/production-plan', '/material-issue', '/production-report'],
-    '/subcontract-management': ['/subcontract-order', '/subcontract-receipt'],
-    '/base-data': ['/products', '/bom', '/operations', '/routings', '/suppliers', '/supplier-bomprice', '/customers', '/customer-bomprice'],
-    '/system': ['/users', '/departments', '/roles', '/permissions', '/settings'],
-  }), []);
-
-  // 菜单展开状态管理
-  const [openKeys, setOpenKeys] = useState<string[]>([]);
-  // 跟踪用户手动关闭的菜单
-  const [manuallyClosedKeys, setManuallyClosedKeys] = useState<Set<string>>(new Set());
-  // 使用useRef跟踪是否是初始加载，避免被ProLayout的onOpenChange覆盖
-  const isInitialLoadRef = useRef(true);
-  const hasInitializedRef = useRef(false);
-  const initializationTimerRef = useRef<number | null>(null);
-
-  // 自定义的菜单展开变化处理函数
-  const handleOpenChange = (keys: string[]) => {
-    // 如果还在初始加载阶段，忽略ProLayout的自动展开
-    if (isInitialLoadRef.current) {
-      return;
-    }
-    setOpenKeys(keys);
-  };
-
-  // 监听路径变化，动态更新菜单展开状态
-  useEffect(() => {
-    const currentPath = location.pathname;
-    
-    // 如果是初始加载（页面刷新），延迟一段时间后标记初始化完成
-    if (isInitialLoadRef.current) {
-      // 清除之前的定时器
-      if (initializationTimerRef.current) {
-        clearTimeout(initializationTimerRef.current);
-      }
-      
-      // 延迟标记初始化完成，确保TabBar等组件初始化完成
-      initializationTimerRef.current = setTimeout(() => {
-        isInitialLoadRef.current = false;
-        hasInitializedRef.current = true;
-      }, 100);
-      
-      return;
-    }
-    
-    const newOpenKeys: string[] = [];
-    
-    // 遍历路径映射配置，找到匹配的菜单项
-    Object.entries(pathToMenuMapping).forEach(([menuKey, paths]) => {
-      if (paths.includes(currentPath) && !manuallyClosedKeys.has(menuKey)) {
-        newOpenKeys.push(menuKey);
-      }
-    });
-    
-    setOpenKeys(newOpenKeys);
-  }, [location.pathname, pathToMenuMapping, manuallyClosedKeys]);
-
-  // 清理定时器
-  useEffect(() => {
-    return () => {
-      if (initializationTimerRef.current) {
-        clearTimeout(initializationTimerRef.current);
-      }
-    };
-  }, []);
+  const [popoverOpen, setPopoverOpen] = useState<Record<string, boolean>>({});
 
   // 根据用户权限过滤菜单
   const menuData = useMemo(() => {
     const filterMenuItems = (items: MenuItemWithPermissions[]): MenuItemWithPermissions[] => {
-      return items.filter(item => {
-        // 如果菜单项标记为仅管理员可见，检查是否为管理员
-        if (item.adminOnly && !isAdmin) {
-          return false;
-        }
-
-        // 如果菜单项有权限要求，检查用户是否具有任意一个权限
+      return items.reduce<MenuItemWithPermissions[]>((acc, item) => {
+        // 1. 权限检查
+        if (item.adminOnly && !isAdmin) return acc;
         if (item.permissions && item.permissions.length > 0) {
-          if (!hasAnyPermission(item.permissions)) {
-            return false;
-          }
+          if (!hasAnyPermission(item.permissions)) return acc;
         }
 
-        // 如果有子菜单，递归过滤子菜单
+        // 2. 处理子菜单
         if (item.children && item.children.length > 0) {
           const filteredChildren = filterMenuItems(item.children as MenuItemWithPermissions[]);
-          // 如果过滤后没有子菜单，则隐藏父菜单
+          
+          // 如果过滤后没有子菜单，则不包含此父菜单
           if (filteredChildren.length === 0) {
-            return false;
+            return acc;
           }
-          // 更新子菜单
-          item.children = filteredChildren;
+          
+          // 返回新对象，使用过滤后的子菜单
+          acc.push({ ...item, children: filteredChildren });
+        } else {
+          // 没有子菜单的项，直接添加
+          acc.push({ ...item });
         }
 
-        return true;
-      });
+        return acc;
+      }, []);
     };
-
     return filterMenuItems(allMenuData);
   }, [hasAnyPermission, isAdmin]);
+
+  // 扁平化菜单数据供 ProLayout 使用 (隐藏 children)
+  const flatMenuData = useMemo(() => {
+    return menuData.map(item => ({
+      ...item,
+      children: undefined, // 隐藏 children 以禁用默认展开
+      popupChildren: item.children, // 保存 children 供 Popover 使用
+    }));
+  }, [menuData]);
 
   const handleLogout = async () => {
     try {
@@ -514,39 +291,61 @@ const DashboardLayout: React.FC = () => {
         ignoreFlatMenu: false,
         autoClose: false,
       }}
-      onMenuHeaderClick={() => {
-        // 菜单头部点击事件
-      }}
       menuProps={{
         mode: 'vertical',
-        openKeys,
-        onOpenChange: handleOpenChange,
         theme: 'light',
+        // 禁用默认的子菜单展开逻辑
+        openKeys: [], 
+        onOpenChange: () => {},
       }}
       location={{
         pathname: location.pathname,
       }}
-      route={{
-        routes: menuData,
-      }}
-      menuItemRender={(item, dom) => (
-        <div onClick={() => {
-          void navigate(item.path || '/');
-          
-          // 如果点击的是二级菜单项，收起对应的一级菜单
-          const currentPath = item.path || '';
-          Object.entries(pathToMenuMapping).forEach(([menuKey, paths]) => {
-            if (paths.includes(currentPath)) {
-              // 从openKeys中移除对应的一级菜单key
-              setOpenKeys(prev => prev.filter(key => key !== menuKey));
-              // 记录用户手动关闭的菜单
-              setManuallyClosedKeys(prev => new Set(prev).add(menuKey));
+      // 使用处理过的扁平数据
+      menuDataRender={() => flatMenuData}
+      menuItemRender={(item, dom) => {
+        // 只有当存在子菜单 (popupChildren) 时才渲染 Popover
+        // 注意：这里 item 是 flatMenuData 中的项，所以没有 children，只有 popupChildren
+        const menuItem = item as MenuItemWithPermissions;
+        const hasChildren = menuItem.popupChildren && menuItem.popupChildren.length > 0;
+        
+        if (!hasChildren) {
+           return (
+             <div onClick={() => void navigate(item.path || '/')}>
+               {dom}
+             </div>
+           );
+        }
+
+        return (
+          <Popover
+            placement="rightTop"
+            trigger="hover"
+            open={popoverOpen[item.path || '']}
+            onOpenChange={(visible) => setPopoverOpen(prev => ({ ...prev, [item.path || '']: visible }))}
+            style={{ padding: 0, maxWidth: 'none' }}
+            content={
+              <MegaMenuContent 
+                items={menuItem.popupChildren as MenuItemWithPermissions[]} 
+                onItemClick={(path) => {
+                  setPopoverOpen(prev => ({ ...prev, [item.path || '']: false }));
+                  void navigate(path);
+                }} 
+              />
             }
-          });
-        }}>
-          {dom}
-        </div>
-      )}
+          >
+            <div 
+              style={{ cursor: 'default' }} 
+              onClick={(e) => {
+                 // 阻止事件冒泡，防止触发 ProLayout 可能存在的默认行为
+                 e.stopPropagation();
+              }}
+            >
+              {dom}
+            </div>
+          </Popover>
+        );
+      }}
       headerContentRender={() => (
        <TabBar menuData={menuData} />
       )}
@@ -576,7 +375,7 @@ const DashboardLayout: React.FC = () => {
       >
         <div style={{ padding: '10px' }}>
           <React.Suspense fallback={<div>加载中...</div>}>
-        <Routes>
+            <Routes>
               <Route path="/production-order" element={<ProductionOrderList />} />
               <Route path="/manufacturing-order" element={<ManufacturingOrderManagement />} />
               <Route path="/work-order-scheduling" element={<WorkOrderScheduling />} />
@@ -631,4 +430,3 @@ const DashboardLayout: React.FC = () => {
 };
 
 export default DashboardLayout;
-          <Route path="/bom" element={<BomManagement />} />

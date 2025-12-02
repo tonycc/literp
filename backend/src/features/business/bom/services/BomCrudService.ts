@@ -133,28 +133,57 @@ export class BomCrudService {
         });
 
         if (Array.isArray(bomData.items) && bomData.items.length > 0) {
+          // 收集所有涉及的物料ID
+          const materialIds = bomData.items
+            .map((it: any) => it.materialId)
+            .filter((id: any) => typeof id === 'string' && id);
+
+          // 批量检查这些物料是否已有BOM定义（即是否为半成品）
+          let hasBomMap = new Set<string>();
+          if (materialIds.length > 0) {
+            const boms = await prisma.productBom.groupBy({
+              by: ['productId'],
+              where: {
+                productId: { in: materialIds },
+                status: 'active'
+              }
+            });
+            boms.forEach(b => hasBomMap.add(b.productId));
+          }
+
           const items = bomData.items
             .filter((it: any) => it && (it.materialId || it.materialVariantId) && it.unitId && it.quantity != null)
-            .map((it: any, i: number) => ({
-              bomId: created.id,
-              materialId: it.materialId ?? null,
-              materialVariantId: it.materialVariantId ?? null,
-              quantity: Number(it.quantity) || 0,
-              unitId: it.unitId,
-              sequence: typeof it.sequence === 'number' ? it.sequence : i + 1,
-              requirementType: it.requirementType || 'fixed',
-              isKey: !!it.isKey,
-              isPhantom: !!it.isPhantom,
-              processInfo: it.processInfo ?? null,
-              remark: it.remark ?? null,
-              effectiveDate: it.effectiveDate ? new Date(it.effectiveDate) : null,
-              expiryDate: it.expiryDate ? new Date(it.expiryDate) : null,
-              childBomId: it.childBomId ?? null,
-              createdBy: userPayload.userId.toString(),
-              updatedBy: userPayload.userId.toString(),
-              createdAt: new Date(),
-              updatedAt: new Date()
-            }));
+            .map((it: any, i: number) => {
+              // 强制校验：如果该物料有BOM，且未指定childBomId，则抛出错误
+              if (it.materialId && hasBomMap.has(it.materialId) && !it.childBomId) {
+                const materialInfo = it.materialCode ? `${it.materialCode} ${it.materialName || ''}` : `ID:${it.materialId}`;
+                throw new Error(`物料 "${materialInfo}"（行 #${i + 1}）是半成品，请选择对应的子BOM版本`);
+              }
+              
+              return {
+                bomId: created.id,
+                materialId: it.materialId ?? null,
+                materialVariantId: it.materialVariantId ?? null,
+                quantity: Number(it.quantity) || 0,
+                unitId: it.unitId,
+                sequence: typeof it.sequence === 'number' ? it.sequence : i + 1,
+                requirementType: it.requirementType || 'fixed',
+                isKey: !!it.isKey,
+                isPhantom: !!it.isPhantom,
+                processInfo: it.processInfo ?? null,
+                remark: it.remark ?? null,
+                scrapRate: it.scrapRate || 0,
+                fixedScrap: it.fixedScrap || 0,
+                effectiveDate: it.effectiveDate ? new Date(it.effectiveDate) : null,
+                expiryDate: it.expiryDate ? new Date(it.expiryDate) : null,
+                childBomId: it.childBomId ?? null,
+                createdBy: userPayload.userId.toString(),
+                updatedBy: userPayload.userId.toString(),
+                createdAt: new Date(),
+                updatedAt: new Date()
+              };
+            });
+
           if (items.length > 0) {
             await tx.productBomItem.createMany({ data: items });
           }
@@ -163,9 +192,9 @@ export class BomCrudService {
       });
 
       return { success: true, data: result, message: 'BOM创建成功' };
-    } catch (error) {
+    } catch (error: any) {
       console.error('创建BOM失败:', error);
-      return { success: false, message: '创建BOM失败' };
+      return { success: false, message: error.message || '创建BOM失败' };
     }
   }
 
@@ -474,29 +503,57 @@ export class BomCrudService {
         });
 
         if (Array.isArray((bomData as any).items)) {
+          // 收集所有涉及的物料ID
+          const materialIds = (bomData as any).items
+            .map((it: any) => it.materialId)
+            .filter((id: any) => typeof id === 'string' && id);
+
+          // 批量检查这些物料是否已有BOM定义（即是否为半成品）
+          let hasBomMap = new Set<string>();
+          if (materialIds.length > 0) {
+            const boms = await prisma.productBom.groupBy({
+              by: ['productId'],
+              where: {
+                productId: { in: materialIds },
+                status: 'active'
+              }
+            });
+            boms.forEach(b => hasBomMap.add(b.productId));
+          }
+
           await tx.productBomItem.deleteMany({ where: { bomId: id } });
           const items = (bomData as any).items
             .filter((it: any) => it && (it.materialId || it.materialVariantId) && it.unitId && it.quantity != null)
-            .map((it: any, i: number) => ({
-              bomId: id,
-              materialId: it.materialId ?? null,
-              materialVariantId: it.materialVariantId ?? null,
-              quantity: Number(it.quantity) || 0,
-              unitId: it.unitId,
-              sequence: typeof it.sequence === 'number' ? it.sequence : i + 1,
-              requirementType: it.requirementType || 'fixed',
-              isKey: !!it.isKey,
-              isPhantom: !!it.isPhantom,
-              processInfo: it.processInfo ?? null,
-              remark: it.remark ?? null,
-              effectiveDate: it.effectiveDate ? new Date(it.effectiveDate) : null,
-              expiryDate: it.expiryDate ? new Date(it.expiryDate) : null,
-              childBomId: it.childBomId ?? null,
-              createdBy: String((user as any)?.userId ?? (user as any)?.sub ?? (user as any)?.id),
-              updatedBy: String((user as any)?.userId ?? (user as any)?.sub ?? (user as any)?.id),
-              createdAt: new Date(),
-              updatedAt: new Date()
-            }));
+            .map((it: any, i: number) => {
+              // 强制校验：如果该物料有BOM，且未指定childBomId，则抛出错误
+              if (it.materialId && hasBomMap.has(it.materialId) && !it.childBomId) {
+                const materialInfo = it.materialCode ? `${it.materialCode} ${it.materialName || ''}` : `ID:${it.materialId}`;
+                throw new Error(`物料 "${materialInfo}"（行 #${i + 1}）是半成品，请选择对应的子BOM版本`);
+              }
+
+              return {
+                bomId: id,
+                materialId: it.materialId ?? null,
+                materialVariantId: it.materialVariantId ?? null,
+                quantity: Number(it.quantity) || 0,
+                unitId: it.unitId,
+                sequence: typeof it.sequence === 'number' ? it.sequence : i + 1,
+                requirementType: it.requirementType || 'fixed',
+                isKey: !!it.isKey,
+                isPhantom: !!it.isPhantom,
+                processInfo: it.processInfo ?? null,
+                remark: it.remark ?? null,
+                scrapRate: it.scrapRate || 0,
+                fixedScrap: it.fixedScrap || 0,
+                effectiveDate: it.effectiveDate ? new Date(it.effectiveDate) : null,
+                expiryDate: it.expiryDate ? new Date(it.expiryDate) : null,
+                childBomId: it.childBomId ?? null,
+                createdBy: String((user as any)?.userId ?? (user as any)?.sub ?? (user as any)?.id),
+                updatedBy: String((user as any)?.userId ?? (user as any)?.sub ?? (user as any)?.id),
+                createdAt: new Date(),
+                updatedAt: new Date()
+              };
+            });
           if (items.length > 0) {
             await tx.productBomItem.createMany({ data: items });
           }
@@ -506,9 +563,9 @@ export class BomCrudService {
       });
 
       return { success: true, data: updatedBom, message: 'BOM更新成功' };
-    } catch (error) {
+    } catch (error: any) {
       console.error('更新BOM失败:', error);
-      return { success: false, message: '更新BOM失败' };
+      return { success: false, message: error.message || '更新BOM失败' };
     }
   }
 

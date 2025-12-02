@@ -10,6 +10,7 @@ export interface AttributeInfo {
   sortOrder?: number
   isGlobal?: boolean
   values?: string[]
+  attributeValues?: AttributeValueInfo[]
 }
 
 export interface AttributeValueInfo {
@@ -39,51 +40,49 @@ export class AttributesService {
     }
   }
 
-  static async createAttribute(data: Partial<AttributeInfo>): Promise<boolean> {
-    const resp = await apiClient.post<ApiResponse<AttributeInfo>>(this.baseUrl, data)
-    return !!resp.data?.success
-  }
-
-  static async updateAttribute(id: string, data: Partial<AttributeInfo>): Promise<boolean> {
-    const resp = await apiClient.patch<ApiResponse<AttributeInfo>>(`${this.baseUrl}/${id}`, data)
-    return !!resp.data?.success
-  }
-
-  static async deleteAttribute(id: string): Promise<boolean> {
-    const resp = await apiClient.delete<ApiResponse<boolean>>(`${this.baseUrl}/${id}`)
-    return !!resp.data?.success
-  }
-
-  static async getAttributeValues(attributeId: string, params?: { page?: number; pageSize?: number }): Promise<{ success: boolean; data: AttributeValueInfo[]; total: number }> {
-    const resp = await apiClient.get<ApiResponse<{ data: AttributeValueInfo[]; total: number; page: number; pageSize: number; totalPages: number }>>(
-      `${this.baseUrl}/${attributeId}/values`,
-      { params }
-    )
-    const payload: { data: AttributeValueInfo[]; total: number; page: number; pageSize: number; totalPages: number } =
-      resp.data?.data ?? { data: [], total: 0, page: 1, pageSize: 10, totalPages: 0 }
-    return {
-      success: !!resp.data?.success,
-      data: payload.data || [],
-      total: payload.total || 0,
+  static async createAttribute(data: Partial<AttributeInfo>): Promise<{ success: boolean; data?: AttributeInfo; message?: string }> {
+    try {
+      const resp = await apiClient.post<ApiResponse<AttributeInfo>>(this.baseUrl, data)
+      return { success: !!resp.data?.success, data: resp.data?.data, message: resp.data?.message }
+    } catch (error) {
+      const err = error as { response?: { data?: { message?: string } } }
+      return { success: false, message: err.response?.data?.message || '创建失败' }
     }
   }
 
-  static async createAttributeValues(attributeId: string, values: Array<Partial<AttributeValueInfo>>): Promise<boolean> {
-    const resp = await apiClient.post<ApiResponse<boolean>>(`${this.baseUrl}/${attributeId}/values`, { values })
-    return !!resp.data?.success
-  }
-
-  static async updateAttributeValue(valueId: string, data: Partial<AttributeValueInfo>): Promise<boolean> {
-    const resp = await apiClient.patch<ApiResponse<boolean>>(`${this.baseUrl}/values/${valueId}`, data)
-    return !!resp.data?.success
-  }
-
-  static async deleteAttributeValue(valueId: string): Promise<boolean> {
+  static async updateAttribute(id: string, data: Partial<AttributeInfo>): Promise<{ success: boolean; message?: string }> {
     try {
-      const resp = await apiClient.delete<ApiResponse<boolean>>(`${this.baseUrl}/values/${valueId}`)
-      return !!resp.data?.success
-    } catch {
-      return false
+      const resp = await apiClient.patch<ApiResponse<AttributeInfo>>(`${this.baseUrl}/${id}`, data)
+      return { success: !!resp.data?.success, message: resp.data?.message }
+    } catch (error) {
+      const err = error as { response?: { data?: { message?: string } } }
+      return { success: false, message: err.response?.data?.message || '更新失败' }
+    }
+  }
+
+  static async deleteAttribute(id: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const resp = await apiClient.delete<ApiResponse<boolean>>(`${this.baseUrl}/${id}`)
+      return { success: !!resp.data?.success, message: resp.data?.message }
+    } catch (error) {
+      const err = error as { response?: { data?: { message?: string } } }
+      return { success: false, message: err.response?.data?.message || '删除失败' }
+    }
+  }
+
+  static async getAttributeValues(attributeId: string): Promise<{ success: boolean; data: AttributeValueInfo[] }> {
+    try {
+      const resp = await apiClient.get<ApiResponse<AttributeValueInfo[]>>(`${this.baseUrl}/${attributeId}/values`)
+      return { success: !!resp.data?.success, data: resp.data?.data || [] }
+    } catch{
+      // Fallback: get attribute details if separate endpoint doesn't exist
+      try {
+        const allResp = await this.getAttributes({ page: 1, pageSize: 100, keyword: '' });
+        const found = allResp.data.find(a => a.id === attributeId);
+        return { success: true, data: found?.attributeValues || [] }
+      } catch {
+        return { success: false, data: [] }
+      }
     }
   }
 }

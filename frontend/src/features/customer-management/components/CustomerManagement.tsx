@@ -2,7 +2,7 @@
  * 客户信息管理主页面组件
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { AddCustomerModal } from './AddCustomerModal';
 import CustomerDetail from './CustomerDetail';
 import { Button, Space, Tag, Tooltip } from 'antd';
@@ -21,7 +21,6 @@ import {
 } from '@ant-design/icons';
 import type { Customer, CustomerCategory, CustomerStatus, CreditLevel, CustomerListParams } from '../types';
 import { CUSTOMER_CATEGORY_VALUE_ENUM_PRO, CUSTOMER_CREDIT_LEVEL_VALUE_ENUM_PRO, CUSTOMER_STATUS_VALUE_ENUM_PRO } from '@/shared/constants/customer';
-import { useEffect, useState } from 'react'
 import { getDict } from '@/shared/services/dictionary.service'
 import { customerService } from '../services/customer.service';
 import { normalizeTableParams } from '@/shared/utils/normalizeTableParams';
@@ -52,9 +51,9 @@ const CustomerManagement: React.FC = () => {
         page: base.page,
         pageSize: base.pageSize,
         keyword: (params as Record<string, unknown>).name as string | undefined,
-        category: (params as Record<string, unknown>).category as string | undefined,
-        status: (params as Record<string, unknown>).status as string | undefined,
-        creditLevel: (params as Record<string, unknown>).creditLevel as string | undefined,
+        category: (params as Record<string, unknown>).category as CustomerCategory | undefined,
+        status: (params as Record<string, unknown>).status as CustomerStatus | undefined,
+        creditLevel: (params as Record<string, unknown>).creditLevel as CreditLevel | undefined,
       };
       const res = await customerService.getCustomerList(query);
       return { data: res.data, success: res.success, total: res.pagination.total };
@@ -141,7 +140,7 @@ const CustomerManagement: React.FC = () => {
     return () => { mounted = false }
   }, [])
 
-  const columns: ProColumns<Customer> = [
+  const columns: ProColumns<Customer>[] = [
     {
       title: '客户编码',
       dataIndex: 'code',
@@ -245,7 +244,7 @@ const CustomerManagement: React.FC = () => {
               try {
                 const res = await customerService.getById(record.id);
                 if (res.success) {
-                  setDetailCustomer(res.data);
+                  setDetailCustomer(res.data || null);
                   setDetailOpen(true);
                 } else {
                   message.error(res.message || '加载失败');
@@ -288,7 +287,7 @@ const CustomerManagement: React.FC = () => {
 
   const handleBatchDelete = async () => {
     const ids = selectedRowKeys as string[];
-    await hookHandleBatchDelete(ids);
+    hookHandleBatchDelete(ids);
     setSelectedRowKeys([]);
   };
 

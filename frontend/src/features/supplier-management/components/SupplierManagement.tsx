@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button, Space, Tag, Tooltip, Row, Col, Modal } from 'antd';
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns, ActionType } from '@ant-design/pro-components';
@@ -12,11 +12,10 @@ import {
 } from '@ant-design/icons';
 import { useMessage } from '@/shared/hooks/useMessage';
 import { useModal } from '@/shared/hooks/useModal';
-import type { Supplier } from '@zyerp/shared';
-import { SupplierStatus, SupplierCategory } from '@zyerp/shared';
-import { SUPPLIER_STATUS_VALUE_ENUM_PRO, SUPPLIER_CATEGORY_VALUE_ENUM_PRO } from '@/shared/constants/supplier';
-import { useEffect, useState } from 'react'
-import { getDict } from '@/shared/services/dictionary.service'
+import type { Supplier, CreateSupplierData } from '@zyerp/shared';
+import { SupplierStatus } from '@zyerp/shared';
+import { SUPPLIER_STATUS_VALUE_ENUM_PRO } from '@/shared/constants/supplier';
+import { getDict } from '@/shared/services/dictionary.service';
 import { supplierService } from '../services/supplier.service';
 import { useSupplier } from '../hooks/useSupplier';
 // 迁移到共享类型，移除本地类型与枚举
@@ -25,6 +24,7 @@ import SupplierForm from './SupplierFormPro';
 const SupplierManagement: React.FC = () => {
   // 状态管理
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [categoryValueEnum, setCategoryValueEnum] = useState<Record<string, { text: string; status?: string }>>({});
   
   // 弹窗状态
   const [viewModalVisible, setViewModalVisible] = useState(false);
@@ -38,7 +38,11 @@ const SupplierManagement: React.FC = () => {
   const modal = useModal();
   const { handleCreate, handleUpdate, handleDelete } = useSupplier();
 
-  
+  useEffect(() => {
+    void getDict('supplier_category').then((res) => {
+      setCategoryValueEnum(res.valueEnum);
+    });
+  }, []);
 
   // 状态渲染函数
   const renderStatus = (status: SupplierStatus) => {
@@ -52,39 +56,20 @@ const SupplierManagement: React.FC = () => {
     return <Tag color={config.color}>{config.text}</Tag>;
   };
 
-  const renderCategory = (category: SupplierCategory) => {
-    const map = {
-      [SupplierCategory.MANUFACTURER]: { color: 'blue', text: '制造商' },
-      [SupplierCategory.DISTRIBUTOR]: { color: 'green', text: '分销商' },
-      [SupplierCategory.SERVICE]: { color: 'orange', text: '服务商' },
-      [SupplierCategory.OTHER]: { color: 'purple', text: '其他' }
-    } as const;
-    const cfg = map[category] || { color: 'default', text: '未知' };
-    return <Tag color={cfg.color}>{cfg.text}</Tag>;
+  const renderCategory = (category: string) => {
+    const item = categoryValueEnum[category];
+    const statusColorMap: Record<string, string> = {
+      Success: 'green',
+      Processing: 'blue',
+      Error: 'red',
+      Warning: 'orange',
+      Default: 'default',
+    };
+    const color = item?.status ? statusColorMap[item.status] : 'default';
+    return <Tag color={color}>{item?.text || category}</Tag>;
   };
 
   // 表格列定义
-  const [statusValueEnum, setStatusValueEnum] = useState<Record<string, { text: string; status?: 'Default' | 'Processing' | 'Success' | 'Warning' | 'Error' }>>(SUPPLIER_STATUS_VALUE_ENUM_PRO)
-  const [categoryValueEnum, setCategoryValueEnum] = useState<Record<string, { text: string }>>(SUPPLIER_CATEGORY_VALUE_ENUM_PRO)
-
-  useEffect(() => {
-    let mounted = true
-    const run = async () => {
-      const ds = await getDict('supplier-status')
-      const dc = await getDict('supplier-category')
-      if (mounted) {
-        if (Object.keys(ds.valueEnum).length > 0) setStatusValueEnum(ds.valueEnum)
-        if (Object.keys(dc.valueEnum).length > 0) {
-          const v: Record<string, { text: string }> = {}
-          Object.entries(dc.valueEnum).forEach(([k, val]) => { v[k] = { text: val.text } })
-          setCategoryValueEnum(v)
-        }
-      }
-    }
-    void run()
-    return () => { mounted = false }
-  }, [])
-
   const columns: ProColumns<Supplier>[] = [
     {
       title: '供应商编码',
@@ -116,7 +101,7 @@ const SupplierManagement: React.FC = () => {
       width: 120,
       valueType: 'select',
       valueEnum: categoryValueEnum,
-      render: (_, record: Supplier) => renderCategory(record.category as SupplierCategory)
+      render: (_, record: Supplier) => renderCategory(record.category)
     },
     {
       title: '状态',
@@ -124,7 +109,7 @@ const SupplierManagement: React.FC = () => {
       key: 'status',
       width: 80,
       valueType: 'select',
-      valueEnum: statusValueEnum,
+      valueEnum: SUPPLIER_STATUS_VALUE_ENUM_PRO,
       render: (_, record: Supplier) => renderStatus(record.status)
     },
     {
@@ -178,7 +163,7 @@ const SupplierManagement: React.FC = () => {
             size="small"
             danger
             icon={<DeleteOutlined />}
-            onClick={() => handleDeleteSupplier(record.id)}
+            onClick={() => void handleDeleteSupplier(record.id)}
           />
         </Tooltip>
       ]
@@ -200,16 +185,16 @@ const SupplierManagement: React.FC = () => {
   // 保存供应商
   const handleSaveSupplier = async (formData: CreateSupplierData) => {
     try {
-      if (editingSupplier) {
+      if (editingSupplier?.id) {
         // 编辑模式
-        await handleUpdate(editingSupplier.id!, { id: editingSupplier.id!, ...formData })
+        await handleUpdate(editingSupplier.id, { id: editingSupplier.id, ...formData })
       } else {
         // 新增模式
         await handleCreate(formData)
       }
       setFormModalVisible(false);
       setEditingSupplier(null);
-      actionRef.current?.reload?.();
+      await actionRef.current?.reload?.();
     } catch {
       message.error('操作失败，请重试');
     }
@@ -222,7 +207,7 @@ const SupplierManagement: React.FC = () => {
   };
 
   // 处理删除供应商
-  const handleDeleteSupplier = async (supplierId: string) => {
+  const handleDeleteSupplier = (supplierId: string) => {
     modal.confirm({
       title: '确认删除',
       content: '确定要删除这个供应商吗？删除后无法恢复。',
@@ -233,7 +218,7 @@ const SupplierManagement: React.FC = () => {
         try {
           await handleDelete(String(supplierId))
           message.success('删除成功');
-          actionRef.current?.reload?.();
+          await actionRef.current?.reload?.();
         } catch {
           message.error('删除失败');
         }
@@ -244,17 +229,17 @@ const SupplierManagement: React.FC = () => {
   // 处理批量状态变更
   const handleBatchStatusChange = async (status: SupplierStatus) => {
     try {
-      await Promise.all(selectedRowKeys.map((id) => supplierService.update(String(id), { id: String(id), status })))
+      await Promise.all(selectedRowKeys.map(async (id) => supplierService.update(String(id), { id: String(id), status })))
       setSelectedRowKeys([]);
       message.success(`批量${status === SupplierStatus.ACTIVE ? '启用' : '停用'}成功`);
-      actionRef.current?.reload?.();
+      await actionRef.current?.reload?.();
     } catch {
       message.error('操作失败');
     }
   };
 
   // 处理批量删除
-  const handleBatchDelete = async () => {
+  const handleBatchDelete = () => {
     modal.confirm({
       title: '确认批量删除',
       content: `确定要删除选中的 ${selectedRowKeys.length} 个供应商吗？删除后无法恢复。`,
@@ -263,10 +248,10 @@ const SupplierManagement: React.FC = () => {
       okType: 'danger',
       onOk: async () => {
         try {
-          await Promise.all(selectedRowKeys.map((id) => supplierService.delete(String(id))))
+          await Promise.all(selectedRowKeys.map(async (id) => supplierService.delete(String(id))))
           setSelectedRowKeys([]);
           message.success('批量删除成功');
-          actionRef.current?.reload?.();
+          await actionRef.current?.reload?.();
         } catch {
           message.error('删除失败');
         }
@@ -319,14 +304,14 @@ const SupplierManagement: React.FC = () => {
           <Button
             key="import"
             icon={<ImportOutlined />}
-            onClick={handleImportSuppliers}
+            onClick={() => handleImportSuppliers()}
           >
             导入供应商
           </Button>,
           <Button
             key="export"
             icon={<ExportOutlined />}
-            onClick={handleExportSuppliers}
+            onClick={() => handleExportSuppliers()}
           >
             导出供应商
           </Button>,
@@ -334,7 +319,7 @@ const SupplierManagement: React.FC = () => {
             key="add"
             type="primary"
             icon={<PlusOutlined />}
-            onClick={handleAddSupplier}
+            onClick={() => handleAddSupplier()}
           >
             新增供应商
           </Button>
@@ -353,14 +338,14 @@ const SupplierManagement: React.FC = () => {
           <Space size={16}>
             <Button
               size="small"
-              onClick={() => handleBatchStatusChange(SupplierStatus.ACTIVE)}
+              onClick={() => void handleBatchStatusChange(SupplierStatus.ACTIVE)}
               disabled={selectedRowKeys.length === 0}
             >
               批量启用
             </Button>
             <Button
               size="small"
-              onClick={() => handleBatchStatusChange(SupplierStatus.INACTIVE)}
+              onClick={() => void handleBatchStatusChange(SupplierStatus.INACTIVE)}
               disabled={selectedRowKeys.length === 0}
             >
               批量停用
@@ -368,7 +353,7 @@ const SupplierManagement: React.FC = () => {
             <Button
               size="small"
               danger
-              onClick={handleBatchDelete}
+              onClick={() => void handleBatchDelete()}
               disabled={selectedRowKeys.length === 0}
             >
               批量删除
@@ -404,7 +389,7 @@ const SupplierManagement: React.FC = () => {
                 <p><strong>供应商名称：</strong>{viewingSupplier.name}</p>
                 <p><strong>简称：</strong>{viewingSupplier.shortName || '-'}</p>
                 <p><strong>状态：</strong>{renderStatus(viewingSupplier.status)}</p>
-                <p><strong>分类：</strong>{renderCategory(viewingSupplier.category as SupplierCategory)}</p>
+                <p><strong>分类：</strong>{renderCategory(viewingSupplier.category)}</p>
               </Col>
               <Col span={12}>
                 <p><strong>联系人：</strong>{viewingSupplier.contactName || '-'}</p>

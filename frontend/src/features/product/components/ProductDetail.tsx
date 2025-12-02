@@ -15,7 +15,7 @@ import {
   Button
 } from 'antd';
 import type { ProductInfo } from '@zyerp/shared';
-import { PRODUCT_TYPE_MAP, PRODUCT_STATUS_MAP, ACQUISITION_METHOD_MAP } from '@zyerp/shared';
+import { PRODUCT_TYPE_MAP, PRODUCT_STATUS_MAP, ACQUISITION_METHOD_MAP } from '@/shared/constants/product';
 import { productService } from '../services/product.service';
 import { useMessage } from '@/shared/hooks';
 

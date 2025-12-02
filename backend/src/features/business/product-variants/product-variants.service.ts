@@ -18,10 +18,22 @@ export class ProductVariantsService extends BaseService {
     return this.prisma.$transaction(async (tx) => {
       const createdVariants: ProductInfo[] = [];
       for (const combination of combinations) {
-        const keys = Object.keys(combination);
-        const values = keys.map(k => String(combination[k]));
-        const suffixName = values.join(' ');
-        const suffixCode = values.join('-');
+        const keys = Object.keys(combination).sort();
+        
+        const resolvedAttrs = [];
+        for (const k of keys) {
+          const attr = await this.upsertAttribute(k, tx);
+          const val = await this.upsertAttributeValue(attr.id, String(combination[k]), tx);
+          resolvedAttrs.push({ attr, val });
+        }
+
+        const suffixCode = resolvedAttrs.map(item => {
+          const ac = item.attr.code || item.attr.name;
+          const vc = item.val.code || item.val.name;
+          return `${ac}${vc}`;
+        }).join('-');
+
+        const suffixName = resolvedAttrs.map(item => item.val.name).join(' ');
         const variantName = `${baseProduct.name} - ${suffixName}`;
         const variantCode = `${baseProduct.code}-${suffixCode}`.toUpperCase();
         const hash = this.buildVariantHash(combination);
@@ -41,13 +53,12 @@ export class ProductVariantsService extends BaseService {
             isActive: true 
           } 
         });
-        for (const k of keys) {
-          const attr = await this.upsertAttribute(k, tx);
-          const val = await this.upsertAttributeValue(attr.id, String(combination[k]), tx);
+        
+        for (const item of resolvedAttrs) {
           await tx.variantAttributeValue.upsert({
-            where: { variantId_attributeId: { variantId: created.id, attributeId: attr.id } },
-            update: { attributeValueId: val.id },
-            create: { variantId: created.id, attributeId: attr.id, attributeValueId: val.id },
+            where: { variantId_attributeId: { variantId: created.id, attributeId: item.attr.id } },
+            update: { attributeValueId: item.val.id },
+            create: { variantId: created.id, attributeId: item.attr.id, attributeValueId: item.val.id },
           });
         }
         createdVariants.push(this.formatVariantLite(created, baseProduct));
@@ -211,7 +222,11 @@ export class ProductVariantsService extends BaseService {
   private async upsertAttributeValue(attributeId: string, name: string, tx: any = this.prisma) {
     const found = await tx.attributeValue.findFirst({ where: { attributeId, name } })
     if (found) return found
-    return tx.attributeValue.create({ data: { attributeId, name } })
+    
+    let code = name.trim().toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '')
+    if (!code) code = 'VAL'
+    
+    return tx.attributeValue.create({ data: { attributeId, name, code } })
   }
 
   private formatVariantLite(variant: ProductVariant & { attributeValues?: any[]; variantStocks?: any[] }, baseProduct: Product): VariantInfo {

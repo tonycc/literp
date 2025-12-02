@@ -9,7 +9,7 @@ import {
   Statistic,
   Progress,
   Tag,
- 
+  Modal,
   Form,
   Select,
   InputNumber,
@@ -18,6 +18,7 @@ import {
   Typography,
 } from 'antd';
 import { useMessage, useModal } from '@/shared/hooks';
+import { BOM_COST_TYPE, BOM_COST_TYPE_MAP } from '@/shared/constants/bom';
 import type { ColumnsType } from 'antd/es/table';
 
 // BOM成本相关类型定义（与后端保持一致）
@@ -114,7 +115,7 @@ const BomCostCalculator: React.FC = () => {
       totalCost: 85,
       level: 1,
       sequence: 10,
-      costType: 'material',
+      costType: BOM_COST_TYPE.MATERIAL,
       supplier: '钢材供应商A',
       lastUpdated: '2024-01-20'
     },
@@ -130,7 +131,7 @@ const BomCostCalculator: React.FC = () => {
       totalCost: 10,
       level: 1,
       sequence: 20,
-      costType: 'material',
+      costType: BOM_COST_TYPE.MATERIAL,
       supplier: '五金供应商B',
       lastUpdated: '2024-01-20'
     },
@@ -146,7 +147,7 @@ const BomCostCalculator: React.FC = () => {
       totalCost: 100,
       level: 1,
       sequence: 30,
-      costType: 'labor',
+      costType: BOM_COST_TYPE.LABOR,
       lastUpdated: '2024-01-20'
     },
     {
@@ -161,7 +162,7 @@ const BomCostCalculator: React.FC = () => {
       totalCost: 25,
       level: 1,
       sequence: 40,
-      costType: 'overhead',
+      costType: BOM_COST_TYPE.OVERHEAD,
       lastUpdated: '2024-01-20'
     }
   ];
@@ -204,7 +205,7 @@ const BomCostCalculator: React.FC = () => {
   };
 
   useEffect(() => {
-    loadData();
+    void loadData();
   }, []); // 空依赖数组是合理的，因为loadData函数在组件内部定义，不会改变
 
   const loadData = async () => {
@@ -224,12 +225,7 @@ const BomCostCalculator: React.FC = () => {
 
   // 成本类型渲染
   const renderCostType = (type: string) => {
-    const typeConfig = {
-      material: { color: 'blue', text: '物料' },
-      labor: { color: 'green', text: '人工' },
-      overhead: { color: 'orange', text: '费用' }
-    };
-    const config = typeConfig[type as keyof typeof typeConfig];
+    const config = BOM_COST_TYPE_MAP[type] || { color: 'default', text: type };
     return <Tag color={config.color}>{config.text}</Tag>;
   };
 
@@ -352,7 +348,7 @@ const BomCostCalculator: React.FC = () => {
               type="primary"
               icon={<CalculatorOutlined />}
               loading={calculating}
-              onClick={handleCalculateCost}
+              onClick={() => { void handleCalculateCost(); }}
             >
               开始计算
             </Button>
@@ -572,14 +568,13 @@ const BomCostCalculator: React.FC = () => {
       </Row>
 
       {/* 计算设置模态框 */}
-      {modal.render(
-        <modal.Modal
-          title="成本计算设置"
-          open={settingsModalVisible}
-          onOk={() => setSettingsModalVisible(false)}
-          onCancel={() => setSettingsModalVisible(false)}
-          width={600}
-        >
+      <Modal
+        title="成本计算设置"
+        open={settingsModalVisible}
+        onOk={() => setSettingsModalVisible(false)}
+        onCancel={() => setSettingsModalVisible(false)}
+        width={600}
+      >
         <Form
           form={settingsForm}
           layout="vertical"
@@ -632,8 +627,7 @@ const BomCostCalculator: React.FC = () => {
             />
           </Form.Item>
         </Form>
-        </modal.Modal>
-      )}
+      </Modal>
     </div>
   );
 };

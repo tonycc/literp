@@ -7,7 +7,8 @@ import {
   Tag
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import type { ProductBom, BomItem, BomStatus } from '@zyerp/shared';
+import type { ProductBom, BomItem } from '@zyerp/shared';
+import { BOM_STATUS_MAP } from '@/shared/constants/bom';
 
 interface BomDetailProps {
   bom: ProductBom;
@@ -47,13 +48,6 @@ const BomDetail: React.FC<BomDetailProps> = ({ bom, items }) => {
   // 需求类型映射定义
  
 
-  // BOM状态标签映射定义
-  const STATUS_MAP: Record<BomStatus, { color: string; text: string }> = {
-    draft: { color: 'orange', text: '草稿' },
-    active: { color: 'green', text: '启用' },
-    inactive: { color: 'red', text: '停用' },
-    archived: { color: 'default', text: '归档' }
-  };
   // BOM物料项列定义
   const itemColumns: ColumnsType<BomItem> = [
     {
@@ -132,7 +126,7 @@ const BomDetail: React.FC<BomDetailProps> = ({ bom, items }) => {
           <Col span={6}>
             <div>
               <strong>状态:</strong>{' '}
-              <Tag color={STATUS_MAP[bom.status].color}>{STATUS_MAP[bom.status].text}</Tag>
+              <Tag color={BOM_STATUS_MAP[bom.status]?.color}>{BOM_STATUS_MAP[bom.status]?.text || bom.status}</Tag>
             </div>
           </Col>
         </Row>

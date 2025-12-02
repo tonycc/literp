@@ -16,13 +16,16 @@ import {
 } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { Row, Col, Select } from 'antd';
-import type { BomFormData, BomItemFormData, ProductInfo, MaterialRequirementType, ProductBom, BomItem } from '@zyerp/shared';
+import type { BomFormData, ProductInfo, MaterialRequirementType, ProductBom, BomItem } from '@zyerp/shared';
 import type { RoutingOption } from '@zyerp/shared';
 import type { WorkcenterOption } from '@zyerp/shared';
+import { MATERIAL_REQUIREMENT_TYPE } from '@/shared/constants/bom';
 import { useBom } from '../hooks/useBom';
 import { BomService } from '../services/bom.service';
 import MaterialSelectModal from './MaterialSelectModal';
-import { useMessage, useModal } from '@/shared/hooks';
+import BomItemBatchModal from './BomItemBatchModal';
+import { useMessage } from '@/shared/hooks/useMessage';
+// import { useModal } from '@/shared/hooks/useModal';
 import { routingService } from '../../routing/services/routing.service';
 import dayjs from 'dayjs';
 import { useBomItemsSync } from '../hooks/useBomItemsSync';
@@ -54,14 +57,18 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, edit
     sequence: number;
     isKey: boolean;
     childBomId?: string; // 子BOM绑定（用于提交）
+    scrapRate: number;   // 损耗率 (%)
+    fixedScrap: number;  // 固定损耗
   };
 
   // BOM物料项状态管理
   const [bomItemData, setBomItemData] = useState<BomItemRow[]>([]);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [batchModalVisible, setBatchModalVisible] = useState(false);
   
   // 物料选择弹窗状态
   const [materialModalVisible, setMaterialModalVisible] = useState(false);
-  const modal = useModal();
+  // const modal = useModal();
   const { syncBomItems, toSyncItems } = useBomItemsSync();
   
   // 获取下拉选项数据
@@ -130,6 +137,8 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, edit
           sequence: typeof it.sequence === 'number' ? it.sequence : (idx + 1) * 10,
           isKey: !!it.isKey,
           childBomId: it.childBomId,
+          scrapRate: Number(it.scrapRate) || 0,
+          fixedScrap: Number(it.fixedScrap) || 0,
         }));
         setBomItemData(mapped);
       } catch (e) {
@@ -169,6 +178,21 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, edit
         ...values,
         effectiveDate: effectiveDateStr as unknown as Date,
         expiryDate: expiryDateStr as unknown as Date,
+        items: bomItemData.map(item => ({
+          materialId: item.materialId,
+          materialCode: item.materialCode,
+          materialName: item.materialName,
+          quantity: item.quantity,
+          unitId: item.unitId,
+          unit: item.unit,
+          sequence: item.sequence,
+          requirementType: MATERIAL_REQUIREMENT_TYPE.FIXED as MaterialRequirementType,
+          isKey: item.isKey,
+          isPhantom: false,
+          scrapRate: item.scrapRate,
+          fixedScrap: item.fixedScrap,
+          childBomId: item.childBomId,
+        } as unknown as Omit<BomItem, 'id' | 'bomId' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>)),
       };
       if (editing?.id) {
         // 编辑模式：更新BOM并同步物料项
@@ -187,7 +211,9 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, edit
           isKey: row.isKey,
           isPhantom: false,
           childBomId: row.childBomId,
-          requirementType: 'fixed' as MaterialRequirementType,
+          requirementType: MATERIAL_REQUIREMENT_TYPE.FIXED as MaterialRequirementType,
+          scrapRate: row.scrapRate,
+          fixedScrap: row.fixedScrap,
         })));
         const summary = await syncBomItems(editing.id, syncItems);
         if (summary) {
@@ -203,59 +229,26 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, edit
         // 创建模式
         const result = await BomService.create(bomData);
         if (result.success) {
-          const bomId = result.data?.id;
-          if (!bomId) {
-            message.warning('BOM创建成功，但未返回标识');
-            onSuccess?.();
-            return;
-          }
-          if (bomItemData.length > 0) {
-            const payloads: BomItemFormData[] = bomItemData.map((row) => ({
-              materialId: row.materialId,
-              quantity: row.quantity,
-              unitId: row.unitId,
-              sequence: row.sequence,
-              requirementType: 'fixed' as MaterialRequirementType,
-              isKey: row.isKey,
-              isPhantom: false,
-              childBomId: row.childBomId,
-            }));
-            const creations = await Promise.allSettled(payloads.map((p) => BomService.addItem(bomId, p)));
-            const successCount = creations.filter((r) => r.status === 'fulfilled' && (r.value as { success?: boolean })?.success).length;
-            const failedCount = creations.length - successCount;
-            if (failedCount === 0) {
-              message.success(`BOM创建成功，已添加 ${successCount} 条明细`);
-            } else if (successCount > 0) {
-              message.warning(`BOM创建成功，但有 ${failedCount} 条明细添加失败`);
-            } else {
-              message.warning('BOM创建成功，但所有明细添加失败');
-            }
-            modal.confirm({
-              title: '批量自动绑定子BOM',
-              content: '是否批量为物料自动绑定子BOM？（仅绑定启用的候选项）',
-              onOk: async () => {
-                if (bomId) {
-                  await autoBindChildBoms(bomId);
-                }
-              },
-            });
-          } else {
-            message.success('BOM创建成功');
-          }
+          message.success('BOM创建成功');
           onSuccess?.();
         } else {
           message.error(result.message || '创建失败');
         }
       }
     } catch (error) {
-      console.error('创建BOM失败:', error);
-      message.error('创建BOM失败');
+      // 兼容后端返回的错误格式
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      const errMsg = err.response?.data?.message || err.message || '请求失败';
+      console.error('BOM表单提交失败:', error);
+      message.error(errMsg);
     }
   };
 
   // 已移除行级弹窗绑定子BOM逻辑，保留内联选择
+  // 批量自动绑定子BOM逻辑已由后端自动处理，前端代码保留但不再调用
 
   // 批量自动绑定子BOM
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const autoBindChildBoms = async (bomId: string) => {
     try {
       const itemsRes = await BomService.getItems(bomId);
@@ -282,7 +275,7 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, edit
             continue;
           }
 
-          const upd = await BomService.updateItem(item.id, { childBomId: target.id } as BomItemFormData);
+          const upd = await BomService.updateItem(item.id, { childBomId: target.id } as Partial<BomItem>);
           if (upd.success) {
             successCount++;
           } else {
@@ -362,18 +355,13 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, edit
       width: 150,
     },
     {
-      title: '规格',
-      dataIndex: 'specification',
-      width: 100,
-    },
-    {
       title: '用量',
       dataIndex: 'quantity',
-      width: 120,
+      width: 100,
       render: (_, record) => (
         <InputNumber
           min={0}
-          step={0.01}
+          step={1}
           precision={2}
           value={record.quantity}
           onChange={(value) => handleQuantityChange(record.key, typeof value === 'number' ? value : record.quantity)}
@@ -384,12 +372,43 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, edit
     {
       title: '单位',
       dataIndex: 'unit',
-      width: 60,
+      width: 40,
+    },
+    {
+      title: '损耗率(%)',
+      dataIndex: 'scrapRate',
+      width: 80,
+      render: (_, record) => (
+        <InputNumber
+          min={0}
+          max={100}
+          step={0.01}
+          precision={2}
+          value={record.scrapRate}
+          onChange={(value) => handleScrapRateChange(record.key, typeof value === 'number' ? value : record.scrapRate)}
+          style={{ width: '100%' }}
+        />
+      ),
+    },
+    {
+      title: '固定损耗',
+      dataIndex: 'fixedScrap',
+      width: 80,
+      render: (_, record) => (
+        <InputNumber
+          min={0}
+          step={0.01}
+          precision={2}
+          value={record.fixedScrap}
+          onChange={(value) => handleFixedScrapChange(record.key, typeof value === 'number' ? value : record.fixedScrap)}
+          style={{ width: '100%' }}
+        />
+      ),
     },
     {
       title: '子BOM',
       dataIndex: 'childBomId',
-      width: 120,
+      width: 300,
       render: (_, record) => (
         <ChildBomSelectCell
           materialId={record.materialId}
@@ -398,16 +417,11 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, edit
         />
       ),
     },
-    {
-      title: '关键物料',
-      dataIndex: 'isKey',
-      width: 80,
-      render: (_, record) => (record.isKey ? '是' : '否'),
-    },
+   
     {
       title: '操作',
       valueType: 'option',
-      width: 120,
+      width: 20,
       render: (_, record) => [
         <Button 
           key="delete" 
@@ -478,6 +492,8 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, edit
       sequence: (bomItemData.length + index + 1) * 10,
       isKey: false,
       childBomId: undefined,
+      scrapRate: 0,
+      fixedScrap: 0,
     }));
     
     setBomItemData([...bomItemData, ...newItems]);
@@ -493,6 +509,36 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, edit
   // 处理编辑物料用量
   const handleQuantityChange = (key: string, value: number) => {
     setBomItemData(prev => prev.map(item => item.key === key ? { ...item, quantity: value } : item));
+  };
+
+  const handleScrapRateChange = (key: string, value: number) => {
+    setBomItemData(prev => prev.map(item => item.key === key ? { ...item, scrapRate: value } : item));
+  };
+
+  const handleFixedScrapChange = (key: string, value: number) => {
+    setBomItemData(prev => prev.map(item => item.key === key ? { ...item, fixedScrap: value } : item));
+  };
+
+  const handleBatchOk = (values: { scrapRate?: number; fixedScrap?: number }) => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('请先勾选需要修改的行');
+      setBatchModalVisible(false);
+      return;
+    }
+
+    setBomItemData(prev => prev.map(item => {
+      if (selectedRowKeys.includes(item.key)) {
+        return {
+          ...item,
+          ...(values.scrapRate !== undefined ? { scrapRate: values.scrapRate } : {}),
+          ...(values.fixedScrap !== undefined ? { fixedScrap: values.fixedScrap } : {}),
+        };
+      }
+      return item;
+    }));
+    message.success('批量设置成功');
+    setBatchModalVisible(false);
+    setSelectedRowKeys([]);
   };
 
   const [processData, setProcessData] = useState<ProcessRow[]>([]);
@@ -645,6 +691,17 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, edit
               <Button type="primary" size="middle" onClick={handleAddMaterials}>
                 添加物料项
               </Button>
+              <Button 
+                onClick={() => {
+                  if (selectedRowKeys.length === 0) {
+                    message.warning('请先勾选需要修改的行');
+                    return;
+                  }
+                  setBatchModalVisible(true);
+                }}
+              >
+                批量设置损耗
+              </Button>
             </Space>
           </div>
           
@@ -656,7 +713,11 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, edit
             pagination={false}
             toolBarRender={false}
             size="small"
-            scroll={{ x: 800 }}
+            scroll={{ x: 1000 }}
+            rowSelection={{
+              selectedRowKeys,
+              onChange: (keys) => setSelectedRowKeys(keys),
+            }}
           />
         </ProCard>
 
@@ -696,6 +757,12 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, edit
         onCancel={() => setMaterialModalVisible(false)}
         onConfirm={handleMaterialConfirm}
         excludeProductIds={bomItemData.map(item => item.materialId)}
+      />
+
+      <BomItemBatchModal
+        visible={batchModalVisible}
+        onCancel={() => setBatchModalVisible(false)}
+        onOk={handleBatchOk}
       />
     </div>
   );

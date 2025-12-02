@@ -16,7 +16,8 @@ module.exports = {
     'eslint:recommended',
   ],
   rules: {
-    // 添加自定义规则
+    'no-unused-vars': 'off',
+    '@typescript-eslint/no-unused-vars': 'error',
   },
   ignorePatterns: ['dist/', 'node_modules/']
 };

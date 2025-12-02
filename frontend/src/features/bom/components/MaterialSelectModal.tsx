@@ -4,7 +4,8 @@ import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns, ProFormInstance } from '@ant-design/pro-components';
 import type { ProductInfo } from '@zyerp/shared';
 import type { ProductQueryParams } from '@zyerp/shared';
-import { ProductStatus, PRODUCT_TYPE_MAP, PRODUCT_STATUS_MAP } from '@zyerp/shared';
+import { ProductStatus } from '@zyerp/shared';
+import { PRODUCT_TYPE_MAP, PRODUCT_STATUS_MAP } from '@/shared/constants/product';
 import { useMessage } from '@/shared/hooks';
 import { productService } from '../../product/services/product.service';
 import { productCategoryService } from '../../product/services/productCategory.service';
@@ -109,13 +110,6 @@ const MaterialSelectModal: React.FC<MaterialSelectModalProps> = ({
       dataIndex: 'type',
       width: 100,
       valueEnum: typeValueEnum,
-    },
-    {
-      title: '规格',
-      dataIndex: 'specification',
-      width: 150,
-      ellipsis: true,
-      search: false,
     },
     {
       title: '主单位',

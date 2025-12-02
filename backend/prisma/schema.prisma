@@ -596,7 +596,9 @@ model ProductBomItem {
   quantity          Float
   unitId            String
   childBomId        String?
-  sequence          Int             @default(10)
+  sequence          Int             @default(0)
+  scrapRate         Decimal         @default(0)  // 损耗率(%)
+  fixedScrap        Decimal         @default(0)  // 固定损耗(数量)
   requirementType   String          @default("fixed")
   isKey             Boolean         @default(false)
   isPhantom         Boolean         @default(false)

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tag, Tooltip } from 'antd';
 import type { StatusTagProps } from '@zyerp/shared';
-import { ACQUISITION_METHOD_MAP, PRODUCT_STATUS_MAP, PRODUCT_TYPE_MAP } from '@zyerp/shared';
+import { ACQUISITION_METHOD_MAP, PRODUCT_STATUS_MAP, PRODUCT_TYPE_MAP } from '@/shared/constants/product';
 
 // 状态映射配置
 const statusConfig: Record<string, { label: string; color: string; tooltip?: string }> = {

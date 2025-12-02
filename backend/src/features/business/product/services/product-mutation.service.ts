@@ -309,6 +309,8 @@ export class ProductMutationService extends ProductBaseService {
     }
 
     console.log(`Creating ${variantsToCreate.length} variants...`);
+    const isSingleVariant = variantsToCreate.length === 1;
+    
     for (const v of variantsToCreate) {
       // 生成变体编码和SKU
       const variantCode = v.suffix === 'BASE' 
@@ -316,13 +318,20 @@ export class ProductMutationService extends ProductBaseService {
         : `${product.code}-${v.suffix}`.toUpperCase()
 
       let variantSku = ''
-      if (sku) {
-        variantSku = v.suffix === 'BASE' ? sku : `${sku}-${v.suffix}`
+      // 如果只有一个变体（无论是BASE还是单属性），直接使用用户填写的SKU或产品编码，不带后缀
+      if (isSingleVariant) {
+        variantSku = sku || product.code
       } else {
-        variantSku = v.suffix === 'BASE' ? product.code : variantCode
+        // 多个变体时，必须带后缀以区分
+        if (sku) {
+          variantSku = v.suffix === 'BASE' ? sku : `${sku}-${v.suffix}`
+        } else {
+          variantSku = v.suffix === 'BASE' ? product.code : variantCode
+        }
       }
 
-      const variantName = v.nameSuffix ? `${product.name} ${v.nameSuffix}` : product.name
+      // 如果只有一个变体，直接使用产品名称；否则带后缀
+      const variantName = isSingleVariant ? product.name : (v.nameSuffix ? `${product.name} ${v.nameSuffix}` : product.name)
 
       const existingVariant = await db.productVariant.findUnique({ where: { code: variantCode } })
       

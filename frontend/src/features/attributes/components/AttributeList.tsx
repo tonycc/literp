@@ -5,15 +5,13 @@ import { Button, Modal, Tag } from 'antd'
 import { useMessage } from '@/shared/hooks'
 import { AttributesService, type AttributeInfo } from '../services/attributes.service'
 import { normalizeTableParams } from '@/shared/utils/normalizeTableParams'
-import AttributeForm from './AttributeForm'
-import AttributeValueForm from './AttributeValueForm'
- 
+import AttributeForm, { type AttributeFormValues } from './AttributeForm'
+
 
 const AttributeList: React.FC = () => {
   const message = useMessage()
   const actionRef = useRef<ActionType | undefined>(undefined)
   const [openEdit, setOpenEdit] = useState(false)
-  const [openValues, setOpenValues] = useState(false)
   const [editing, setEditing] = useState<AttributeInfo | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
 
@@ -27,14 +25,13 @@ const AttributeList: React.FC = () => {
     { title: '值数量', dataIndex: 'valuesCount', render: (_, record) => Array.isArray(record.values) ? String(record.values.length) : '0' },
     { title: '全局', dataIndex: 'isGlobal', valueType: 'switch' },
     { title: '启用', dataIndex: 'isActive', valueType: 'switch' },
-    { title: '排序', dataIndex: 'sortOrder' },
+   
     {
       title: '操作', valueType: 'option', render: (_, record) => [
         <a key="edit" onClick={() => { setEditing(record); setOpenEdit(true) }}>编辑</a>,
-        <a key="values" onClick={() => { setEditing(record); setOpenValues(true) }}>维护值</a>,
         <a key="delete" onClick={() => { void (async () => {
-          const ok = await AttributesService.deleteAttribute(record.id)
-          if (ok) { message.success('删除成功'); setReloadKey((k) => k + 1) } else message.error('删除失败')
+          const res = await AttributesService.deleteAttribute(record.id)
+          if (res.success) { message.success('删除成功'); setReloadKey((k) => k + 1) } else message.error(res.message || '删除失败')
         })() }}>删除</a>
       ]
     }
@@ -42,7 +39,7 @@ const AttributeList: React.FC = () => {
 
   const request = useCallback(async (params: import('@/shared/utils/normalizeTableParams').TableParams) => {
     const base = normalizeTableParams(params)
-    const resp = await AttributesService.getAttributes({ page: base.page, pageSize: base.pageSize, keyword: params.keyword })
+    const resp = await AttributesService.getAttributes({ page: base.page, pageSize: base.pageSize, keyword: params.keyword as string | undefined })
     return { data: resp.data, success: resp.success, total: resp.total }
   }, [])
 
@@ -60,23 +57,32 @@ const AttributeList: React.FC = () => {
         ]}
         params={{ reloadKey }}
       />
-      <Modal title={editing ? '编辑属性' : '新增属性'} open={openEdit} footer={null} onCancel={() => setOpenEdit(false)} destroyOnHidden>
+      <Modal title={editing ? '编辑属性' : '新增属性'} open={openEdit} footer={null} onCancel={() => setOpenEdit(false)} destroyOnHidden width={800}>
         <AttributeForm
-          initialValues={editing || { isActive: true, isGlobal: false, sortOrder: 0 }}
-          onSubmit={async (vals) => {
-            const ok = editing ? await AttributesService.updateAttribute(editing.id, vals) : await AttributesService.createAttribute(vals)
-            if (ok) { message.success('保存成功'); setOpenEdit(false); setReloadKey((k) => k + 1) } else message.error('保存失败')
+          initialValues={editing || { isActive: true, isGlobal: true, sortOrder: 0 }}
+          onSubmit={async (vals: AttributeFormValues) => {
+            let success = false
+            let msg = ''
+            
+            if (editing) {
+              const res = await AttributesService.updateAttribute(editing.id, vals)
+              success = res.success
+              msg = res.message || ''
+            } else {
+              const res = await AttributesService.createAttribute(vals)
+              success = res.success
+              msg = res.message || ''
+            }
+            
+            if (success) { 
+              message.success('保存成功')
+              setOpenEdit(false)
+              setReloadKey((k) => k + 1) 
+            } else {
+              message.error(msg || '保存失败')
+            }
           }}
         />
-      </Modal>
-      <Modal title={`维护属性值：${editing?.name || ''}`} open={openValues} footer={null} onCancel={() => setOpenValues(false)} destroyOnHidden>
-        {editing && (
-          <AttributeValueForm
-            attributeId={editing.id}
-            onSaved={() => { setOpenValues(false); setReloadKey((k) => k + 1); void actionRef.current?.reload() }}
-            onChanged={() => { setReloadKey((k) => k + 1); void actionRef.current?.reload() }}
-          />
-        )}
       </Modal>
     </>
   )

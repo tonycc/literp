@@ -16,7 +16,8 @@ import {
   SaveOutlined,
   CloseOutlined,
 } from '@ant-design/icons';
-import { ProductType, ProductStatus, PRODUCT_TYPE_OPTIONS, ACQUISITION_METHOD_OPTIONS } from '@zyerp/shared';
+import { ProductType, ProductStatus } from '@zyerp/shared';
+import { PRODUCT_TYPE_OPTIONS, ACQUISITION_METHOD_OPTIONS } from '@/shared/constants/product';
 import type { ProductInfo, ProductFormData, ProductCategoryOption } from '@zyerp/shared';
 import { productCategoryService } from '../services/productCategory.service';
 import { productService } from '../services/product.service';
@@ -192,7 +193,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
       const formData: ProductFormData = {
         ...values,
       };
-      console.log('[ProductForm] handleSubmit values:', JSON.stringify(formData, null, 2));
       await onSave(formData);
     } catch (error) {
       console.error('表单验证失败:', error);

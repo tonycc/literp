@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react'
 import { Modal, Row, Col, Card, Button, Space, Input, Form, Select } from 'antd'
 import type { Supplier, CreateSupplierData } from '@zyerp/shared'
 import { SupplierStatus, SupplierCategory } from '@zyerp/shared'
-import { SUPPLIER_CATEGORY_OPTIONS } from '@/shared/constants/supplier'
 import { getDict } from '@/shared/services/dictionary.service'
 import { supplierService } from '../services/supplier.service'
 import { useMessage } from '@/shared/hooks/useMessage'
@@ -17,7 +16,7 @@ interface SupplierFormProps {
 const SupplierForm: React.FC<SupplierFormProps> = ({ visible, editingSupplier, onCancel, onSubmit }) => {
   const [form] = Form.useForm<CreateSupplierData>()
   const message = useMessage()
-  const [categoryOptions, setCategoryOptions] = useState<Array<{ label: string; value: string }>>(SUPPLIER_CATEGORY_OPTIONS)
+  const [categoryOptions, setCategoryOptions] = useState<{ label: string; value: string }[]>([])
 
   const initialValues: Partial<CreateSupplierData> = {
     code: '',
@@ -27,10 +26,14 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ visible, editingSupplier, o
   }
 
   useEffect(() => {
+    void getDict('supplier_category').then((res) => {
+      setCategoryOptions(res.options)
+    })
+  }, [])
+
+  useEffect(() => {
     const load = async () => {
       if (visible) {
-        const dc = await getDict('supplier-category')
-        if (dc.options.length > 0) setCategoryOptions(dc.options)
         if (editingSupplier?.id) {
           const detail = await supplierService.getById(editingSupplier.id)
           const d = detail.data

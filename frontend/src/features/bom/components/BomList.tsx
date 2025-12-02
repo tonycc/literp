@@ -3,6 +3,12 @@ import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns, ActionType } from '@ant-design/pro-components';
 import { normalizeTableParams } from '@/shared/utils/normalizeTableParams';
 import type { ProductBom } from '@zyerp/shared';
+import { 
+  BOM_STATUS_VALUE_ENUM_PRO, 
+  BOM_STATUS_MAP, 
+  MATERIAL_REQUIREMENT_TYPE_MAP 
+} from '@/shared/constants/bom';
+import { TIME_MODE_MAP } from '@/shared/constants/routing';
 import { BomService } from '../services/bom.service';
 import { Button, Space, Tag, Modal, Descriptions, Table, Spin, Tabs } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -17,11 +23,11 @@ type ProductBomDetail = ProductBom & { baseUnitName?: string; routingName?: stri
 interface BomListProps {
   onCreate?: () => void;
   onEdit?: (record: ProductBom) => void;
-  actionRef?: React.MutableRefObject<ActionType | undefined | null>;
+  actionRef?: React.MutableRefObject<ActionType | undefined>;
 }
 
 const BomList: React.FC<BomListProps> = ({ onCreate, onEdit, actionRef: externalRef }) => {
-  const innerRef = useRef<ActionType>(null);
+  const innerRef = useRef<ActionType | undefined>(undefined);
   const actionRef = externalRef ?? innerRef;
   const message = useMessage();
   const modal = useModal();
@@ -32,27 +38,6 @@ const BomList: React.FC<BomListProps> = ({ onCreate, onEdit, actionRef: external
   const [ops, setOps] = React.useState<RoutingWorkcenterInfo[]>([]);
   const [creatorName, setCreatorName] = React.useState<string>('');
   const [updaterName, setUpdaterName] = React.useState<string>('');
-
-  const statusTextMap: Record<NonNullable<ProductBom['status']>, string> = {
-    draft: '草稿',
-    active: '启用',
-    inactive: '停用',
-    archived: '归档',
-  };
-
-  const requirementTypeTextMap: Record<NonNullable<BomItem['requirementType']>, string> = {
-    fixed: '固定',
-    variable: '可变',
-    optional: '可选',
-  };
-
-  const timeModeTextMap: Partial<Record<NonNullable<RoutingWorkcenterInfo['timeMode']>, string>> = {
-    manual: '手动',
-    auto: '自动',
-    fixed: '固定',
-    variable: '可变',
-    cycle: '周期',
-  };
 
   const handleView = async (record: ProductBom) => {
     setDetailVisible(true);
@@ -86,7 +71,7 @@ const BomList: React.FC<BomListProps> = ({ onCreate, onEdit, actionRef: external
       } else {
         setUpdaterName('');
       }
-      const rid = (info.data as ProductBom | undefined)?.routingId as string | undefined;
+      const rid = info.data?.routingId;
       if (rid) {
         try {
           const rops = await routingService.getOperations(rid);
@@ -112,9 +97,7 @@ const BomList: React.FC<BomListProps> = ({ onCreate, onEdit, actionRef: external
         const res = await BomService.delete(record.id);
         if (res.success) {
           message.success('删除成功');
-          actionRef.current?.reload();
-        } else {
-          message.error(res.message || '删除失败');
+          await actionRef.current?.reload();
         }
       }
     });
@@ -130,12 +113,7 @@ const BomList: React.FC<BomListProps> = ({ onCreate, onEdit, actionRef: external
     { title: '默认', dataIndex: 'isDefault', key: 'isDefault', render: (_, r) => r.isDefault ? <Tag color="green">默认</Tag> : '-' ,width: 100},  
     { 
       title: '状态', dataIndex: 'status', key: 'status', valueType: 'select', width: 100,
-      valueEnum: {
-        draft: { text: '草稿', status: 'Default' },
-        active: { text: '启用', status: 'Success' },
-        inactive: { text: '停用', status: 'Default' },
-        archived: { text: '归档', status: 'Processing' },
-      }
+      valueEnum: BOM_STATUS_VALUE_ENUM_PRO
     },
     {
       title:'创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 200, 
@@ -149,7 +127,7 @@ const BomList: React.FC<BomListProps> = ({ onCreate, onEdit, actionRef: external
       title: '操作', valueType: 'option', key: 'option', width: 100,
       render: (_: unknown, record: ProductBom) => (
         <Space>
-          <Button type="link" onClick={() => handleView(record)}>详情</Button>
+          <Button type="link" onClick={() => { void handleView(record); }}>详情</Button>
           <Button type="link" onClick={() => onEdit?.(record)}>编辑</Button>
           <Button type="link" danger onClick={() => handleDelete(record)}>删除</Button>
         </Space>
@@ -206,7 +184,7 @@ const BomList: React.FC<BomListProps> = ({ onCreate, onEdit, actionRef: external
                   <Descriptions.Item label="工艺路线">{detail?.routingName || '-'}</Descriptions.Item>
                   <Descriptions.Item label="生效日期">{detail?.effectiveDate ? dayjs(detail.effectiveDate).format('YYYY-MM-DD HH:mm') : '-'}</Descriptions.Item>
                   <Descriptions.Item label="失效日期">{detail?.expiryDate ? dayjs(detail.expiryDate).format('YYYY-MM-DD HH:mm') : '-'}</Descriptions.Item>
-                  <Descriptions.Item label="状态">{detail?.status ? (statusTextMap[detail.status] || detail.status) : '-'}</Descriptions.Item>
+                  <Descriptions.Item label="状态">{detail?.status ? (BOM_STATUS_MAP[detail.status]?.text || detail.status) : '-'}</Descriptions.Item>
                   <Descriptions.Item label="创建人">{creatorName || detail?.createdBy || '-'}</Descriptions.Item>
                   <Descriptions.Item label="更新人">{updaterName || detail?.updatedBy || '-'}</Descriptions.Item>
                   <Descriptions.Item label="描述" span={2}>{detail?.description || '-'}</Descriptions.Item>
@@ -229,7 +207,7 @@ const BomList: React.FC<BomListProps> = ({ onCreate, onEdit, actionRef: external
                   { title: '物料名称', dataIndex: 'materialName' },
                   { title: '用量', dataIndex: 'quantity', width: 100 },
                   { title: '单位', dataIndex: 'unitName', width: 100 },
-                  { title: '需求类型', dataIndex: 'requirementType', width: 120, render: (v: BomItem['requirementType']) => v ? (requirementTypeTextMap[v] || v) : '-' },
+                  { title: '需求类型', dataIndex: 'requirementType', width: 120, render: (v: BomItem['requirementType']) => v ? (MATERIAL_REQUIREMENT_TYPE_MAP[v]?.text || v) : '-' },
                   { title: '关键料', dataIndex: 'isKey', width: 100, render: (v: boolean) => (v ? '是' : '否') },
                 ] as ColumnsType<BomItem>}
               />
@@ -248,7 +226,7 @@ const BomList: React.FC<BomListProps> = ({ onCreate, onEdit, actionRef: external
                 columns={[
                   { title: '工序序号', dataIndex: 'sequence', width: 100 },
                   { title: '工序名称', dataIndex: 'name' },
-                  { title: '时间模式', dataIndex: 'timeMode', width: 120, render: (v: RoutingWorkcenterInfo['timeMode']) => v ? (timeModeTextMap[v] || v) : '-' },
+                  { title: '时间模式', dataIndex: 'timeMode', width: 120, render: (v: RoutingWorkcenterInfo['timeMode']) => v ? (TIME_MODE_MAP[v]?.text || v) : '-' },
                   { title: '周期(分)', dataIndex: 'timeCycleManual', width: 120 },
                 ] as ColumnsType<RoutingWorkcenterInfo>}
               />

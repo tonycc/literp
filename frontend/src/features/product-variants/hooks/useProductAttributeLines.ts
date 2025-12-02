@@ -23,7 +23,13 @@ export const useProductAttributeLines = (productId: string) => {
         const seen = new Set<string>()
         for (const l of [...productLines, ...globalLines]) {
           const key = l.attributeName
-          if (seen.has(key)) continue
+          if (seen.has(key)) {
+            const existing = merged.find(m => m.attributeName === key)
+            if (existing) {
+              existing.values = Array.from(new Set([...existing.values, ...l.values]))
+            }
+            continue
+          }
           seen.add(key)
           merged.push({ attributeName: l.attributeName, values: l.values, source: l.source })
         }

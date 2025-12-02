@@ -1,4 +1,4 @@
-import { ProductType, ProductStatus, AcquisitionMethod } from '../types/product';
+import { ProductType, ProductStatus, AcquisitionMethod } from '@zyerp/shared';
 
 /**
  * 产品类型映射
@@ -18,6 +18,16 @@ export const PRODUCT_TYPE_OPTIONS = Object.entries(PRODUCT_TYPE_MAP).map(([value
 }));
 
 /**
+ * 产品类型枚举 (ProTable 专用)
+ */
+export const PRODUCT_TYPE_VALUE_ENUM_PRO = Object.fromEntries(
+  Object.entries(PRODUCT_TYPE_MAP).map(([key, config]) => [
+    key,
+    { text: config.label, status: config.color === 'green' ? 'Success' : config.color === 'orange' ? 'Warning' : 'Processing' },
+  ])
+);
+
+/**
  * 产品状态映射
  */
 export const PRODUCT_STATUS_MAP = {
@@ -35,6 +45,17 @@ export const PRODUCT_STATUS_OPTIONS = Object.entries(PRODUCT_STATUS_MAP).map(([v
 }));
 
 /**
+ * 产品状态枚举 (ProTable 专用)
+ */
+export const PRODUCT_STATUS_VALUE_ENUM_PRO = Object.fromEntries(
+  Object.entries(PRODUCT_STATUS_MAP).map(([key, config]) => [
+    key,
+    { text: config.label, status: config.status },
+  ])
+);
+
+
+/**
  * 获取方式映射
  */
 export const ACQUISITION_METHOD_MAP = {
@@ -50,8 +71,3 @@ export const ACQUISITION_METHOD_OPTIONS = Object.entries(ACQUISITION_METHOD_MAP)
   label,
   value,
 }));
-
-/**
- * 模板标识映射
- */
- 

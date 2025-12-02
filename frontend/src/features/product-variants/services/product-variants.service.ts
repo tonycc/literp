@@ -1,5 +1,5 @@
 import apiClient from '@/shared/services/api';
-import type { VariantInfo, ApiResponse, PaginationParams } from '@zyerp/shared';
+import type { VariantInfo, ApiResponse, PaginationParams, ProductStatus } from '@zyerp/shared';
 
 export class ProductVariantsService {
   static async generateVariants(
@@ -71,7 +71,7 @@ export class ProductVariantsService {
   static async updateVariant(
     productId: string,
     variantId: string,
-    payload: Partial<{ name: string; sku?: string; status: 'active' | 'inactive'; barcode?: string; qrCode?: string; minStock?: number; safetyStock?: number; maxStock?: number; reorderPoint?: number; standardPrice?: number; salePrice?: number; purchasePrice?: number; currency?: string }> & { variantAttributes?: Array<{ name: string; value: string }> },
+    payload: Partial<{ name: string; sku?: string; status: ProductStatus; barcode?: string; qrCode?: string; minStock?: number; safetyStock?: number; maxStock?: number; reorderPoint?: number; standardPrice?: number; salePrice?: number; purchasePrice?: number; currency?: string }> & { variantAttributes?: Array<{ name: string; value: string }> },
   ): Promise<ApiResponse<VariantInfo>> {
     const response = await apiClient.patch<ApiResponse<VariantInfo>>(`/products/${productId}/variants/${variantId}`, payload);
     return response.data;

@@ -8,7 +8,7 @@ import type { ActionType } from '@ant-design/pro-components';
 const BomManagement: React.FC = () => {
   const [isFormVisible, setFormVisible] = useState(false);
   const [editing, setEditing] = useState<ProductBom | undefined>(undefined);
-  const tableRef = useRef<ActionType>(null);
+  const tableRef = useRef<ActionType | undefined>(undefined);
   const handleCreate = () => {
     setEditing(undefined);
     setFormVisible(true);
@@ -26,7 +26,7 @@ const BomManagement: React.FC = () => {
         onCancel={() => setFormVisible(false)} 
         title={editing ? '编辑BOM' : '新建BOM'} 
         destroyOnHidden 
-        width={980}
+        width={1200}
         footer={null}
       >
         <BomCreatePage 

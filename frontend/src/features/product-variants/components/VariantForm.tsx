@@ -3,6 +3,7 @@ import { Modal, Avatar, Image, Row, Col } from 'antd';
 import { ProForm, ProFormText, ProFormSelect, ProCard, ProFormDigit } from '@ant-design/pro-components';
 import type { ProFormInstance } from '@ant-design/pro-components';
 import type { VariantInfo, ProductInfo } from '@zyerp/shared';
+import { ProductStatus } from '@zyerp/shared';
 import { useMessage } from '@/shared/hooks';
 import { ProductVariantsService } from '../services/product-variants.service';
 import productService from '@/features/product/services/product.service';
@@ -22,7 +23,7 @@ type VariantFormValues = {
   productId?: string;
   name?: string;
   sku?: string;
-  status?: 'active' | 'inactive';
+  status?: ProductStatus;
   barcode?: string;
   qrCode?: string;
   standardPrice?: number;
@@ -92,8 +93,8 @@ const VariantForm: React.FC<VariantFormProps> = ({ productId, variant, visible, 
   const initialValues = useMemo(() => ({
     productId: effectiveProductId,
     name: variant?.name,
-    sku: variant?.sku as string | undefined,
-    status: (variant?.status ?? 'active') as 'active' | 'inactive',
+    sku: variant?.sku,
+    status: (variant?.status as ProductStatus) || ProductStatus.ACTIVE,
     barcode: variant?.barcode,
     qrCode: variant?.qrCode,
     standardPrice: variant?.standardPrice,
@@ -308,6 +309,7 @@ const VariantForm: React.FC<VariantFormProps> = ({ productId, variant, visible, 
       destroyOnHidden
     >
       <ProForm<VariantFormValues>
+        key={variant?.id || 'new'}
         formRef={formRef}
         layout="vertical" 
         initialValues={initialValues} 

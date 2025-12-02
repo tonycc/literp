@@ -4,6 +4,7 @@ import { ProDescriptions } from '@ant-design/pro-components';
 import type { VariantInfo, ProductInfo } from '@zyerp/shared';
 import { ProductVariantsService } from '../services/product-variants.service';
 import { ProductService } from '../../product/services/product.service';
+import { PRODUCT_TYPE_VALUE_ENUM_PRO, PRODUCT_STATUS_VALUE_ENUM_PRO } from '@/shared/constants/product';
 
 interface VariantDetailDrawerProps {
   open: boolean;
@@ -67,16 +68,8 @@ const VariantDetailDrawer: React.FC<VariantDetailDrawerProps> = ({ open, onClose
               <ProDescriptions.Item label="基本单位">
                 {product.unit?.name || '-'}
               </ProDescriptions.Item>
-              <ProDescriptions.Item dataIndex="type" label="产品类型" valueEnum={{
-                standard: { text: '标准产品', status: 'Default' },
-                service: { text: '服务产品', status: 'Processing' },
-                digital: { text: '数字产品', status: 'Success' },
-              }} />
-              <ProDescriptions.Item dataIndex="status" label="状态" valueEnum={{
-                active: { text: '启用', status: 'Success' },
-                inactive: { text: '停用', status: 'Error' },
-                draft: { text: '草稿', status: 'Default' },
-              }} />
+              <ProDescriptions.Item dataIndex="type" label="产品类型" valueEnum={PRODUCT_TYPE_VALUE_ENUM_PRO} />
+              <ProDescriptions.Item dataIndex="status" label="状态" valueEnum={PRODUCT_STATUS_VALUE_ENUM_PRO} />
             </ProDescriptions>
             <Divider />
           </>

@@ -52,42 +52,10 @@ class ProductAttributeController {
   async getAttributeValues(req: Request, res: Response) {
     try {
       const { id } = req.params as { id: string }
-      const result = await this.productAttributeService.getAttributeValues(id, req.query)
+      const result = await this.productAttributeService.getAttributeValues(id)
       res.json(result)
     } catch (error) {
       res.status(500).json({ message: (error as any)?.message || 'Get attribute values failed' })
-    }
-  }
-
-  async createAttributeValues(req: Request, res: Response) {
-    try {
-      const { id } = req.params as { id: string }
-      const { values } = (req.body || {}) as { values: Array<{ name: string; code?: string; sortOrder?: number; isActive?: boolean }> }
-      const result = await this.productAttributeService.createAttributeValues(id, values || [])
-      res.json(result)
-    } catch (error) {
-      res.status(500).json({ message: (error as any)?.message || 'Create attribute values failed' })
-    }
-  }
-
-  async updateAttributeValue(req: Request, res: Response) {
-    try {
-      const { valueId } = req.params as { valueId: string }
-      const payload = req.body || {}
-      const result = await this.productAttributeService.updateAttributeValue(valueId, payload)
-      res.json(result)
-    } catch (error) {
-      res.status(500).json({ message: (error as any)?.message || 'Update attribute value failed' })
-    }
-  }
-
-  async deleteAttributeValue(req: Request, res: Response) {
-    try {
-      const { valueId } = req.params as { valueId: string }
-      const result = await this.productAttributeService.deleteAttributeValue(valueId)
-      res.json(result)
-    } catch (error) {
-      res.status(500).json({ message: (error as any)?.message || 'Delete attribute value failed' })
     }
   }
 }

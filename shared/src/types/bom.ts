@@ -60,6 +60,9 @@ export interface BomItem {
   unitCost?: number;                // 单位成本（可选）
   totalCost?: number;               // 总成本（可选）
   
+  scrapRate?: number;               // 损耗率 (%)
+  fixedScrap?: number;              // 固定损耗
+  
   // 层级信息（Odoo风格）
   level?: number;                   // 层级（可选，默认1）
   childBomId?: string;              // 子BOM ID（如果该物料有BOM）
@@ -252,6 +255,8 @@ export interface BomItemFormData {
   requirementType: MaterialRequirementType; // 需求类型
   isKey: boolean;                   // 是否关键物料
   isPhantom: boolean;               // 是否虚拟件
+  scrapRate?: number;               // 损耗率 (%)
+  fixedScrap?: number;              // 固定损耗
   processInfo?: string;             // 工艺说明
   remark?: string;                  // 备注
   effectiveDate?: Date;             // 生效日期

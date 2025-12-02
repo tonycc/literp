@@ -79,10 +79,8 @@ export class ProductService {
 
   // 创建产品
   async createProduct(data: ProductFormData & { attributeLines?: ProductAttributeLineInput[] }): Promise<ApiResponse<ProductInfo>> {
-    console.log('[ProductService] createProduct input:', JSON.stringify(data, null, 2));
     try {
       const response = await apiClient.post<ApiResponse<ProductInfo>>(this.baseUrl, data);
-      console.log('[ProductService] createProduct response:', JSON.stringify(response.data, null, 2));
       return response.data;
     } catch (error) {
       console.error('[ProductService] createProduct error:', error);
@@ -91,10 +89,8 @@ export class ProductService {
   }
 
   async createProductWithVariants(data: ProductCreateWithVariantsInput): Promise<ApiResponse<{ product: ProductInfo; variants: ProductInfo[] }>> {
-    console.log('[ProductService] createProductWithVariants input:', JSON.stringify(data, null, 2));
     try {
       const response = await apiClient.post<ApiResponse<{ product: ProductInfo; variants: ProductInfo[] }>>(`${this.baseUrl}/with-variants`, data);
-      console.log('[ProductService] createProductWithVariants response:', JSON.stringify(response.data, null, 2));
       return response.data;
     } catch (error) {
       console.error('[ProductService] createProductWithVariants error:', error);
@@ -199,7 +195,7 @@ export class ProductService {
 
   // 下载产品导入模板
   async downloadImportTemplate(): Promise<Blob> {
-    const response = await apiClient.get(`${this.baseUrl}/import/template`, {
+    const response = await apiClient.get<Blob>(`${this.baseUrl}/import/template`, {
       responseType: 'blob',
     });
     return response.data;
