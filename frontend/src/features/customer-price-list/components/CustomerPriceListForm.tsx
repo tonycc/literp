@@ -4,8 +4,8 @@ import { ProForm, ProFormText, ProFormSelect, ProFormDatePicker, ProFormDigit, P
 import type { ProFormInstance } from '@ant-design/pro-components';
 import dayjs from 'dayjs';
 import type { CreateCustomerPriceListData, UpdateCustomerPriceListData } from '../types';
-import { VATRate } from '../types';
-import { VAT_RATE_OPTIONS, UNIT_OPTIONS } from '@/shared/constants/customer-price-list';
+import { VATRate, PriceListStatus, Unit } from '../types';
+import { VAT_RATE_OPTIONS, UNIT_OPTIONS, PRICE_LIST_STATUS_OPTIONS } from '@/shared/constants/customer-price-list';
 import { customerService } from '@/features/customer-management/services/customer.service';
 import { productService } from '@/features/product/services/product.service';
 import { getUsers } from '@/shared/services';
@@ -16,13 +16,20 @@ interface CustomerPriceListFormProps {
   loading?: boolean;
 }
 
+type CustomerPriceListFormValues = Omit<CreateCustomerPriceListData | UpdateCustomerPriceListData, 'effectiveDate' | 'expiryDate'> & {
+  effectiveDate?: string | dayjs.Dayjs;
+  expiryDate?: string | dayjs.Dayjs;
+  priceExcludingTax?: number;
+  taxAmount?: number;
+};
+
 const CustomerPriceListForm: React.FC<CustomerPriceListFormProps> = ({
   initialValues,
   onSubmit,
   loading = false,
 }) => {
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
-  const formRef = useRef<ProFormInstance<CreateCustomerPriceListData | UpdateCustomerPriceListData> | undefined>(undefined);
+  const formRef = useRef<ProFormInstance<CustomerPriceListFormValues> | undefined>(undefined);
 
   const vatRateOptions = VAT_RATE_OPTIONS;
   const unitOptions = UNIT_OPTIONS;
@@ -62,9 +69,15 @@ const CustomerPriceListForm: React.FC<CustomerPriceListFormProps> = ({
   };
 
   // 表单提交
-  const handleSubmit = async (values: CreateCustomerPriceListData | UpdateCustomerPriceListData) => {
+  const handleSubmit = async (values: CustomerPriceListFormValues) => {
     try {
-      await onSubmit(values);
+      const formattedValues = {
+        ...values,
+        effectiveDate: values.effectiveDate ? dayjs(values.effectiveDate).format('YYYY-MM-DD') : '',
+        expiryDate: values.expiryDate ? dayjs(values.expiryDate).format('YYYY-MM-DD') : undefined,
+      } as unknown as CreateCustomerPriceListData | UpdateCustomerPriceListData;
+
+      await onSubmit(formattedValues);
     } catch (error) {
       console.error('表单提交失败:', error);
     }
@@ -84,7 +97,7 @@ const CustomerPriceListForm: React.FC<CustomerPriceListFormProps> = ({
   }, [initialValues]);
 
   return (
-    <ProForm<CreateCustomerPriceListData | UpdateCustomerPriceListData>
+    <ProForm<CustomerPriceListFormValues>
       formRef={formRef}
       onFinish={handleSubmit}
       layout="vertical"
@@ -145,7 +158,7 @@ const CustomerPriceListForm: React.FC<CustomerPriceListFormProps> = ({
                     productName: data?.name,
                     productCode: data?.code,
                     specification: data?.specification,
-                    unit: unitSymbol,
+                    unit: unitSymbol as Unit,
                     productImage: data?.primaryImageUrl,
                   });
                   setSelectedProductId(typeof value === 'string' ? value : String(value));
@@ -268,6 +281,16 @@ const CustomerPriceListForm: React.FC<CustomerPriceListFormProps> = ({
               name="expiryDate"
               label="失效日期"
               placeholder="请选择失效日期（可选）"
+            />
+          </Col>
+          <Col xs={24} sm={8}>
+            <ProFormSelect
+              name="status"
+              label="状态"
+              placeholder="请选择状态"
+              rules={[{ required: true, message: '请选择状态' }]}
+              options={PRICE_LIST_STATUS_OPTIONS}
+              initialValue={PriceListStatus.ACTIVE}
             />
           </Col>
         </Row>

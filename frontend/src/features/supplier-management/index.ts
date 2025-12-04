@@ -1,4 +1,3 @@
-export { default as SupplierManagement } from './components/SupplierManagement';
-export { default as SupplierForm } from './components/SupplierFormPro';
-export { default as SupplierPriceManagement } from './components/SupplierPriceManagement';
-export * from './types';
+export { default as SupplierManagement } from './pages/SupplierManagement';
+export { default as SupplierForm } from './components/SupplierForm';
+export { default as SupplierPriceManagement } from './pages/SupplierPriceManagement';

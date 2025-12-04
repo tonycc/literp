@@ -45,7 +45,7 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
         setCustomer(undefined);
       }
     };
-    load();
+    void load();
     return () => {
       mounted = false;
     };

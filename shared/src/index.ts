@@ -24,6 +24,7 @@ export * from './types/productionPlan';
 export * from './types/customer';
 export * from './types/supplier';
 export * from './types/supplier-price';
+export * from './types/customer-price';
 export * from './types/sales-order';
 export * from './types/purchase-order';
 export * from './types/mo';

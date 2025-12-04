@@ -11,7 +11,7 @@ import { useMessage } from '@/shared/hooks/useMessage'
 import { useModal } from '@/shared/hooks/useModal'
 import { getUsers } from '@/shared/services/user.service'
 import dayjs from 'dayjs'
-import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, ExportOutlined, ImportOutlined } from '@ant-design/icons'
+import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined } from '@ant-design/icons'
 
 interface SupplierPriceListProps {
   actionRef?: React.MutableRefObject<ActionType | undefined>
@@ -32,26 +32,30 @@ const SupplierPriceList: React.FC<SupplierPriceListProps> = ({ actionRef, select
   const productService = new ProductService()
 
   useEffect(() => {
-    ;(async () => {
-      const [supplierResp, userResp] = await Promise.all([
-        supplierService.getList({ current: 1, pageSize: 500 }),
-        getUsers({ page: 1, pageSize: 500 }),
-      ])
-      const sDict: Record<string, string> = {}
-      ;(supplierResp.data || []).forEach((s) => {
-        sDict[s.id] = s.name
-      })
-      setSupplierDict(sDict)
+    void (async () => {
+      try {
+        const [supplierResp, userResp] = await Promise.all([
+          supplierService.getList({ current: 1, pageSize: 500 }),
+          getUsers({ page: 1, pageSize: 500 }),
+        ])
+        const sDict: Record<string, string> = {}
+        ;(supplierResp.data || []).forEach((s) => {
+          sDict[s.id] = s.name
+        })
+        setSupplierDict(sDict)
 
-      const uDict: Record<string, string> = {}
-      ;(userResp.data || []).forEach((u: User) => {
-        if (u?.id) {
-          const key = String(u.id)
-          const name = (u.username || u.email || key) as string
-          uDict[key] = name
-        }
-      })
-      setUserDict(uDict)
+        const uDict: Record<string, string> = {}
+        ;(userResp.data || []).forEach((u: User) => {
+          if (u?.id) {
+            const key = String(u.id)
+            const name = (u.username || u.email || key)
+            uDict[key] = name
+          }
+        })
+        setUserDict(uDict)
+      } catch (error) {
+        console.error('Failed to load dictionary data:', error)
+      }
     })()
   }, [])
 
@@ -66,7 +70,7 @@ const SupplierPriceList: React.FC<SupplierPriceListProps> = ({ actionRef, select
           <div style={{ color: '#666', fontSize: '12px' }}>编码: {record.productCode}</div>
         </div>
       ),
-      search: true,
+      
     },
     {
       title: '供应商',
@@ -92,6 +96,7 @@ const SupplierPriceList: React.FC<SupplierPriceListProps> = ({ actionRef, select
       key: 'unit',
       width: 80,
       align: 'center',
+      search: false,
     },
     {
       title: '含税单价',
@@ -100,6 +105,7 @@ const SupplierPriceList: React.FC<SupplierPriceListProps> = ({ actionRef, select
       width: 120,
       align: 'right',
       render: (_, record) => <span style={{ color: '#f50', fontWeight: 'bold' }}>¥{record.taxInclusivePrice.toFixed(2)}</span>,
+      search: false,
     },
     {
       title: '税率',
@@ -110,6 +116,7 @@ const SupplierPriceList: React.FC<SupplierPriceListProps> = ({ actionRef, select
       render: (_, record) => <Tag color="blue">{(record.vatRate * 100).toFixed(0)}%</Tag>,
       valueType: 'select',
       valueEnum: SUPPLIER_VAT_RATE_VALUE_ENUM_PRO,
+      search: false,
     },
     {
       title: '不含税单价',
@@ -118,6 +125,7 @@ const SupplierPriceList: React.FC<SupplierPriceListProps> = ({ actionRef, select
       width: 120,
       align: 'right',
       render: (_, record) => `¥${record.taxExclusivePrice.toFixed(2)}`,
+      search: false,
     },
     {
       title: '税额',
@@ -130,6 +138,7 @@ const SupplierPriceList: React.FC<SupplierPriceListProps> = ({ actionRef, select
         const tax = Number((record.taxInclusivePrice - ex).toFixed(2))
         return `¥${tax.toFixed(2)}`
       },
+      search: false,
     },
     {
       title: '产品名称',
@@ -183,7 +192,7 @@ const SupplierPriceList: React.FC<SupplierPriceListProps> = ({ actionRef, select
       key: 'createdAt',
       width: 150,
       render: (_, record) => record.createdAt ? dayjs(record.createdAt).format('YYYY-MM-DD') : '',
-
+      search: false,
     },
     {
       title: '操作',
@@ -201,7 +210,7 @@ const SupplierPriceList: React.FC<SupplierPriceListProps> = ({ actionRef, select
             danger
             icon={<DeleteOutlined />}
             onClick={() =>
-              modal.confirm({
+              void modal.confirm({
                 title: '确定要删除这条价格记录吗？',
                 content: '删除后无法恢复，请确认操作。',
                 okText: '确定',
@@ -210,7 +219,7 @@ const SupplierPriceList: React.FC<SupplierPriceListProps> = ({ actionRef, select
                   try {
                     await onDelete(record.id)
                     message.success('删除成功')
-                    tableActionRef.current?.reload?.()
+                    await tableActionRef.current?.reload?.()
                   } catch {
                     message.error('删除失败')
                   }
@@ -240,14 +249,8 @@ const SupplierPriceList: React.FC<SupplierPriceListProps> = ({ actionRef, select
         showQuickJumper: true,
         showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条记录`,
       }}
-      search={{ labelWidth: 'auto', span: 6, defaultCollapsed: false, collapsed: false }}
+      search={{ labelWidth: 'auto', span: 4, defaultCollapsed: false }}
       toolBarRender={() => [
-        <Button key="import" icon={<ImportOutlined />} onClick={() => message.info('导入功能未开通')}>
-          导入价格表
-        </Button>,
-        <Button key="export" icon={<ExportOutlined />} onClick={() => message.info('导出功能未开通')}>
-          导出价格表
-        </Button>,
         <Button key="add" type="primary" icon={<PlusOutlined />} onClick={onAdd}>
           新增产品价格
         </Button>,

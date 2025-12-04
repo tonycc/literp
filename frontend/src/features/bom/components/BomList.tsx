@@ -107,10 +107,9 @@ const BomList: React.FC<BomListProps> = ({ onCreate, onEdit, actionRef: external
     { title: '编码', dataIndex: 'code', key: 'code', width: 300 },
     { title: 'BOM名称', dataIndex: 'name', key: 'name' ,width: 300},
     { title: '产品名称', dataIndex: 'productName', key: 'productName', render: (_, r) => r.productName || '-' , width: 300},
-    { title: '变体', dataIndex: 'variantId', key: 'variantId', render: (_, r) => r.variantId ? <Tag color="blue">变体级</Tag> : <Tag>产品级</Tag> ,width: 100},
+    { title: 'BOM级别', dataIndex: 'variantId', key: 'variantId', render: (_, r) => r.variantId ? <Tag color="blue">变体级</Tag> : <Tag>产品级</Tag> ,width: 100},
     { title: '版本', dataIndex: 'version', key: 'version' ,width: 100},
     { title: '子BOM个数', dataIndex: 'childBomCount', key: 'childBomCount', width: 120, render: (_, r) => r.childBomCount ?? 0 },
-    { title: '默认', dataIndex: 'isDefault', key: 'isDefault', render: (_, r) => r.isDefault ? <Tag color="green">默认</Tag> : '-' ,width: 100},  
     { 
       title: '状态', dataIndex: 'status', key: 'status', valueType: 'select', width: 100,
       valueEnum: BOM_STATUS_VALUE_ENUM_PRO
@@ -123,6 +122,8 @@ const BomList: React.FC<BomListProps> = ({ onCreate, onEdit, actionRef: external
       title:'更新时间', dataIndex: 'updatedAt', key: 'updatedAt', width: 200, 
       render: (_, r) => r.updatedAt ? dayjs(r.updatedAt).format('YYYY-MM-DD HH:mm') : '-'
     },
+    { title: '创建人', dataIndex: 'createdBy', key: 'createdBy', width: 150, render: (_, _r) => creatorName || '-' },
+    { title: '更新人', dataIndex: 'updatedBy', key: 'updatedBy', width: 150, render: (_, _r) => updaterName || '-' },
     {
       title: '操作', valueType: 'option', key: 'option', width: 100,
       render: (_: unknown, record: ProductBom) => (

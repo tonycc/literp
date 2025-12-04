@@ -30,10 +30,10 @@ const ProductCategoryManagement = React.lazy(() => import('../../../features/pro
 const ProductVariantsManagement = React.lazy(() => import('../../../features/product-variants/pages/ProductVariantsManagement'));
 const AttributeManagement = React.lazy(() => import('../../../features/attributes/pages/AttributeManagement'));
 const BomManagement = React.lazy(() => import('../../../features/bom/pages/BomManagement'));
-const SupplierManagement = React.lazy(() => import('../../../features/supplier-management/components/SupplierManagement'));
-const SupplierPriceManagement = React.lazy(() => import('../../../features/supplier-management/components/SupplierPriceManagement'));
-const CustomerManagement = React.lazy(() => import('../../../features/customer-management/components/CustomerManagement'));
-const CustomerPriceListManagement = React.lazy(() => import('../../../features/customer-price-list/components/CustomerPriceListManagement'));
+const SupplierManagement = React.lazy(() => import('../../../features/supplier-management/pages/SupplierManagement'));
+const SupplierPriceManagement = React.lazy(() => import('../../../features/supplier-management/pages/SupplierPriceManagement'));
+const CustomerManagement = React.lazy(() => import('../../../features/customer-management/pages/CustomerManagement'));
+const CustomerPriceListManagement = React.lazy(() => import('../../../features/customer-price-list/pages/CustomerPriceListPage'));
 const PurchaseOrderManagement = React.lazy(() => import('../../../features/purchase-order/pages/PurchaseOrderManagement'));
 const PurchaseReceiptManagement = React.lazy(() => import('../../../features/purchase-receipt/components/PurchaseReceiptManagement'));
 const PurchaseReturnManagement = React.lazy(() => import('../../../features/purchase-return/components/PurchaseReturnManagement').then(module => ({ default: module.PurchaseReturnManagement })));

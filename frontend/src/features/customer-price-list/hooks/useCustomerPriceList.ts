@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useMessage, useModal } from '@/shared/hooks';
 import { customerPriceListService } from '../services/customer-price-list.service';
+import type { CreateCustomerPriceListData, UpdateCustomerPriceListData } from '@zyerp/shared';
 
 export const useCustomerPriceList = (reload?: () => void) => {
   const message = useMessage();
@@ -8,6 +9,46 @@ export const useCustomerPriceList = (reload?: () => void) => {
   const [loading, setLoading] = useState(false);
 
   const handleRefresh = useCallback(() => reload?.(), [reload]);
+
+  const handleCreate = useCallback(async (data: CreateCustomerPriceListData) => {
+    try {
+      setLoading(true);
+      const res = await customerPriceListService.create(data);
+      if (res.success) {
+        message.success('创建成功');
+        handleRefresh();
+        return true;
+      } else {
+        message.error(res.message || '创建失败');
+        return false;
+      }
+    } catch {
+      message.error('创建失败');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [message, handleRefresh]);
+
+  const handleUpdate = useCallback(async (id: string, data: UpdateCustomerPriceListData) => {
+    try {
+      setLoading(true);
+      const res = await customerPriceListService.update(id, data);
+      if (res.success) {
+        message.success('更新成功');
+        handleRefresh();
+        return true;
+      } else {
+        message.error(res.message || '更新失败');
+        return false;
+      }
+    } catch {
+      message.error('更新失败');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [message, handleRefresh]);
 
   const handleDelete = useCallback((id: string) => {
     modal.confirm({
@@ -52,5 +93,5 @@ export const useCustomerPriceList = (reload?: () => void) => {
     });
   }, [modal, message, handleRefresh]);
 
-  return { loading, handleDelete, handleBatchDelete, handleRefresh };
+  return { loading, handleCreate, handleUpdate, handleDelete, handleBatchDelete, handleRefresh };
 };

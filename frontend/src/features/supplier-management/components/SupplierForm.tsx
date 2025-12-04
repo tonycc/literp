@@ -26,8 +26,10 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ visible, editingSupplier, o
   }
 
   useEffect(() => {
-    void getDict('supplier_category').then((res) => {
-      setCategoryOptions(res.options)
+    void getDict('supplier-category').then((res) => {
+      if (res.options && res.options.length > 0) {
+        setCategoryOptions(res.options)
+      }
     })
   }, [])
 

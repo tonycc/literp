@@ -2,9 +2,9 @@ import React, { useState, useRef } from 'react';
 import { useMessage } from '@/shared/hooks/useMessage';
 import { supplierPriceService } from '../services/supplier-price.service';
 import type { ActionType } from '@ant-design/pro-components';
-import SupplierPriceList from './SupplierPriceList';
+import SupplierPriceList from '../components/SupplierPriceList';
 import type { SupplierPrice } from '@zyerp/shared';
-import SupplierPriceForm from './SupplierPriceFormPro';
+import SupplierPriceForm from '../components/SupplierPriceForm';
 
 interface SupplierPriceManagementProps {
   className?: string;
@@ -61,7 +61,7 @@ const SupplierPriceManagement: React.FC<SupplierPriceManagementProps> = () => {
               }
               setFormVisible(false)
               setEditingPrice(null)
-              actionRef.current?.reload?.()
+              await actionRef.current?.reload?.()
             } catch {
               message.error('保存失败')
             }

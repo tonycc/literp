@@ -1,27 +1,20 @@
+import type { 
+  ApiResponse, 
+  CustomerPriceList, 
+  CreateCustomerPriceListData, 
+  UpdateCustomerPriceListData,
+  CustomerPriceListResponse,
+  CustomerPriceListParams
+} from '@zyerp/shared';
 import apiClient from '@/shared/services/api';
-import type { ApiResponse, PaginatedResponse } from '@zyerp/shared';
-import type { CustomerPriceList, CustomerPriceListParams, CreateCustomerPriceListData, UpdateCustomerPriceListData } from '../types';
 
-export class CustomerPriceListService {
+class CustomerPriceListService {
   private readonly baseUrl = '/customer-price-lists';
 
-  async getList(params?: CustomerPriceListParams): Promise<PaginatedResponse<CustomerPriceList>> {
-    const response = await apiClient.get<ApiResponse<{ data: CustomerPriceList[]; pagination: { page: number; pageSize: number; total: number } }>>(
-      this.baseUrl,
-      { params }
-    );
-    const backend = response.data.data as unknown as { data: CustomerPriceList[]; pagination: { page: number; pageSize: number; total: number } };
-    return {
-      success: response.data.success,
-      data: backend?.data || [],
-      pagination: {
-        page: backend?.pagination?.page || 1,
-        pageSize: backend?.pagination?.pageSize || 10,
-        total: backend?.pagination?.total || 0,
-      },
-      message: response.data.message,
-      timestamp: response.data.timestamp,
-    };
+  async getList(params: CustomerPriceListParams): Promise<CustomerPriceListResponse> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+    const response = await apiClient.get<CustomerPriceListResponse>(this.baseUrl, { params });
+    return response.data;
   }
 
   async getById(id: string): Promise<ApiResponse<CustomerPriceList>> {
@@ -35,7 +28,7 @@ export class CustomerPriceListService {
   }
 
   async update(id: string, data: UpdateCustomerPriceListData): Promise<ApiResponse<CustomerPriceList>> {
-    const response = await apiClient.put<ApiResponse<CustomerPriceList>>(`${this.baseUrl}/${id}`, data);
+    const response = await apiClient.patch<ApiResponse<CustomerPriceList>>(`${this.baseUrl}/${id}`, data);
     return response.data;
   }
 

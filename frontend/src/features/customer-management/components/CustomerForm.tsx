@@ -17,7 +17,6 @@ import {
   DollarOutlined,
 } from '@ant-design/icons';
 import type { Customer, CreateCustomerData, UpdateCustomerData } from '@zyerp/shared';
-import { CUSTOMER_CATEGORY_OPTIONS, CUSTOMER_CREDIT_LEVEL_OPTIONS } from '@/shared/constants/customer';
 import { getDict } from '@/shared/services/dictionary.service'
 
 type CustomerFormValues = CreateCustomerData & { id?: string };
@@ -37,8 +36,8 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
 }) => {
   const formRef = useRef<ProFormInstance<CustomerFormValues> | undefined>(undefined);
   const isEdit = !!customer;
-  const [categoryOptions, setCategoryOptions] = useState<Array<{ label: string; value: string }>>(CUSTOMER_CATEGORY_OPTIONS)
-  const [creditOptions, setCreditOptions] = useState<Array<{ label: string; value: string }>>(CUSTOMER_CREDIT_LEVEL_OPTIONS)
+  const [categoryOptions, setCategoryOptions] = useState<Array<{ label: string; value: string }>>([])
+  const [creditOptions, setCreditOptions] = useState<Array<{ label: string; value: string }>>([])
 
   useEffect(() => {
     if (customer) {

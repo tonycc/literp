@@ -26,6 +26,7 @@ import MaterialSelectModal from './MaterialSelectModal';
 import BomItemBatchModal from './BomItemBatchModal';
 import { useMessage } from '@/shared/hooks/useMessage';
 // import { useModal } from '@/shared/hooks/useModal';
+import { productService } from '../../product/services/product.service';
 import { routingService } from '../../routing/services/routing.service';
 import dayjs from 'dayjs';
 import { useBomItemsSync } from '../hooks/useBomItemsSync';
@@ -42,6 +43,7 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, edit
   const { products, units, fetchSelectOptions } = useBom();
   const [routingOptions, setRoutingOptions] = useState<RoutingOption[]>([]);
   const [workcenterOptions, setWorkcenterOptions] = useState<WorkcenterOption[]>([]);
+  const [variantOptions, setVariantOptions] = useState<{ label: string; value: string }[]>([]);
   
   // BOM物料项行类型（保留展示字段，同时存储必要ID以便提交）
   type BomItemRow = {
@@ -158,6 +160,25 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, edit
       form.setFieldsValue({
         baseUnitId: unitId
       });
+    }
+
+    // 获取产品变体
+    setVariantOptions([]);
+    form.setFieldValue('variantId', undefined);
+    if (productId) {
+      void (async () => {
+        try {
+          const res = await productService.getProductById(productId);
+          if (res.success && res.data && res.data.variants && res.data.variants.length > 0) {
+            setVariantOptions(res.data.variants.map(v => ({
+              label: `${v.name} ${v.code ? `(${v.code})` : ''}`,
+              value: v.id
+            })));
+          }
+        } catch (e) {
+          console.error('Failed to fetch variants', e);
+        }
+      })();
     }
   };
 
@@ -629,6 +650,18 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, edit
                 onChange={handleProductChange}
               />
             </Col>
+            {variantOptions.length > 0 && (
+              <Col xs={24} sm={12} lg={8}>
+                <ProFormSelect
+                  name="variantId"
+                  label="产品变体"
+                  placeholder="请选择变体（可选）"
+                  options={variantOptions}
+                  showSearch
+                  allowClear
+                />
+              </Col>
+            )}
             <Col xs={24} sm={12} lg={4}>
               <ProFormDigit
                 name="baseQuantity"
