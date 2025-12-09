@@ -29,21 +29,49 @@ export const SalesOrderDetail: React.FC<SalesOrderDetailProps> = ({ visible, ord
         setLoading(false);
       }
     };
-    fetchData();
-  }, [visible, orderId]);
+    void fetchData();
+  }, [visible, orderId, message]);
 
   const columns: ProColumns<SalesOrderItem>[] = [
     { title: '产品', dataIndex: ['product', 'name'] },
-    { title: '数量', dataIndex: 'quantity', valueType: 'digit', width: 100 },
-    { title: '单价', dataIndex: 'price', valueType: 'money', width: 120 },
-    { title: '金额', dataIndex: 'amount', valueType: 'money', width: 120 },
-    { title: '单位', dataIndex: ['unit', 'name'], width: 100 },
+    {
+      title: '数量',
+      dataIndex: 'quantity',
+      width: 100,
+      align: 'right',
+      render: (_, record) => (
+        <span>
+          <span style={{ fontWeight: 500, color: '#1890ff' }}>{Number(record.quantity)}</span>
+          {record.unit?.name && <span style={{ fontSize: '12px', color: '#999', marginLeft: 4 }}>{record.unit.name}</span>}
+        </span>
+      ),
+    },
+    {
+      title: '单价',
+      dataIndex: 'price',
+      width: 120,
+      align: 'right',
+      render: (val) => `¥ ${Number(val)?.toFixed(2) || '0.00'}`,
+    },
+    {
+      title: '金额',
+      dataIndex: 'amount',
+      width: 120,
+      align: 'right',
+      render: (val) => (
+        <span style={{ fontWeight: 600, color: '#52c41a' }}>
+          ¥ {Number(val)?.toFixed(2) || '0.00'}
+        </span>
+      ),
+    },
     { title: '仓库', dataIndex: ['warehouse', 'name'], width: 160 },
   ];
 
-  const items: ProDescriptionsItemProps<SalesOrder>[] = [
-    { title: '订单号', dataIndex: 'id' },
+  const descriptionColumns: ProDescriptionsItemProps<SalesOrder>[] = [
+    { title: '订单号', dataIndex: 'orderNo' },
     { title: '客户名称', dataIndex: 'customerName' },
+    { title: '联系人', dataIndex: 'contactPerson' },
+    { title: '联系方式', dataIndex: 'contactPhone' },
     { title: '订单日期', dataIndex: 'orderDate', valueType: 'date' },
     { title: '状态', dataIndex: 'status' },
     { title: '总金额', dataIndex: 'totalAmount', valueType: 'money' },
@@ -54,7 +82,7 @@ export const SalesOrderDetail: React.FC<SalesOrderDetailProps> = ({ visible, ord
     <Drawer open={visible} width={900} onClose={onClose} destroyOnClose title="订单详情">
       <ProCard loading={loading} split="horizontal" gutter={16}>
         <ProCard>
-          <ProDescriptions<SalesOrder> column={2} dataSource={data || undefined} items={items} bordered />
+          <ProDescriptions<SalesOrder> column={2} dataSource={data || undefined} columns={descriptionColumns} bordered />
         </ProCard>
         <ProCard title="明细项">
           <ProTable<SalesOrderItem>

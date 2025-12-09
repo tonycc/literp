@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Space, Tag, Tooltip } from 'antd';
+import { Button, Tag, Tooltip } from 'antd';
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns, ActionType } from '@ant-design/pro-components';
 import {
@@ -32,13 +32,10 @@ interface CustomerListProps {
 
 const CustomerList: React.FC<CustomerListProps> = ({
   actionRef,
-  selectedRowKeys,
-  onSelectChange,
   onAdd,
   onEdit,
   onView,
   onDelete,
-  onBatchDelete,
   onExport,
 }) => {
   const [categoryValueEnum, setCategoryValueEnum] = useState<Record<string, { text: string }>>({});
@@ -272,10 +269,6 @@ const CustomerList: React.FC<CustomerListProps> = ({
       request={request}
       rowKey="id"
       actionRef={actionRef}
-      rowSelection={{
-        selectedRowKeys,
-        onChange: onSelectChange,
-      }}
       scroll={{ x: 1500 }}
       pagination={{
         showSizeChanger: true,
@@ -305,28 +298,7 @@ const CustomerList: React.FC<CustomerListProps> = ({
           新增客户
         </Button>
       ]}
-      tableAlertRender={({ selectedRowKeys, onCleanSelected }) => (
-        <Space size={24}>
-          <span>
-            已选择 <a style={{ fontWeight: 600 }}>{selectedRowKeys.length}</a> 项
-            <a style={{ marginLeft: 8 }} onClick={onCleanSelected}>
-              取消选择
-            </a>
-          </span>
-        </Space>
-      )}
-      tableAlertOptionRender={() => (
-        <Space size={16}>
-          <Button
-            size="small"
-            danger
-            onClick={onBatchDelete}
-            disabled={selectedRowKeys.length === 0}
-          >
-            批量删除
-          </Button>
-        </Space>
-      )}
+     
       options={{
         setting: {
           listsHeight: 400,

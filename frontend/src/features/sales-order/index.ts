@@ -1,5 +1,5 @@
 // 导出组件
-export { SalesOrderManagement } from './components/SalesOrderManagement';
+export { SalesOrderManagement } from './pages/SalesOrderManagement';
 export { AddSalesOrderModal } from './components/AddSalesOrderModal';
 export { SalesOrderForm } from './components/SalesOrderForm';
 
@@ -7,11 +7,12 @@ export { SalesOrderForm } from './components/SalesOrderForm';
 export type {
   SalesOrder,
   SalesOrderStatus,
-  PaymentMethod,
-  SalesOrderQueryParams,
+  SalesOrderListParams as SalesOrderQueryParams,
   SalesOrderFormData,
   SalesOrderStats
-} from './types';
+} from '@zyerp/shared';
+
+export { SalesOrderPaymentMethod as PaymentMethod } from '@zyerp/shared';
 // 导出共享的枚举映射（前端统一常量）
 export {
   SALES_ORDER_STATUS_VALUE_ENUM_PRO,

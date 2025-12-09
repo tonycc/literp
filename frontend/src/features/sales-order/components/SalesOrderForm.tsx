@@ -1,137 +1,209 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import dayjs from 'dayjs';
 import { Card, Row, Col } from 'antd';
-import type { SalesOrderFormData } from '../types';
-import { PaymentMethod } from '../types';
 import { SALES_ORDER_PAYMENT_METHOD_VALUE_ENUM_PRO } from '@/shared/constants/sales-order';
+import { 
+  type SalesOrderBase,
+  type SalesOrderFormData,
+  type SalesOrderFormItem,
+  type SalesOrderPaymentMethodType,
+} from '@zyerp/shared';
 import { ProForm, ProFormDatePicker, ProFormDigit, ProFormSelect, ProFormText, ProFormTextArea, ProFormList } from '@ant-design/pro-components';
 import type { ProFormInstance } from '@ant-design/pro-components';
+import type { DefaultOptionType } from 'antd/es/select';
 import { productService } from '@/features/product/services/product.service';
 import { customerService } from '@/features/customer-management/services/customer.service';
 import { getUsers } from '@/shared/services';
-import type { ProductInfo } from '@zyerp/shared';
+
+// 1. 定义表单值类型 (Form Model)
+// 直接引用 shared 中的泛型领域模型，实现单点维护
+// TDate=Dayjs (UI使用), TPaymentMethod=SharedType, TItem=SharedItem
+export type SalesOrderFormValues = SalesOrderBase<dayjs.Dayjs, SalesOrderPaymentMethodType, SalesOrderFormItem> & {
+  // UI 辅助字段 (不在后端模型中)
+  id?: string;
+  customerId?: string;
+};
 
 interface SalesOrderFormProps {
-  formRef?: React.MutableRefObject<ProFormInstance<SalesOrderFormData> | undefined>;
+  formRef?: React.MutableRefObject<ProFormInstance<SalesOrderFormValues> | undefined>;
   onSubmit: (values: SalesOrderFormData) => Promise<void>;
   initialValues?: Partial<SalesOrderFormData>;
+  mode?: 'create' | 'edit';
 }
 
-type SalesOrderItemForm = NonNullable<SalesOrderFormData['items']>[number];
+// 产品选项类型，与 ProductService.getProductOptions 返回一致
+type ProductOptionItem = {
+  id: string;
+  code: string;
+  name: string;
+  specification?: string;
+  unit?: { name: string; symbol: string };
+  primaryImageUrl?: string;
+};
 
-export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({ formRef, onSubmit, initialValues }) => {
-  const handleFinish = async (values: SalesOrderFormData) => {
-    const person = String(values?.contactPerson ?? '').trim();
-    const phone = String(values?.contactPhone ?? '').trim();
-    const contactInfoJoined = [person, phone].filter(Boolean).join(' / ');
-    const formatDate = (v: unknown): string => {
-      if (typeof v === 'string' && v) return v;
-      const maybe = v as { format?: (f: string) => string } | undefined;
-      if (maybe && typeof maybe.format === 'function') return maybe.format('YYYY-MM-DD');
-      return dayjs().format('YYYY-MM-DD');
-    };
-    const formData: SalesOrderFormData = {
-      customerName: values.customerName as string,
-      contactInfo: contactInfoJoined || '',
-      orderDate: formatDate(values.orderDate as unknown),
-      deliveryDate: formatDate(values.deliveryDate as unknown),
-      salesManager: (values.salesManager as string) || undefined,
-      items: Array.isArray(values.items)
-        ? (values.items as SalesOrderItemForm[]).map((it) => ({
-            productId: String(it.productId || ''),
-            productName: it.productName ? String(it.productName) : undefined,
-            productCode: it.productCode ? String(it.productCode) : undefined,
-            specification: it.specification ? String(it.specification) : undefined,
-            unit: it.unit ? String(it.unit) : undefined,
-            quantity: Number(it.quantity || 0),
-            unitPriceWithTax: Number(it.unitPriceWithTax || 0),
+type ProductSelectOption = DefaultOptionType & {
+  data?: ProductOptionItem;
+};
+
+const safeString = (val: unknown): string => {
+  if (val === null || val === undefined) return '';
+  if (typeof val === 'string') return val;
+  if (typeof val === 'number') return String(val);
+  return '';
+};
+
+export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({ formRef, onSubmit, initialValues, mode = 'create' }) => {
+  
+  const transformedInitialValues = useMemo<SalesOrderFormValues>(() => {
+    const iv = initialValues || {};
+    const contactInfoParts = (safeString(iv.contactInfo)).split(' / ');
+
+    return {
+      customerName: iv.customerName ?? '',
+      contactInfo: iv.contactInfo ?? '',
+      contactPerson: contactInfoParts[0] || iv.contactPerson || '',
+      contactPhone: contactInfoParts[1] || iv.contactPhone || '',
+      orderDate: iv.orderDate ? dayjs(iv.orderDate) : dayjs(),
+      deliveryDate: iv.deliveryDate ? dayjs(iv.deliveryDate) : dayjs().add(30, 'day'),
+      salesManager: iv.salesManager ?? '',
+      taxRate: iv.taxRate ?? 13,
+      paymentMethod: iv.paymentMethod ?? 'cash',
+      plannedPaymentDate: iv.plannedPaymentDate ? dayjs(iv.plannedPaymentDate) : dayjs().add(15, 'day'),
+      remark: iv.remark ?? '',
+      totalPriceWithTax: iv.totalPriceWithTax ?? 0,
+      items: Array.isArray(iv.items) && iv.items.length > 0
+        ? iv.items.map((item: SalesOrderFormItem) => ({
+            productId: item.productId,
+            productName: item.productName,
+            productCode: item.productCode,
+            specification: item.specification,
+            unit: item.unit,
+            quantity: item.quantity,
+            unitPriceWithTax: item.unitPriceWithTax
           }))
-        : undefined,
+        : (mode === 'create' ? [{ productId: '', quantity: 1, unitPriceWithTax: 0 }] : []),
+    };
+  }, [initialValues, mode]);
+
+  const handleFinish = async (vals: SalesOrderFormValues) => {
+    const values = vals;
+    const person = safeString(values.contactPerson).trim();
+    const phone = safeString(values.contactPhone).trim();
+    const contactInfoJoined = [person, phone].filter(Boolean).join(' / ');
+    
+    const formatDate = (v: dayjs.Dayjs | string | undefined): string => {
+      if (!v) return dayjs().format('YYYY-MM-DD');
+      return dayjs(v).format('YYYY-MM-DD');
+    };
+    
+    const formData: SalesOrderFormData = {
+      customerName: values.customerName || '',
+      contactInfo: contactInfoJoined || values.contactInfo || '',
+      contactPerson: person,
+      contactPhone: phone,
+      orderDate: formatDate(values.orderDate),
+      deliveryDate: formatDate(values.deliveryDate),
+      salesManager: values.salesManager || '',
+      items: (values.items || []).map((it) => ({
+          productId: String(it.productId || ''),
+          productName: it.productName ? String(it.productName) : undefined,
+          productCode: it.productCode ? String(it.productCode) : undefined,
+          specification: it.specification ? String(it.specification) : undefined,
+          unit: it.unit ? String(it.unit) : undefined,
+          quantity: Number(it.quantity || 0),
+          unitPriceWithTax: Number(it.unitPriceWithTax || 0),
+        })),
       taxRate: Number(values.taxRate) || 0,
-      paymentMethod: values.paymentMethod as unknown as PaymentMethod,
-      plannedPaymentDate: formatDate(values.plannedPaymentDate as unknown),
-      remark: values.remark as string,
+      paymentMethod: (values.paymentMethod || 'cash'),
+      plannedPaymentDate: formatDate(values.plannedPaymentDate),
+      remark: values.remark,
+      totalPriceWithTax: values.totalPriceWithTax,
     };
     await onSubmit(formData);
     return true;
   };
 
-  const onValuesChange = (changed: unknown, all: unknown) => {
-    const form = formRef?.current;
-    if (!form) return;
-    const values = all as Partial<SalesOrderFormData>;
-    const items: SalesOrderItemForm[] = Array.isArray(values.items) ? (values.items as SalesOrderItemForm[]) : [];
-    const total = items.reduce((sum, it) => sum + Number(it.unitPriceWithTax || 0) * Number(it.quantity || 0), 0);
-    form.setFieldsValue({ totalPriceWithTax: Number(total.toFixed(2)) });
+  const onValuesChange = (changedValues: Partial<SalesOrderFormValues>, allValues: SalesOrderFormValues) => {
+    const items = allValues.items || [];
+    // 当数量或单价发生变化时，重新计算总价
+    if (changedValues.items || changedValues.taxRate !== undefined) {
+      const total = items.reduce((sum, it) => {
+        const price = Number(it?.unitPriceWithTax || 0);
+        const qty = Number(it?.quantity || 0);
+        return sum + price * qty;
+      }, 0);
+      
+      const currentTotal = Number(formRef?.current?.getFieldValue('totalPriceWithTax') || 0);
+      const newTotal = Number(total.toFixed(2));
+      
+      if (currentTotal !== newTotal) {
+        formRef?.current?.setFieldValue('totalPriceWithTax', newTotal);
+      }
+    }
   };
 
   return (
-    <ProForm<SalesOrderFormData>
+    <ProForm<SalesOrderFormValues>
       formRef={formRef}
       layout="vertical"
-      request={async () => {
-        const iv = initialValues ?? {};
-        const data = {
-          customerName: iv.customerName ?? '',
-          contactInfo: iv.contactInfo ?? '',
-          contactPerson: (iv.contactInfo ?? '').split(' / ')[0] ?? '',
-          contactPhone: (iv.contactInfo ?? '').split(' / ')[1] ?? '',
-          orderDate: iv.orderDate ? dayjs(iv.orderDate) : dayjs(),
-          deliveryDate: iv.deliveryDate ? dayjs(iv.deliveryDate) : dayjs().add(30, 'day'),
-          salesManager: iv.salesManager ?? '',
-          taxRate: iv.taxRate ?? 13,
-          paymentMethod: (iv.paymentMethod ?? PaymentMethod.CASH) as PaymentMethod,
-          plannedPaymentDate: iv.plannedPaymentDate ? dayjs(iv.plannedPaymentDate) : dayjs().add(15, 'day'),
-          remark: iv.remark ?? '',
-          totalPriceWithTax: iv.totalPriceWithTax ?? 0,
-        };
-        return data as unknown as SalesOrderFormData;
-      }}
-      params={{ ivKey: JSON.stringify(initialValues ?? {}) }}
+      initialValues={transformedInitialValues}
       onFinish={handleFinish}
       onValuesChange={onValuesChange}
       submitter={false}
     >
       <Card size="small" title="客户信息" style={{ marginBottom: 16 }}>
         <Row gutter={16}>
-          <Col span={8}>
-            <ProFormSelect
-              name="customerId"
-              label="选择客户"
-              showSearch
-              rules={[{ required: true, message: '请选择客户' }]}
-              request={async ({ keyWords }) => {
-                const res = await customerService.getCustomerOptions({ keyword: keyWords });
-                return (res.data || []).map((c) => ({ label: c.name, value: c.id }));
-              }}
-              fieldProps={{
-                onChange: async (val: string, option) => {
-                  const form = formRef?.current;
-                  let label = '';
-                  if (typeof option === 'object' && option && Object.prototype.hasOwnProperty.call(option, 'label')) {
-                    label = String((option as Record<string, unknown>).label ?? '');
-                  }
-                  form?.setFieldsValue?.({ customerName: label });
-                  if (val) {
-                    const resp = await customerService.getById(val);
-                    const c = resp.data;
-                    form?.setFieldsValue?.({
-                      contactPerson: String(c?.contactPerson ?? ''),
-                      contactPhone: String(c?.phone ?? ''),
-                    });
-                  }
-                },
-              }}
-            />
-          </Col>
-           <Col span={6}>
+          {mode === 'create' ? (
+            <Col span={8}>
+              <ProFormSelect
+                name="customerId"
+                label="选择客户"
+                showSearch
+                rules={[{ required: true, message: '请选择客户' }]}
+                request={async (params) => {
+                  const { keyWords } = params as { keyWords?: string };
+                  const res = await customerService.getCustomerOptions({ keyword: keyWords });
+                  return (res.data || []).map((c) => ({ label: c.name, value: c.id }));
+                }}
+                fieldProps={{
+                  onChange: (val: unknown, option: unknown) => {
+                    void (async () => {
+                      const form = formRef?.current;
+                      let label = '';
+                      if (option && typeof option === 'object' && 'label' in option) {
+                        const l = (option as Record<string, unknown>).label;
+                        if (typeof l === 'string') label = l;
+                      }
+                      form?.setFieldsValue?.({ customerName: label });
+                      if (val) {
+                        const resp = await customerService.getById(safeString(val));
+                        const c = resp.data;
+                        form?.setFieldsValue?.({
+                          contactPerson: String(c?.contactPerson ?? ''),
+                          contactPhone: String(c?.phone ?? ''),
+                        });
+                      }
+                    })();
+                  },
+                }}
+              />
+            </Col>
+          ) : (
+            <Col span={8}>
+              <ProFormText name="customerName" label="客户名称" readonly />
+            </Col>
+          )}
+          <Col span={6}>
             <ProFormSelect
               name="salesManager"
               label="销售负责人"
               rules={[{ required: true, message: '请选择销售负责人' }]}
               fieldProps={{
                 showSearch: true,
-                filterOption: (input, option) => String(option?.label || '').toLowerCase().includes(input.toLowerCase()),
+                filterOption: (input, option) => {
+                  const label = (option as { label?: unknown } | undefined)?.label;
+                  return typeof label === 'string' && label.toLowerCase().includes(input.toLowerCase());
+                },
               }}
               request={async () => {
                 const res = await getUsers({ page: 1, pageSize: 999 });
@@ -139,16 +211,28 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({ formRef, onSubmi
               }}
             />
           </Col>
-          <Col span={0}>
-            <ProFormText name="customerName" label="客户名称" rules={[{ required: true, message: '请输入客户名称' }]} hidden/>
-          </Col>
+          {mode === 'create' && (
+            <Col span={0}>
+              <ProFormText name="customerName" label="客户名称" rules={[{ required: true, message: '请输入客户名称' }]} hidden />
+            </Col>
+          )}
           <Col span={6}>
-            <ProFormText name="contactPerson" label="联系人" rules={[{ required: true, message: '请输入联系人' }]} disabled/>
+            <ProFormText
+              name="contactPerson"
+              label="联系人"
+              rules={[{ required: true, message: '请输入联系人' }]}
+              readonly={mode === 'edit'}
+            />
           </Col>
           <Col span={4}>
-            <ProFormText name="contactPhone" label="联系方式" rules={[{ required: true, message: '请输入联系方式' }]} disabled/>
+            <ProFormText
+              name="contactPhone"
+              label="联系方式"
+              rules={[{ required: true, message: '请输入联系方式' }]}
+              readonly={mode === 'edit'}
+            />
           </Col>
-         
+
         </Row>
       </Card>
 
@@ -162,7 +246,6 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({ formRef, onSubmi
         </Row>
         <ProFormList
           name="items"
-          initialValue={[{}]}
           creatorButtonProps={{ creatorButtonText: '添加产品' }}
           copyIconProps={false}
           deleteIconProps={{ tooltipText: '移除' }}
@@ -176,63 +259,78 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({ formRef, onSubmi
                     label={false}
                     showSearch
                     rules={[{ required: true, message: '请选择产品' }]}
-                    request={async ({ keyWords }) => {
-                    const res = await productService.getProductOptions({});
+                    request={async (params) => {
+                    const { keyWords } = params as { keyWords?: string };
+                    // 显式处理类型
+                    const res = await productService.getProductOptions({ keyword: keyWords });
                     const list = res.data || [];
-                    const filtered = keyWords ? list.filter((p) => (p.name || '').includes(keyWords) || (p.code || '').includes(keyWords)) : list;
-                    return filtered.map((p) => ({ label: `${p.name}${p.code ? ` (${p.code})` : ''}`, value: p.id, data: p }));
+                    return list.map((p) => ({ label: `${p.name}${p.code ? ` (${p.code})` : ''}`, value: p.id, data: p }));
                   }}
                   fieldProps={{
-                    filterOption: (input, option) => String(option?.label || '').toLowerCase().includes(input.toLowerCase()),
+                    filterOption: (input, option) => {
+                      const label = (option as { label?: unknown } | undefined)?.label;
+                      return typeof label === 'string' && label.toLowerCase().includes(input.toLowerCase());
+                    },
                     allowClear: true,
-                    onChange: async (value, option) => {
-                      const form = formRef?.current;
-                      const all = form?.getFieldsValue?.() as SalesOrderFormData | undefined;
-                      const items: SalesOrderItemForm[] = Array.isArray(all?.items) ? ([...(all?.items as SalesOrderItemForm[])]) : [];
-                      const idx = typeof f.name === 'number' ? f.name : Number(f.name);
-                      const current = items[idx] || {};
+                    onChange: (value, option) => {
+                      void (async () => {
+                        const form = formRef?.current;
+                        const all = form?.getFieldsValue?.();
+                        const items = (all?.items && Array.isArray(all.items)) ? [...all.items] : [];
+                        const idx = typeof f.name === 'number' ? f.name : Number(f.name);
+                        const current = items[idx] || {};
 
-                        let nameFromOption = (option as { label?: string })?.label ?? '';
+                        let nameFromOption = '';
                         let codeFromOption = '';
                         let specFromOption = '';
                         let unitSymbolFromOption = '';
-
-                      if (!value) {
-                        items[idx] = { ...current, productId: '', productName: '', productCode: '', specification: '', unit: '' };
-                        form?.setFieldsValue?.({ items });
-                        return;
-                      }
-
-                      const optData = (option as unknown as { data?: { name?: string; code?: string; specification?: string; unit?: { name: string; symbol: string } } })?.data;
-                      if (optData) {
-                        nameFromOption = optData.name ?? nameFromOption;
-                        codeFromOption = optData.code ?? '';
-                        specFromOption = optData.specification ?? '';
-                        unitSymbolFromOption = optData.unit?.name ?? '';
-                        if (!specFromOption || !unitSymbolFromOption) {
-                          const detail = await productService.getProductById(String(value));
-                          const d = detail.data as ProductInfo | undefined;
-                          specFromOption = specFromOption || String(d?.specification ?? '');
-                          unitSymbolFromOption = unitSymbolFromOption || String(d?.unit?.name ?? '');
+                        
+                        if (option && typeof option === 'object' && 'label' in option) {
+                            const l = (option as Record<string, unknown>).label;
+                            if (typeof l === 'string') nameFromOption = l;
                         }
-                      } else {
-                        const detail = await productService.getProductById(String(value));
-                        const d = detail.data as ProductInfo | undefined;
-                        nameFromOption = String(d?.name ?? nameFromOption ?? '');
-                        codeFromOption = String(d?.code ?? '');
-                        specFromOption = String(d?.specification ?? '');
-                        unitSymbolFromOption = String(d?.unit?.name ?? '');
-                      }
 
-                      items[idx] = {
-                        ...current,
-                        productId: String(value ?? ''),
-                        productName: nameFromOption,
-                        productCode: codeFromOption,
-                        specification: specFromOption,
-                        unit: unitSymbolFromOption,
-                      };
-                      form?.setFieldsValue?.({ items });
+                        if (!value) {
+                          items[idx] = { ...current, productId: '', productName: '', productCode: '', specification: '', unit: '' };
+                          form?.setFieldsValue?.({ items });
+                          return;
+                        }
+
+                        const valStr = safeString(value);
+
+                        const optData = (option as ProductSelectOption)?.data;
+                        if (optData) {
+                          nameFromOption = optData.name ?? nameFromOption;
+                          codeFromOption = optData.code ?? '';
+                          specFromOption = optData.specification ?? '';
+                          unitSymbolFromOption = optData.unit?.name ?? '';
+                          if (!specFromOption || !unitSymbolFromOption) {
+                            const detail = await productService.getProductById(valStr);
+                            const d = detail.data;
+                            specFromOption = specFromOption || String(d?.specification ?? '');
+                            unitSymbolFromOption = unitSymbolFromOption || String(d?.unit?.name ?? '');
+                          }
+                        } else {
+                          const detail = await productService.getProductById(valStr);
+                          const d = detail.data;
+                          nameFromOption = String(d?.name ?? nameFromOption ?? '');
+                          codeFromOption = String(d?.code ?? '');
+                          specFromOption = String(d?.specification ?? '');
+                          unitSymbolFromOption = String(d?.unit?.name ?? '');
+                        }
+
+                        items[idx] = {
+                          ...current,
+                          productId: valStr,
+                          productName: nameFromOption,
+                          productCode: codeFromOption,
+                          specification: specFromOption,
+                          unit: unitSymbolFromOption,
+                          quantity: current.quantity || 1,
+                          unitPriceWithTax: current.unitPriceWithTax || 0
+                        };
+                        form?.setFieldsValue?.({ items });
+                      })();
                     },
                   }}
                 />

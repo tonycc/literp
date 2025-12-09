@@ -1,4 +1,4 @@
-import { SalesOrderStatus } from '@zyerp/shared'
+import { SalesOrderStatus, SalesOrderPaymentMethod } from '@zyerp/shared'
 
 export const SALES_ORDER_STATUS_OPTIONS = [
   { label: '草稿', value: SalesOrderStatus.DRAFT },
@@ -19,15 +19,6 @@ export const SALES_ORDER_STATUS_VALUE_ENUM_PRO = {
   [SalesOrderStatus.COMPLETED]: { text: '已完成' },
   [SalesOrderStatus.CANCELLED]: { text: '已取消' },
 } as const
-
-export enum SalesOrderPaymentMethod {
-  CASH = 'cash',
-  BANK_TRANSFER = 'bank_transfer',
-  CREDIT_CARD = 'credit_card',
-  CHECK = 'check',
-  INSTALLMENT = 'installment',
-  ADVANCE = 'advance',
-}
 
 export const SALES_ORDER_PAYMENT_METHOD_OPTIONS = [
   { label: '现金', value: SalesOrderPaymentMethod.CASH },

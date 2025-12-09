@@ -1,10 +1,10 @@
-import React from 'react';
-import { Button, Tag, Tooltip, Table } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import React, { useMemo } from 'react';
+import dayjs from 'dayjs';
+import { Button, Tag } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
-import type { PurchaseOrder, PurchaseOrderItem, PurchaseOrderListParams } from '@zyerp/shared';
+import type { PurchaseOrder, PurchaseOrderItem, PurchaseOrderListParams, ProductInfo } from '@zyerp/shared';
 import { purchaseOrderService } from '../services/purchase-order.service';
 import { normalizeTableParams } from '@/shared/utils/normalizeTableParams';
 import { PURCHASE_ORDER_STATUS_VALUE_ENUM_PRO } from '@/shared/constants/purchase-order';
@@ -20,162 +20,222 @@ export interface PurchaseOrderListProps {
   refreshKey?: number;
 }
 
-type PurchaseOrderListRow = PurchaseOrder & { 
-  supplierName?: string; 
-  expectedDeliveryDate?: string; 
-  totalAmount?: number; 
+/**
+ * 扁平化的采购订单行数据结构
+ * 用于支持表格行合并展示
+ */
+interface PurchaseOrderFlatRow {
+  id: string; // 唯一标识
+  orderId: string;
+  isHead: boolean; // 是否为合并行的首行
+  rowSpan: number; // 合并行数
+
+  // 订单层级信息
+  orderNo: string;
+  supplierName: string;
+  orderDate: string;
+  expectedDeliveryDate: string;
+  status: string;
+  totalAmount: number;
+  currency: string;
+  productCount: number; // 产品种数
+
+  // 产品明细层级信息
+  productName?: string;
+  productCode?: string;
+  specification?: string;
+  unitName?: string;
+  quantity?: number;
+  price?: number;
+  amount?: number;
+  warehouseName?: string;
+
+  // 原始数据引用
+  originOrder: PurchaseOrder;
+  originItem?: PurchaseOrderItem;
+}
+
+/**
+ * 扩展 PurchaseOrder 类型以包含列表接口可能返回的额外字段
+ * 避免在代码中使用 as any
+ */
+interface PurchaseOrderWithDetails extends PurchaseOrder {
   items?: PurchaseOrderItem[];
-  productCount?: number;
-};
+  supplier?: { name: string };
+  supplierName?: string;
+  expectedDeliveryDate?: string | Date;
+}
 
 export const PurchaseOrderList: React.FC<PurchaseOrderListProps> = ({
   onAdd,
   onView,
   onEdit,
   onDelete,
-  selectedRowKeys,
-  onSelectChange,
   refreshKey,
 }) => {
-  // 子表格列配置
-  const productColumns: ColumnsType<PurchaseOrderItem> = [
-    {
-      title: '序号',
-      dataIndex: 'index',
-      key: 'index',
-      width: 48,
-      render: (_value, _record, index) => index + 1,
-    },
-    {
-      title: '产品名称',
-      dataIndex: ['product', 'name'],
-      key: 'productName',
-      ellipsis: true,
-      width: 180,
-    },
-    {
-      title: '产品编码',
-      dataIndex: ['product', 'code'],
-      key: 'productCode',
-      width: 120,
-      render: (code: string) => code || '-',
-    },
-    {
-      title: '数量',
-      dataIndex: 'quantity',
-      key: 'quantity',
-      width: 80,
-      align: 'right' as const,
-      render: (quantity: number) => (
-        <span style={{ fontWeight: 500, color: '#1890ff' }}>
-          {quantity}
-        </span>
-      ),
-    },
-    {
-      title: '单位',
-      dataIndex: ['unit', 'name'],
-      key: 'unit',
-      width: 60,
-      render: (name: string, record: PurchaseOrderItem) => 
-        name || record.unit?.symbol || '-',
-    },
-    {
-      title: '单价',
-      dataIndex: 'price',
-      key: 'price',
-      width: 100,
-      align: 'right' as const,
-      render: (price: number) => `¥${price?.toFixed(2) || '0.00'}`,
-    },
-    {
-      title: '金额',
-      dataIndex: 'amount',
-      key: 'amount',
-      width: 100,
-      align: 'right' as const,
-      render: (amount: number) => (
-        <span style={{ fontWeight: 600, color: '#52c41a' }}>
-          ¥{amount?.toFixed(2) || '0.00'}
-        </span>
-      ),
-    },
-    {
-      title: '仓库',
-      dataIndex: ['warehouse', 'name'],
-      key: 'warehouse',
-      width: 120,
-      ellipsis: true,
-      render: (name: string) => name || '-',
-    },
-  ];
+  
+  // 扁平化数据处理
+  const flattenPurchaseOrders = (orders: PurchaseOrder[]): PurchaseOrderFlatRow[] => {
+    const flatRows: PurchaseOrderFlatRow[] = [];
 
-  const columns: ProColumns<PurchaseOrderListRow>[] = [
-    { title: '序号', dataIndex: 'index', valueType: 'indexBorder', width: 48, fixed: 'left' },
+    orders.forEach(order => {
+      // 使用类型断言处理可能的额外字段
+      const orderWithDetails = order as PurchaseOrderWithDetails;
+      const items = orderWithDetails.items || [];
+      const rowSpan = Math.max(items.length, 1);
+      const supplierName = orderWithDetails.supplier?.name || orderWithDetails.supplierName || '-';
+
+      const commonFields = {
+        orderId: order.id,
+        orderNo: order.orderNo || order.id,
+        supplierName,
+        orderDate: order.orderDate ? dayjs(order.orderDate).format('YYYY-MM-DD') : '-',
+        expectedDeliveryDate: orderWithDetails.expectedDeliveryDate ? dayjs(orderWithDetails.expectedDeliveryDate).format('YYYY-MM-DD') : '-',
+        status: order.status,
+        totalAmount: order.amount || 0,
+        currency: order.currency || 'CNY',
+        productCount: items.length,
+        originOrder: order,
+      };
+
+      if (items.length === 0) {
+        // 无明细的订单
+        flatRows.push({
+          id: order.id,
+          isHead: true,
+          rowSpan: 1,
+          ...commonFields,
+        });
+      } else {
+        // 有明细的订单
+        items.forEach((item, index) => {
+          const product = item.product as ProductInfo | undefined;
+          flatRows.push({
+            id: item.id || `${order.id}_${index}`,
+            isHead: index === 0,
+            rowSpan: rowSpan,
+            ...commonFields,
+            
+            productName: product?.name || item.product?.name,
+            productCode: product?.code || item.product?.code,
+            specification: product?.specification || '-',
+            unitName: item.unit?.name || item.unit?.symbol || '-',
+            quantity: item.quantity,
+            price: item.price,
+            amount: item.amount,
+            warehouseName: item.warehouse?.name || '-',
+            
+            originItem: item,
+          });
+        });
+      }
+    });
+
+    return flatRows;
+  };
+
+  const columns = useMemo<ProColumns<PurchaseOrderFlatRow>[]>(() => [
     {
       title: '订单号',
       dataIndex: 'orderNo',
-      ellipsis: true,
       width: 140,
+      fixed: 'left',
+      onCell: (record) => ({ rowSpan: record.isHead ? record.rowSpan : 0 }),
+      search: false, // 使用隐藏的搜索字段
+      render: (text) => <span style={{ fontWeight: 500 }}>{text}</span>,
       copyable: true,
     },
     {
       title: '供应商',
       dataIndex: 'supplierName',
-      ellipsis: true,
       width: 140,
+      ellipsis: true,
+      onCell: (record) => ({ rowSpan: record.isHead ? record.rowSpan : 0 }),
+      search: false, // 使用隐藏的搜索字段
     },
     {
-      title: '产品数量',
-      dataIndex: 'items',
-      key: 'productCount',
+      title: '订单日期',
+      dataIndex: 'orderDate',
+      valueType: 'date',
       width: 100,
-      align: 'center' as const,
+      onCell: (record) => ({ rowSpan: record.isHead ? record.rowSpan : 0 }),
+      search: false,
+    },
+    {
+      title: '预期交付',
+      dataIndex: 'expectedDeliveryDate',
+      valueType: 'date',
+      width: 100,
+      onCell: (record) => ({ rowSpan: record.isHead ? record.rowSpan : 0 }),
+      search: false,
       render: (_, record) => {
-        const items = record.items || [];
-        if (items.length === 0) return '-';
+        if (record.expectedDeliveryDate === '-') return '-';
+        const date = dayjs(record.expectedDeliveryDate);
+        const today = dayjs();
+        const isOverdue = date.isBefore(today, 'day');
+        const isNearDue = Math.abs(date.diff(today, 'day')) <= 7 && !isOverdue;
         
         return (
-          <Tag color="blue" style={{ margin: 0, fontSize: '14px' }}>
-            {items.length} 种产品
-          </Tag>
+          <div style={{ 
+            color: isOverdue ? '#ff4d4f' : isNearDue ? '#fa8c16' : '#262626',
+            fontWeight: isOverdue || isNearDue ? 600 : 'normal'
+          }}>
+            {record.expectedDeliveryDate}
+          </div>
         );
-      },
+      }
     },
     {
-      title: '总数量',
-      dataIndex: 'items',
-      key: 'totalQuantity',
-      valueType: 'digit',
-      width: 80,
-      render: (_, record) => {
-        const totalQuantity = (record.items || []).reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
-        return (
-          <Tooltip title={`共 ${record.items?.length || 0} 种产品，总数量 ${totalQuantity}`}>
-            <span>{totalQuantity}</span>
-          </Tooltip>
-        );
-      },
-    },
-    { title: '订单日期', dataIndex: 'orderDate', valueType: 'date', width: 100 },
-    { title: '预期交付', dataIndex: 'expectedDeliveryDate', valueType: 'date', width: 100 },
-    {
-      title: '总金额',
-      dataIndex: 'totalAmount',
-      valueType: 'money',
-      width: 120,
-      render: (_, record) => {
-        const amount = record.amount || 0;
-        const currency = record.currency || 'CNY';
-        return (
-          <Tooltip title={`${currency} ${amount.toFixed(2)}`}>
-            <span style={{ fontWeight: 500, color: '#1890ff' }}>
-              {currency === 'CNY' ? '¥' : currency === 'USD' ? '$' : `${currency} `}
-              {amount.toFixed(2)}
+      title: '采购产品明细',
+      children: [
+        {
+          title: '产品名称',
+          dataIndex: 'productName',
+          width: 150,
+          ellipsis: true,
+        },
+        {
+          title: '产品编码',
+          dataIndex: 'productCode',
+          width: 100,
+        },
+        {
+          title: '规格',
+          dataIndex: 'specification',
+          width: 100,
+          ellipsis: true,
+        },
+        {
+          title: '数量',
+          dataIndex: 'quantity',
+          width: 80,
+          align: 'right',
+          render: (val, record) => (
+             <span>
+               <span style={{ fontWeight: 500, color: '#1890ff' }}>{val}</span>
+               {record.unitName !== '-' && <span style={{ fontSize: '12px', color: '#999', marginLeft: 4 }}>{record.unitName}</span>}
+             </span>
+          ),
+        },
+        {
+          title: '单价',
+          dataIndex: 'price',
+          width: 100,
+          align: 'right',
+          render: (val, record) => `${record.currency === 'CNY' ? '¥' : record.currency} ${Number(val)?.toFixed(2) || '0.00'}`,
+        },
+        {
+          title: '金额',
+          dataIndex: 'amount',
+          width: 100,
+          align: 'right',
+          render: (val, record) => (
+            <span style={{ fontWeight: 600, color: '#52c41a' }}>
+              {record.currency === 'CNY' ? '¥' : record.currency} {Number(val)?.toFixed(2) || '0.00'}
             </span>
-          </Tooltip>
-        );
-      },
+          ),
+        },
+      ]
     },
     {
       title: '状态',
@@ -183,14 +243,17 @@ export const PurchaseOrderList: React.FC<PurchaseOrderListProps> = ({
       valueType: 'select',
       valueEnum: PURCHASE_ORDER_STATUS_VALUE_ENUM_PRO,
       width: 80,
-      render: (status) => {
-        const statusConfig = PURCHASE_ORDER_STATUS_VALUE_ENUM_PRO[String(status)];
-        const color = statusConfig?.status === 'Success'
+      onCell: (record) => ({ rowSpan: record.isHead ? record.rowSpan : 0 }),
+      search: false, // 使用隐藏的搜索字段
+      render: (_dom, record) => {
+        const statusConfig = PURCHASE_ORDER_STATUS_VALUE_ENUM_PRO[record.status as keyof typeof PURCHASE_ORDER_STATUS_VALUE_ENUM_PRO];
+        const statusType = statusConfig?.status;
+        const color = statusType === 'Success'
           ? 'success'
-          : statusConfig?.status === 'Error'
+          : statusType === 'Error'
           ? 'error'
-          : statusConfig?.status === 'Warning'
-          ? 'warning'
+          : statusType === 'Processing'
+          ? 'processing'
           : 'default';
         return (
           <Tag color={color} style={{ margin: 0 }}>
@@ -199,173 +262,100 @@ export const PurchaseOrderList: React.FC<PurchaseOrderListProps> = ({
         );
       },
     },
+    // 隐藏的搜索字段
+    {
+      title: '订单号',
+      dataIndex: 'orderNo',
+      key: 'search_orderNo',
+      hideInTable: true,
+    },
+    {
+      title: '供应商',
+      dataIndex: 'supplierId', // 搜索通常用 ID 选择，或者名称模糊搜索。Params 有 supplierId。
+      key: 'search_supplierId', // 保持与 Params 一致
+      hideInTable: true,
+      // 这里可以加 valueType: 'select' 如果有供应商列表 options
+    },
+    {
+      title: '产品名称',
+      dataIndex: 'productName',
+      key: 'search_productName',
+      hideInTable: true,
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      key: 'search_status',
+      hideInTable: true,
+      valueEnum: PURCHASE_ORDER_STATUS_VALUE_ENUM_PRO,
+    },
+    {
+      title: '订单日期',
+      dataIndex: 'orderDateRange',
+      valueType: 'dateRange',
+      hideInTable: true,
+      search: {
+        transform: (value: string[]) => ({
+          startDate: value[0],
+          endDate: value[1],
+        }),
+      },
+    },
     {
       title: '操作',
       valueType: 'option',
-      width: 140,
+      width: 160,
       fixed: 'right',
+      onCell: (record) => ({ rowSpan: record.isHead ? record.rowSpan : 0 }),
       render: (_, record) => [
-        <Button key="view" type="link" size="small" onClick={() => onView?.(record)}>查看</Button>,
-        <Button key="edit" type="link" size="small" onClick={() => onEdit?.(record)}>编辑</Button>,
-        <Button key="delete" type="link" danger size="small" onClick={() => onDelete?.(record.id)}>删除</Button>,
+        <Button key="view" type="link" size="small" onClick={() => onView?.(record.originOrder)}>详情</Button>,
+        <Button key="edit" type="link" size="small" onClick={() => onEdit?.(record.originOrder)}>编辑</Button>,
+        <Button key="delete" type="link" size="small" danger onClick={() => void onDelete?.(record.originOrder.id)}>删除</Button>,
       ],
     },
-  ];
+  ], [onView, onEdit, onDelete]);
 
   return (
-    <ProTable<PurchaseOrderListRow>
+    <ProTable<PurchaseOrderFlatRow>
       columns={columns}
       params={{ refreshKey }}
+      bordered
       request={async (params) => {
-        const base = normalizeTableParams(params as unknown as import('@/shared/utils/normalizeTableParams').TableParams);
+        const base = normalizeTableParams(params as unknown as Record<string, unknown>);
         const query: PurchaseOrderListParams = {
           page: base.page,
           pageSize: base.pageSize,
+          orderNo: params.orderNo as string,
+          supplierId: params.supplierId as string, // 注意这里用的 supplierId
+          productName: params.productName as string,
+          status: params.status as string,
+          startDate: params.startDate as string,
+          endDate: params.endDate as string,
         };
+        
         const response = await purchaseOrderService.getList(query);
         
-        // 增强数据展示，添加产品数量统计
-        const enhancedData = response.data.map(order => {
-          const items = (order as { items?: PurchaseOrderItem[] }).items;
-          const safeItems = Array.isArray(items) ? items : [];
-          return {
-            ...order,
-            items: safeItems,
-            productCount: safeItems.length,
-          } as PurchaseOrderListRow;
-        });
+        const flatData = flattenPurchaseOrders(response.data || []);
         
         return {
-          data: enhancedData,
+          data: flatData,
           success: response.success,
           total: response.pagination.total,
         };
       }}
       rowKey="id"
-      search={{ 
-        labelWidth: 'auto',
-        defaultCollapsed: true,
-        span: 6,
-      }}
+      options={{ density: true, fullScreen: true, reload: true, setting: true }}
+      search={{ labelWidth: 'auto' }}
       toolBarRender={() => [
         <Button key="add" type="primary" icon={<PlusOutlined />} onClick={onAdd}>
           新增采购订单
         </Button>,
       ]}
-      rowSelection={{ selectedRowKeys, onChange: onSelectChange }}
       pagination={{
         showSizeChanger: true,
         showQuickJumper: true,
-        showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条/总共 ${total} 条`,
-        pageSizeOptions: [10, 20, 50, 100],
-        defaultPageSize: 20,
-      }}
-      scroll={{ x: 1000 }}
-      size="middle"
-      options={{
-        density: true,
-        fullScreen: true,
-        reload: () => onRefresh?.(),
-        setting: true,
-      }}
-      expandable={{
-        expandedRowRender: (record) => {
-          const items = record.items || [];
-          if (items.length === 0) {
-            return <div style={{ padding: '16px', textAlign: 'center', color: '#999' }}>暂无产品信息</div>;
-          }
-          
-          return (
-            <div style={{ 
-              margin: 0, 
-              padding: '20px', 
-              backgroundColor: '#f8f9fa',
-              borderTop: '1px solid #e8e8e8'
-            }}>
-              <div style={{ 
-                marginBottom: '16px', 
-                fontWeight: 600, 
-                color: '#1890ff',
-                fontSize: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <span style={{ 
-                  backgroundColor: '#1890ff', 
-                  color: '#fff', 
-                  padding: '2px 8px', 
-                  borderRadius: '12px',
-                  fontSize: '12px'
-                }}>
-                  {items.length}
-                </span>
-                产品明细
-              </div>
-              <Table
-                columns={productColumns}
-                dataSource={items}
-                rowKey="id"
-                size="small"
-                pagination={false}
-                style={{ 
-                  backgroundColor: '#fff',
-                  border: '1px solid #d9d9d9',
-                  borderRadius: '8px',
-                  overflow: 'hidden'
-                }}
-                summary={() => {
-                  const totalQuantity = items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
-                  const totalAmount = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-                  
-                  return (
-                    <Table.Summary.Row style={{ backgroundColor: '#fafafa' }}>
-                      <Table.Summary.Cell index={0}>
-                        <span style={{ fontWeight: 600, color: '#333' }}>合计</span>
-                      </Table.Summary.Cell>
-                      <Table.Summary.Cell index={1}>-</Table.Summary.Cell>
-                      <Table.Summary.Cell index={2}>-</Table.Summary.Cell>
-                      <Table.Summary.Cell index={3} style={{ textAlign: 'right', fontWeight: 600, color: '#1890ff' }}>
-                        {totalQuantity}
-                      </Table.Summary.Cell>
-                      <Table.Summary.Cell index={4}>-</Table.Summary.Cell>
-                      <Table.Summary.Cell index={5}>-</Table.Summary.Cell>
-                      <Table.Summary.Cell index={6} style={{ textAlign: 'right', fontWeight: 600, color: '#52c41a', fontSize: '14px' }}>
-                        ¥{totalAmount.toFixed(2)}
-                      </Table.Summary.Cell>
-                      <Table.Summary.Cell index={7}>-</Table.Summary.Cell>
-                    </Table.Summary.Row>
-                  );
-                }}
-              />
-            </div>
-          );
-        },
-        rowExpandable: (record) => (record.items?.length || 0) > 0,
-        expandRowByClick: false,
-        expandIcon: ({ expanded, onExpand, record }) => {
-          const items = record.items || [];
-          if (items.length === 0) return null;
-          
-          return (
-            <Button
-              type="link"
-              size="small"
-              icon={
-                expanded ? 
-                  <span style={{ fontSize: '12px' }}>▼</span> : 
-                  <span style={{ fontSize: '12px' }}>▶</span>
-              }
-              onClick={(e) => {
-                e.stopPropagation();
-                onExpand(record, e);
-              }}
-              style={{ padding: 0, marginRight: '8px' }}
-            >
-              {expanded ? '收起' : '展开'}
-            </Button>
-          );
-        },
+        showTotal: (total) => `共 ${total} 个订单`,
+        defaultPageSize: 10,
       }}
     />
   );

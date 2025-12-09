@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
-import { SalesOrderList } from './SalesOrderList';
-import type { SalesOrder } from '@zyerp/shared';
-import type { SalesOrderFormData } from '../types';
-import { SalesOrderPaymentMethod } from '@/shared/constants/sales-order';
-import { PaymentMethod } from '../types';
-import { AddSalesOrderModal } from './AddSalesOrderModal';
+import { SalesOrderList } from '../components/SalesOrderList';
+import type { SalesOrder, SalesOrderFormItem } from '@zyerp/shared';
+import { type SalesOrderFormData, type SalesOrderPaymentMethodType } from '@zyerp/shared';
+import { AddSalesOrderModal } from '../components/AddSalesOrderModal';
 import { useSalesOrder } from '../hooks/useSalesOrder';
-import { SalesOrderDetail } from './SalesOrderDetail';
+import { SalesOrderDetail } from '../components/SalesOrderDetail';
 
 export const SalesOrderManagement: React.FC = () => {
 
@@ -35,6 +33,12 @@ export const SalesOrderManagement: React.FC = () => {
     setEditorOpen(true);
   };
 
+  const handleDeleteItem = (id: string) => {
+    handleDelete(id, () => {
+      setRefreshKey((k) => k + 1);
+    });
+  };
+
  
 
 
@@ -57,21 +61,31 @@ export const SalesOrderManagement: React.FC = () => {
 
   const initialFormValues = (): Partial<SalesOrderFormData> | undefined => {
     if (!current) return undefined;
+
+    const items: SalesOrderFormItem[] = (current.items || []).map((item) => ({
+      productId: item.productId,
+      productName: item.product?.name,
+      productCode: item.product?.code,
+      specification: '',
+      unit: item.unit?.name,
+      quantity: item.quantity,
+      unitPriceWithTax: item.price || 0,
+    }));
+
     return {
       customerName: current.customerName || '',
       orderDate: current.orderDate,
-      deliveryDate: current.deliveryDate,
+      deliveryDate: current.deliveryDate || '',
       salesManager: current.salesManager || '',
-      productName: '',
-      productCode: '',
-      specification: '',
-      unit: '',
-      quantity: 1,
-      unitPriceWithTax: 0,
+      contactInfo: '',
+      contactPerson: (current.contactPerson as string) || '',
+      contactPhone: (current.contactPhone as string) || '',
       taxRate: 13,
-      paymentMethod: ((current.paymentMethod || SalesOrderPaymentMethod.CASH) as unknown) as PaymentMethod,
+      paymentMethod: (current.paymentMethod as SalesOrderPaymentMethodType) || 'cash',
       plannedPaymentDate: current.orderDate,
       remark: current.remark,
+      items,
+      totalPriceWithTax: current.totalAmount,
     };
   };
 
@@ -81,7 +95,7 @@ export const SalesOrderManagement: React.FC = () => {
         onAdd={handleAdd}
         onView={handleView}
         onEdit={handleEdit}
-        onDelete={handleDelete}
+        onDelete={handleDeleteItem}
         refreshKey={refreshKey}
       />
       <AddSalesOrderModal

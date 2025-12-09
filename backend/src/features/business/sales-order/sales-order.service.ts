@@ -12,6 +12,8 @@ interface SalesOrderItemInput {
 
 interface SalesOrderInput {
   customerName?: string | null;
+  contactPerson?: string | null;
+  contactPhone?: string | null;
   orderDate?: string | Date;
   status?: string;
   currency?: string;
@@ -187,6 +189,8 @@ export class SalesOrderService extends BaseService {
         data: {
           orderNo,
           customerName: data.customerName ?? null,
+          contactPerson: data.contactPerson ?? null,
+          contactPhone: data.contactPhone ?? null,
           status: data.status ?? 'draft',
           orderDate,
           deliveryDate: data.deliveryDate ? new Date(data.deliveryDate) : null,
@@ -245,6 +249,8 @@ export class SalesOrderService extends BaseService {
         where: { id },
         data: {
           customerName: data.customerName ?? undefined,
+          contactPerson: data.contactPerson ?? undefined,
+          contactPhone: data.contactPhone ?? undefined,
           status: data.status ?? undefined,
           orderDate: data.orderDate ? new Date(data.orderDate) : undefined,
           deliveryDate: data.deliveryDate ? new Date(data.deliveryDate) : undefined,

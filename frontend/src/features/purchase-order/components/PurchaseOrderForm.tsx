@@ -3,6 +3,7 @@ import { Card, Row, Col } from 'antd';
 import { ProForm, ProFormDatePicker, ProFormSelect, ProFormTextArea, ProFormDigit, ProFormList } from '@ant-design/pro-components';
  
 import type { FormInstance } from 'antd/es/form';
+import type { DefaultOptionType } from 'antd/es/select';
  
 import dayjs, { type Dayjs } from 'dayjs';
 import type { PurchaseOrderFormData } from '@zyerp/shared';
@@ -49,14 +50,14 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ form, initialValu
 
   const onValuesChange = (_: unknown, all: unknown) => {
     const values = all as FormValues;
-    const list: ItemForm[] = Array.isArray(values.items) ? (values.items as ItemForm[]) : [];
+    const list: ItemForm[] = Array.isArray(values.items) ? (values.items) : [];
     const total = list.reduce((sum, it) => sum + Number(it.quantity || 0) * Number(it.price || 0), 0);
     setTotalAmount(Number(total.toFixed(2)));
   };
 
   const handleFinish = () => {
     const raw = form.getFieldsValue() as FormValues;
-    const list: ItemForm[] = Array.isArray(raw.items) ? (raw.items as ItemForm[]) : [];
+    const list: ItemForm[] = Array.isArray(raw.items) ? (raw.items) : [];
     if (list.length === 0) {
       message.error('请至少添加一个产品');
       return;
@@ -72,44 +73,54 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ form, initialValu
       if (maybe && typeof maybe.format === 'function') return maybe.format('YYYY-MM-DD');
       return dayjs().format('YYYY-MM-DD');
     };
-  const formData: PurchaseOrderFormData = {
-    supplierId: String(raw.supplierId || ''),
-    status: (raw.status as PurchaseOrderStatus) || PurchaseOrderStatus.DRAFT,
-    currency: typeof raw.currency === 'string' && raw.currency ? raw.currency : 'CNY',
-    orderDate: formatDate(raw.orderDate),
-    expectedDeliveryDate: formatDate(raw.expectedDeliveryDate),
-    remark: raw.remark,
-    items: list.map((it) => ({
-      productId: String(it.productId || ''),
+    const formData: PurchaseOrderFormData = {
+      supplierId: String(raw.supplierId || ''),
+      status: (raw.status as PurchaseOrderStatus) || PurchaseOrderStatus.DRAFT,
+      currency: typeof raw.currency === 'string' && raw.currency ? raw.currency : 'CNY',
+      orderDate: formatDate(raw.orderDate),
+      expectedDeliveryDate: formatDate(raw.expectedDeliveryDate),
+      remark: raw.remark,
+      items: list.map((it) => ({
+        productId: String(it.productId || ''),
         unitId: it.unitId ? String(it.unitId) : undefined,
         warehouseId: it.warehouseId ? String(it.warehouseId) : undefined,
         quantity: Number(it.quantity || 0),
         price: Number(it.price || 0),
       })),
     };
-    onSubmit(formData);
+    void onSubmit(formData);
   };
 
-  const initialList = Array.isArray(initialValues?.items)
-    ? (initialValues?.items || []).map((it) => ({
-        productId: String(it.productId || ''),
-        unitId: it.unitId ? String(it.unitId) : undefined,
-        warehouseId: it.warehouseId ? String(it.warehouseId) : undefined,
-        quantity: Number(it.quantity || 1),
-        price: typeof it.price === 'number' ? it.price : 0,
-      }))
-    : [{}];
-
   return (
-    <ProForm<PurchaseOrderFormData>
+    <ProForm<FormValues>
       form={form}
-      initialValues={{
-        orderDate: initialValues?.orderDate ? dayjs(initialValues.orderDate) : dayjs(),
-        expectedDeliveryDate: initialValues?.expectedDeliveryDate ? dayjs(initialValues.expectedDeliveryDate) : dayjs().add(30, 'day'),
-        supplierId: initialValues?.supplierId,
-        status: PurchaseOrderStatus.DRAFT,
-        currency: 'CNY',
-        remark: initialValues?.remark,
+      params={{ initialValues }}
+      request={async () => {
+        await Promise.resolve(); // Satisfy await requirement
+        const rawItems = initialValues?.items;
+        const items: ItemForm[] = Array.isArray(rawItems) && rawItems.length > 0
+          ? rawItems.map((it) => ({
+              productId: String(it.productId || ''),
+              unitId: it.unitId ? String(it.unitId) : undefined,
+              warehouseId: it.warehouseId ? String(it.warehouseId) : undefined,
+              quantity: Number(it.quantity || 1),
+              price: typeof it.price === 'number' ? it.price : 0,
+              specification: (it as unknown as { specification?: string }).specification,
+            }))
+          : [{}];
+
+        const total = items.reduce((sum, it) => sum + Number(it.quantity || 0) * Number(it.price || 0), 0);
+        setTotalAmount(Number(total.toFixed(2)));
+
+        return {
+          orderDate: initialValues?.orderDate ? dayjs(initialValues.orderDate) : dayjs(),
+          expectedDeliveryDate: initialValues?.expectedDeliveryDate ? dayjs(initialValues.expectedDeliveryDate) : dayjs().add(30, 'day'),
+          supplierId: initialValues?.supplierId || '',
+          status: initialValues?.status || PurchaseOrderStatus.DRAFT,
+          currency: initialValues?.currency || 'CNY',
+          remark: initialValues?.remark,
+          items,
+        };
       }}
       onFinish={handleFinish}
       onValuesChange={onValuesChange}
@@ -131,7 +142,8 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ form, initialValu
               placeholder="请选择供应商"
               rules={[{ required: true, message: '请选择供应商' }]}
               showSearch
-              request={async ({ keyWords }) => {
+              request={async (params) => {
+                const { keyWords } = params as { keyWords?: string };
                 const res = await supplierService.getList({ page: 1, pageSize: 20, keyword: keyWords });
                 return (res.data || []).map((s) => ({ label: s.name, value: s.id }));
               }}
@@ -145,6 +157,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ form, initialValu
               name="status"
               label="状态"
               valueEnum={PURCHASE_ORDER_STATUS_VALUE_ENUM_PRO}
+              allowClear={false}
               rules={[{ required: true, message: '请选择状态' }]}
             />
           </Col>
@@ -174,7 +187,6 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ form, initialValu
         </Row>
         <ProFormList
           name="items"
-          initialValue={initialList}
           creatorButtonProps={{ creatorButtonText: '添加产品' }}
           copyIconProps={false}
           deleteIconProps={{ tooltipText: '移除' }}
@@ -188,34 +200,44 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ form, initialValu
                     label={false}
                     showSearch
                     rules={[{ required: true, message: '请选择产品' }]}
-                    request={async ({ keyWords }) => {
+                    request={async (params) => {
+                      const { keyWords } = params as { keyWords?: string };
                       const res = await productService.getProductOptions({});
                       const list = res.data || [];
                       const filtered = keyWords ? list.filter((p) => (p.name || '').includes(keyWords) || (p.code || '').includes(keyWords)) : list;
                       return filtered.map((p) => ({ label: `${p.name}${p.code ? ` (${p.code})` : ''}`, value: p.id, data: p }));
                     }}
                     fieldProps={{
-                      filterOption: (input, option) => String(option?.label || '').toLowerCase().includes(input.toLowerCase()),
+                      filterOption: (input, option) => {
+                        const label = (option as DefaultOptionType)?.label;
+                        const safeLabel = typeof label === 'string' ? label : '';
+                        return safeLabel.toLowerCase().includes(input.toLowerCase());
+                      },
                       allowClear: true,
-                      onChange: async (value, option) => {
-                        const all = form.getFieldsValue() as FormValues;
-                        const list: ItemForm[] = Array.isArray(all.items) ? ([...(all.items as ItemForm[])]) : [];
-                        const idx = typeof f.name === 'number' ? f.name : Number(f.name);
-                        const current = list[idx] || {};
-                        let unitIdFromOption = '';
-                        let warehouseIdFromOption = '';
-                        let specificationFromOption = '';
-                        const optData = (option as unknown as { data?: { unit?: { name: string; symbol: string }; specification?: string } })?.data;
-                        if (optData) {
-                          specificationFromOption = optData.specification || '';
-                        }
-                        const detail = await productService.getProductById(String(value));
-                        const d = detail.data as unknown as { unitId?: string; defaultWarehouseId?: string; specification?: string };
-                        unitIdFromOption = String(d?.unitId || '');
-                        warehouseIdFromOption = String(d?.defaultWarehouseId || '');
-                        specificationFromOption = specificationFromOption || String(d?.specification || '');
-                        list[idx] = { ...current, productId: String(value || ''), unitId: unitIdFromOption || current.unitId, warehouseId: warehouseIdFromOption || current.warehouseId, specification: specificationFromOption || current.specification };
-                        form.setFieldsValue({ items: list });
+                      onChange: (value, option) => {
+                        void (async () => {
+                          const all = form.getFieldsValue() as FormValues;
+                          const list: ItemForm[] = Array.isArray(all.items) ? ([...(all.items)]) : [];
+                          const idx = typeof f.name === 'number' ? f.name : Number(f.name);
+                          const current = list[idx] || {};
+                          let unitIdFromOption = '';
+                          let warehouseIdFromOption = '';
+                          let specificationFromOption = '';
+                          const optData = (option as unknown as { data?: { unit?: { name: string; symbol: string }; specification?: string } })?.data;
+                          if (optData) {
+                            specificationFromOption = optData.specification || '';
+                          }
+                          
+                          const valStr = typeof value === 'string' || typeof value === 'number' ? String(value) : '';
+                          
+                          const detail = await productService.getProductById(valStr);
+                          const d = detail.data as unknown as { unitId?: string; defaultWarehouseId?: string; specification?: string };
+                          unitIdFromOption = String(d?.unitId || '');
+                          warehouseIdFromOption = String(d?.defaultWarehouseId || '');
+                          specificationFromOption = specificationFromOption || String(d?.specification || '');
+                          list[idx] = { ...current, productId: valStr, unitId: unitIdFromOption || current.unitId, warehouseId: warehouseIdFromOption || current.warehouseId, specification: specificationFromOption || current.specification };
+                          form.setFieldsValue({ items: list });
+                        })();
                       },
                     }}
                   />

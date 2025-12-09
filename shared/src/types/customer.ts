@@ -108,3 +108,10 @@ export interface CustomerListResponse {
   pageSize: number;
   totalPages: number;
 }
+
+// 客户选项接口
+export interface CustomerOption {
+  id: string;
+  name: string;
+  code?: string;
+}

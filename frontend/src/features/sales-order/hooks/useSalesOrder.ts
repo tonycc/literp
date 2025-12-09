@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { SalesOrder } from '@zyerp/shared';
-import type { SalesOrderFormData } from '../types';
+import type { SalesOrderFormData } from '@zyerp/shared';
 import { salesOrderService } from '../services/sales-order.service';
 import { useMessage, useModal } from '@/shared/hooks';
 
@@ -10,28 +10,27 @@ export const useSalesOrder = () => {
   const message = useMessage();
   const modal = useModal();
 
-  const buildPayload = (values: SalesOrderFormData) => {
-    const payload: Record<string, unknown> = {
+  const buildPayload = (values: SalesOrderFormData): Partial<SalesOrder> => {
+    const payload: Partial<SalesOrder> = {
       customerName: values.customerName,
+      contactPerson: values.contactPerson,
+      contactPhone: values.contactPhone,
       orderDate: values.orderDate,
       deliveryDate: values.deliveryDate,
       salesManager: values.salesManager,
       paymentMethod: values.paymentMethod,
       currency: 'CNY',
       remark: values.remark,
-      items: Array.isArray(values.items) && values.items?.length
-        ? values.items.map((it) => ({
-            productId: it.productId,
-            quantity: it.quantity,
-            price: it.unitPriceWithTax,
-          }))
-        : [
-          {
-            productId: (values as unknown as { productId?: string }).productId || '',
-            quantity: Number((values as unknown as { quantity?: number }).quantity || 0),
-            price: Number((values as unknown as { unitPriceWithTax?: number }).unitPriceWithTax || 0),
-          },
-        ],
+      items: (values.items ?? []).map((it) => ({
+        id: '', // 新建时后端生成，更新时可能需要处理逻辑
+        orderId: '', // 后端关联
+        productId: it.productId,
+        quantity: it.quantity,
+        price: it.unitPriceWithTax,
+        amount: (it.quantity || 0) * (it.unitPriceWithTax || 0),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })),
     };
     return payload;
   };
@@ -68,7 +67,7 @@ export const useSalesOrder = () => {
     }
   };
 
-  const handleDelete = async (id: string, onDeleted?: () => void): Promise<void> => {
+  const handleDelete = (id: string, onDeleted?: () => void): void => {
     modal.confirm({
       title: '确认删除',
       content: '删除后不可恢复，是否继续？',

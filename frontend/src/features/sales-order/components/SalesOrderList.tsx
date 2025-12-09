@@ -1,23 +1,57 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import dayjs from 'dayjs';
-import { Button, Tag, Space, Tooltip } from 'antd';
+import { Button } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
-import type { SalesOrder, SalesOrderListParams } from '@zyerp/shared';
+import type { SalesOrder, SalesOrderListParams, SalesOrderItem, ProductInfo } from '@zyerp/shared';
 import { salesOrderService } from '../services/sales-order.service';
 import { normalizeTableParams } from '@/shared/utils/normalizeTableParams';
-import { SALES_ORDER_PAYMENT_METHOD_VALUE_ENUM_PRO } from '@/shared/constants/sales-order';
 
 export interface SalesOrderListProps {
   onAdd?: () => void;
   onView?: (item: SalesOrder) => void;
   onEdit?: (item: SalesOrder) => void;
-  onDelete?: (id: string) => Promise<void>;
+  onDelete?: (id: string) => void;
   onRefresh?: () => void;
   selectedRowKeys?: React.Key[];
   onSelectChange?: (selectedRowKeys: React.Key[], selectedRows: SalesOrder[]) => void;
   refreshKey?: number;
+}
+
+/**
+ * 扁平化的销售订单行数据结构
+ * 用于支持表格行合并展示
+ */
+interface SalesOrderFlatRow {
+  id: string; // 唯一标识：item.id 或 order.id (无明细时)
+  orderId: string;
+  isHead: boolean; // 是否为合并行的首行
+  rowSpan: number; // 合并行数
+  
+  // 订单层级信息
+  orderNo: string;
+  customerName: string;
+  customerCode?: string; // 如果有
+  orderDate: string;
+  deliveryDate: string;
+  salesManager: string;
+  totalAmount: number;
+  paymentMethod?: string;
+  
+  // 产品明细层级信息
+  productName?: string;
+  productCode?: string;
+  productType?: string;
+  specification?: string;
+  unitName?: string;
+  quantity?: number;
+  price?: number;
+  amount?: number;
+  
+  // 原始数据引用
+  originOrder: SalesOrder;
+  originItem?: SalesOrderItem;
 }
 
 export const SalesOrderList: React.FC<SalesOrderListProps> = ({
@@ -25,275 +59,267 @@ export const SalesOrderList: React.FC<SalesOrderListProps> = ({
   onView,
   onEdit,
   onDelete,
-  selectedRowKeys,
-  onSelectChange,
   refreshKey,
 }) => {
-  const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
+  // 扁平化数据处理
+  const flattenSalesOrders = (orders: SalesOrder[]): SalesOrderFlatRow[] => {
+    const flatRows: SalesOrderFlatRow[] = [];
+    
+    orders.forEach(order => {
+      const items = Array.isArray(order.items) && order.items.length > 0 
+        ? order.items 
+        : [];
+      
+      const rowSpan = Math.max(items.length, 1);
+      
+      // 计算总金额
+      const totalAmount = order.totalAmount ?? items.reduce((sum, item) => {
+        return sum + (Number(item.price || 0) * Number(item.quantity || 0));
+      }, 0);
 
-  // 格式化产品展示，支持多产品订单的优化显示
-  const formatProductDisplay = (record: SalesOrder) => {
-    const items = Array.isArray(record.items) ? record.items : [];
-    const validItems = items.filter(item => item.product?.name);
-    
-    if (validItems.length === 0) return '-';
-    
-    if (validItems.length === 1) {
-      const item = validItems[0];
-      return (
-        <Space direction="vertical" size={2}>
-          <Tooltip title={`${item.product?.name}`}>
-            <span style={{ fontWeight: 500 }}>{item.product?.name}</span>
-          </Tooltip>
-          <span style={{ fontSize: '12px', color: '#8c8c8c' }}>
-            数量: {item.quantity} | 单价: ¥{Number(item.price || 0).toFixed(2)}
-          </span>
-        </Space>
-      );
-    }
-    
-    // 多产品情况
-    const displayCount = 2;
-    const displayItems = validItems.slice(0, displayCount);
-    const remainingCount = validItems.length - displayCount;
-    
-    return (
-      <Space direction="vertical" size={2} style={{ width: '100%' }}>
-        {displayItems.map((item, index) => (
-          <div key={index} style={{ 
-            padding: '4px 8px', 
-            backgroundColor: '#f5f5f5', 
-            borderRadius: '4px',
-            borderLeft: '3px solid #1890ff'
-          }}>
-            <div style={{ fontWeight: 500, fontSize: '13px' }}>
-              {item.product?.name}
-            </div>
-            <div style={{ fontSize: '11px', color: '#595959' }}>
-              ×{item.quantity} | ¥{Number(item.price || 0).toFixed(2)}
-            </div>
-          </div>
-        ))}
-        {remainingCount > 0 && (
-          <Tag color="blue" style={{ alignSelf: 'flex-start' }}>
-            +{remainingCount} 更多产品
-          </Tag>
-        )}
-      </Space>
-    );
-  };
-
-  // 获取产品标签颜色
-  const getProductTagColor = (index: number) => {
-    const colors = ['blue', 'green', 'orange', 'red', 'purple', 'cyan'];
-    return colors[index % colors.length];
-  };
-
-  // 总金额兼容处理（兼容后端可能提供的 totalAmount 字段）
-  const getTotalAmount = (record: SalesOrder): number => {
-    const maybeTotalAmount = (record as SalesOrder & { totalAmount?: number }).totalAmount;
-    if (typeof maybeTotalAmount === 'number') {
-      return maybeTotalAmount;
-    }
-    const items = Array.isArray(record.items) ? record.items : [];
-    const sum = items.reduce((acc, it) => {
-      if (typeof it.amount === 'number') {
-        return acc + it.amount;
+      if (items.length === 0) {
+        // 无明细的订单，显示一行
+        flatRows.push({
+          id: order.id,
+          orderId: order.id,
+          isHead: true,
+          rowSpan: 1,
+          orderNo: order.orderNo || order.id,
+          customerName: order.customerName || '-',
+          customerCode: '-', // 暂无客户编码字段
+          orderDate: order.orderDate ? dayjs(order.orderDate).format('YYYY-MM-DD') : '-',
+          deliveryDate: order.deliveryDate ? dayjs(order.deliveryDate).format('YYYY-MM-DD') : '-',
+          salesManager: order.salesManager || '-',
+          totalAmount,
+          paymentMethod: order.paymentMethod || undefined,
+          originOrder: order,
+        });
+      } else {
+        // 有明细的订单，生成多行
+        items.forEach((item, index) => {
+          flatRows.push({
+            id: item.id || `${order.id}_${index}`,
+            orderId: order.id,
+            isHead: index === 0,
+            rowSpan: rowSpan,
+            orderNo: order.orderNo || order.id,
+            customerName: order.customerName || '-',
+            customerCode: '-',
+            orderDate: order.orderDate ? dayjs(order.orderDate).format('YYYY-MM-DD') : '-',
+            deliveryDate: order.deliveryDate ? dayjs(order.deliveryDate).format('YYYY-MM-DD') : '-',
+            salesManager: order.salesManager || '-',
+            totalAmount,
+            paymentMethod: order.paymentMethod || undefined,
+            
+            productName: item.product?.name,
+            productCode: item.product?.code,
+            productType: (item.product as ProductInfo)?.type,
+            specification: (item.product as ProductInfo)?.specification || '-',
+            unitName: (typeof item.unit === 'string' ? item.unit : item.unit?.name) || (item.product as ProductInfo)?.unit?.name || '-',
+            quantity: item.quantity,
+            price: item.price,
+            amount: item.amount,
+            
+            originOrder: order,
+            originItem: item,
+          });
+        });
       }
-      const price = Number(it.price) || 0;
-      const qty = Number(it.quantity) || 0;
-      return acc + price * qty;
-    }, 0);
-    return sum;
+    });
+    
+    return flatRows;
   };
-  const columns = useMemo<ProColumns<SalesOrder>[]>(() => [
+
+  const columns = useMemo<ProColumns<SalesOrderFlatRow>[]>(() => [
     {
-      title: '订单号',
-      dataIndex: 'orderNo',
-      render: (_, record) => record.orderNo || record.id,
-      ellipsis: true,
+      title: '客户编码', // 图示中的列名
+      dataIndex: 'customerName', // 暂时展示客户名称，因为没有编码
       width: 120,
+      onCell: (record) => ({ rowSpan: record.isHead ? record.rowSpan : 0 }),
+      search: false,
+      render: (text) => <span style={{ fontWeight: 500 }}>{text}</span>
     },
     {
-      title: '客户名称',
-      dataIndex: 'customerName',
-      width: 160,
-      ellipsis: true,
-    },
-    {
-      title: '产品信息',
-      dataIndex: 'items',
-      key: 'productInfo',
-      width: 260,
-      render: (_, record) => formatProductDisplay(record),
-    },
-    {
-      title: '总数量',
-      dataIndex: 'items',
-      key: 'totalQuantity',
-      valueType: 'digit',
-      width: 80,
-      render: (_, record) => {
-        const totalQty = (record.items || []).reduce((sum, it) => sum + (Number(it.quantity) || 0), 0);
-        const itemCount = (record.items || []).length;
-        return (
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontWeight: 600, color: '#1890ff' }}>{totalQty}</div>
-            <div style={{ fontSize: '11px', color: '#8c8c8c' }}>
-              {itemCount}种产品
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      title: '订单日期',
+      title: '订单签订日期',
       dataIndex: 'orderDate',
       valueType: 'date',
-      width: 100,
-      sorter: true,
+      width: 110,
+      onCell: (record) => ({ rowSpan: record.isHead ? record.rowSpan : 0 }),
+      search: false,
     },
     {
-      title: '交货日期',
+      title: '订单交货日期',
       dataIndex: 'deliveryDate',
       valueType: 'date',
-      width: 100,
-      sorter: true,
+      width: 110,
+      onCell: (record) => ({ rowSpan: record.isHead ? record.rowSpan : 0 }),
+      search: false,
       render: (_, record) => {
-        if (!record.deliveryDate) return '-';
+        if (record.deliveryDate === '-') return '-';
         const deliveryDate = dayjs(record.deliveryDate);
         const today = dayjs();
         const isOverdue = deliveryDate.isBefore(today, 'day');
         const isNearDue = Math.abs(deliveryDate.diff(today, 'day')) <= 7 && !isOverdue;
-         
+        
         return (
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ 
-              color: isOverdue ? '#ff4d4f' : isNearDue ? '#fa8c16' : '#262626',
-              fontWeight: isOverdue || isNearDue ? 600 : 'normal'
-            }}>
-              {deliveryDate.format('YYYY-MM-DD')}
-            </div>
-            {isOverdue && (
-              <Tag color="red" style={{ fontSize: '10px', marginTop: '2px' }}>已逾期</Tag>
-            )}
-            {isNearDue && (
-              <Tag color="orange" style={{ fontSize: '10px', marginTop: '2px' }}>即将到期</Tag>
-            )}
+          <div style={{ 
+            color: isOverdue ? '#ff4d4f' : isNearDue ? '#fa8c16' : '#262626',
+            fontWeight: isOverdue || isNearDue ? 600 : 'normal'
+          }}>
+            {record.deliveryDate}
           </div>
         );
-      },
+      }
+    },
+    {
+      title: '销售负责人',
+      dataIndex: 'salesManager',
+      width: 100,
+      onCell: (record) => ({ rowSpan: record.isHead ? record.rowSpan : 0 }),
+      search: false, // 使用隐藏的搜索字段
+    },
+    {
+      title: '销售订单编号',
+      dataIndex: 'orderNo',
+      width: 140,
+      onCell: (record) => ({ rowSpan: record.isHead ? record.rowSpan : 0 }),
+      search: false, // 使用隐藏的搜索字段
+    },
+    {
+      title: '销售产品明细',
+      children: [
+        {
+          title: '产品名称',
+          dataIndex: 'productName',
+          width: 150,
+          ellipsis: true,
+        },
+        {
+          title: '产品编码',
+          dataIndex: 'productCode',
+          width: 100,
+        },
+        {
+          title: '数量',
+          dataIndex: 'quantity',
+          width: 80,
+          align: 'right',
+          render: (val, record) => (
+             <span>
+               <span style={{ fontWeight: 500, color: '#1890ff' }}>{val}</span>
+               {record.unitName !== '-' && <span style={{ fontSize: '12px', color: '#999', marginLeft: 4 }}>{record.unitName}</span>}
+             </span>
+          ),
+        },
+        {
+          title: '单价',
+          dataIndex: 'price',
+          width: 100,
+          align: 'right',
+          render: (val) => `¥ ${Number(val)?.toFixed(2) || '0.00'}`,
+        },
+        {
+          title: '金额',
+          dataIndex: 'amount',
+          width: 100,
+          align: 'right',
+          render: (val) => (
+            <span style={{ fontWeight: 600, color: '#52c41a' }}>
+              ¥ {Number(val)?.toFixed(2) || '0.00'}
+            </span>
+          ),
+        },
+      ]
+    },
+    // 隐藏的搜索字段
+    {
+      title: '订单编号',
+      dataIndex: 'orderNo',
+      key: 'search_orderNo',
+      hideInTable: true,
+    },
+    {
+      title: '客户名称',
+      dataIndex: 'customerName',
+      key: 'search_customerName',
+      hideInTable: true,
+    },
+    {
+      title: '产品名称',
+      dataIndex: 'productName',
+      key: 'search_productName',
+      hideInTable: true,
     },
     {
       title: '销售经理',
       dataIndex: 'salesManager',
-      width: 100,
-      ellipsis: true,
-      render: (_, record) => record.salesManager || '-',
+      key: 'search_salesManager',
+      hideInTable: true,
     },
     {
-      title: '付款方式',
-      dataIndex: 'paymentMethod',
-      width: 100,
-      valueEnum: SALES_ORDER_PAYMENT_METHOD_VALUE_ENUM_PRO,
-      filters: true,
-      onFilter: true,
+      title: '订单状态',
+      dataIndex: 'status',
+      hideInTable: true,
+      valueEnum: {
+        pending: { text: '待处理', status: 'Default' },
+        processing: { text: '处理中', status: 'Processing' },
+        completed: { text: '已完成', status: 'Success' },
+        cancelled: { text: '已取消', status: 'Error' },
+      },
     },
     {
-      title: '总金额',
-      dataIndex: 'totalAmount',
-      width: 50,
-      render: (_, record) => {
-        const amount = getTotalAmount(record);
-        const items = Array.isArray(record.items) ? record.items : [];
-        const hasMultipleProducts = items.length > 1;
-        
-        return (
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontWeight: 600, color: '#52c41a', fontSize: '14px' }}>
-              ¥{amount.toFixed(2)}
-            </div>
-            {hasMultipleProducts && (
-              <div style={{ fontSize: '11px', color: '#8c8c8c' }}>
-              共{items.length}项
-              </div>
-            )}
-          </div>
-        );
+      title: '订单日期',
+      dataIndex: 'orderDateRange',
+      valueType: 'dateRange',
+      hideInTable: true,
+      search: {
+        transform: (value: string[]) => ({
+          startDate: value[0],
+          endDate: value[1],
+        }),
       },
     },
     {
       title: '操作',
       valueType: 'option',
-      width: 200,
+      width: 120,
       fixed: 'right',
+      onCell: (record) => ({ rowSpan: record.isHead ? record.rowSpan : 0 }),
       render: (_, record) => [
-        <Button key="view" type="link" onClick={() => onView?.(record)}>查看</Button>,
-        <Button key="edit" type="link" onClick={() => onEdit?.(record)}>编辑</Button>,
-        <Button key="delete" type="link" danger onClick={() => onDelete?.(record.id)}>删除</Button>,
+        <Button key="view" type="link" size="small" onClick={() => onView?.(record.originOrder)}>详情</Button>,
+        <Button key="edit" type="link" size="small" onClick={() => onEdit?.(record.originOrder)}>编辑</Button>,
+        <Button key="delete" type="link" size="small" danger onClick={() => void onDelete?.(record.originOrder.id)}>删除</Button>,
       ],
     },
   ], [onView, onEdit, onDelete]);
 
-  // 展开行渲染函数
-  const expandedRowRender = (record: SalesOrder) => {
-    const items = Array.isArray(record.items) ? record.items : [];
-    
-    if (items.length <= 2) return null; // 少于等于2个产品的不显示展开内容
-    
-    return (
-      <div style={{ padding: '16px', backgroundColor: '#fafafa' }}>
-        <div style={{ marginBottom: '12px', fontWeight: 600, color: '#262626' }}>
-          产品详情 ({items.length}项)
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '12px' }}>
-          {items.map((item, index) => (
-            <div key={index} style={{
-              padding: '12px',
-              backgroundColor: '#fff',
-              borderRadius: '6px',
-              border: '1px solid #f0f0f0',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, color: '#262626', marginBottom: '4px' }}>
-                    {item.product?.name || '未知产品'}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#595959' }}>
-                产品编码: {item.product?.code || '无编码'}
-              </div>
-                </div>
-                <Tag color={getProductTagColor(index)} style={{ marginLeft: '8px' }}>
-                  #{index + 1}
-                </Tag>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                <span>数量: <strong>{item.quantity}</strong></span>
-                <span>单价: <strong>¥{Number(item.price || 0).toFixed(2)}</strong></span>
-                <span>小计: <strong style={{ color: '#52c41a' }}>¥{(Number(item.quantity || 0) * Number(item.price || 0)).toFixed(2)}</strong></span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <ProTable<SalesOrder>
+    <ProTable<SalesOrderFlatRow>
       columns={columns}
       params={{ refreshKey }}
+      bordered
       request={async (params) => {
         const base = normalizeTableParams(params as unknown as Record<string, unknown>);
         const query: SalesOrderListParams = {
           page: base.page,
           pageSize: base.pageSize,
+          orderNumber: params.orderNo as string,
+          customerName: params.customerName as string,
+          productName: params.productName as string,
+          status: params.status as string,
+          startDate: params.startDate as string,
+          endDate: params.endDate as string,
         };
         const response = await salesOrderService.getSalesOrders(query);
+        
+        const flatData = flattenSalesOrders(response.data || []);
+        
         return {
-          data: response.data,
+          data: flatData,
           success: response.success,
+          // 注意：这里如果返回 total: flatData.length 会导致分页混乱
+          // 我们保持 total 为订单总数，但 ProTable 可能会因为数据行数 > pageSize 而显示异常
+          // 在这种特殊合并行场景下，通常接受这种显示差异，或者将 pageSize 设大一点
           total: response.pagination.total,
         };
       }}
@@ -305,24 +331,11 @@ export const SalesOrderList: React.FC<SalesOrderListProps> = ({
           新增
         </Button>,
       ]}
-      rowSelection={{
-        selectedRowKeys,
-        onChange: onSelectChange,
-      }}
-     
-      expandable={{
-        expandedRowRender,
-        expandedRowKeys,
-        onExpandedRowsChange: setExpandedRowKeys,
-        rowExpandable: (record) => {
-          const items = Array.isArray(record.items) ? record.items : [];
-          return items.length > 2; // 只有超过2个产品的订单可以展开
-        },
-      }}
       pagination={{
         showSizeChanger: true,
         showQuickJumper: true,
-        showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条/总共 ${total} 条`,
+        showTotal: (total) => `共 ${total} 个订单`,
+        defaultPageSize: 10,
       }}
     />
   );

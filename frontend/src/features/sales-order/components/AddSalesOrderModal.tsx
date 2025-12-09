@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { Modal } from 'antd';
-import type { SalesOrderFormData } from '../types';
-import { SalesOrderForm } from './SalesOrderForm';
+import type { SalesOrderFormData } from '@zyerp/shared';
+import { SalesOrderForm, type SalesOrderFormValues } from './SalesOrderForm';
 import { useMessage } from '@/shared/hooks';
 import type { ProFormInstance } from '@ant-design/pro-components';
 
@@ -23,7 +23,7 @@ export const AddSalesOrderModal: React.FC<AddSalesOrderModalProps> = ({
   onSuccess,
 }) => {
   const message = useMessage();
-  const formRef = useRef<ProFormInstance<SalesOrderFormData> | undefined>(undefined);
+  const formRef = useRef<ProFormInstance<SalesOrderFormValues> | undefined>(undefined);
 
   const handleSubmit = async (values: SalesOrderFormData) => {
     try {
@@ -55,6 +55,7 @@ export const AddSalesOrderModal: React.FC<AddSalesOrderModalProps> = ({
         formRef={formRef}
         onSubmit={handleSubmit}
         initialValues={initialValues}
+        mode={mode}
       />
     </Modal>
   );

@@ -765,6 +765,8 @@ model SalesOrder {
   id           String           @id @default(cuid())
   orderNo      String           @unique
   customerName String?
+  contactPerson String?
+  contactPhone String?
   status       String           @default("draft") // draft/confirmed/shipped/completed/canceled
   orderDate    DateTime         @default(now())
   deliveryDate DateTime?
