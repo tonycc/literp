@@ -12,7 +12,7 @@ import { PlusOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 
 interface ProductionReportFormProps {
-  trigger?: React.ReactNode
+  trigger?: React.JSX.Element
   onSuccess?: (report: ProductionReport) => void
 }
 

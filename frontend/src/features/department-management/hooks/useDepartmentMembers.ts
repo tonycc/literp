@@ -21,7 +21,7 @@ export const useDepartmentMembers = (initialParams?: DepartmentMemberListParams)
   const [members, setMembers] = useState<DepartmentMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
-  const [params, setParams] = useState<DepartmentMemberListParams>(initialParams || {});
+  const [params, setParams] = useState<DepartmentMemberListParams>((initialParams || {}) as DepartmentMemberListParams);
 
   const fetchMembers = useCallback(async (searchParams?: DepartmentMemberListParams) => {
     if (!searchParams?.departmentId && !params.departmentId) {

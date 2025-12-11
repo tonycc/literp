@@ -2,10 +2,21 @@ import React from 'react';
 import { Form, Input, Button, Space } from 'antd';
 import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
 
+interface FormListFieldData {
+  name: number;
+  key: number;
+}
+
+interface FormListOperation {
+  add: (defaultValue?: unknown, insertIndex?: number) => void;
+  remove: (index: number | number[]) => void;
+  move: (from: number, to: number) => void;
+}
+
 const ProductAttributes: React.FC = () => {
   return (
     <Form.List name="attributes">
-      {(fields, { add, remove }) => (
+      {(fields: FormListFieldData[], { add, remove }: FormListOperation) => (
         <>
           {fields.map(({ key, name, ...restField }) => (
             <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">

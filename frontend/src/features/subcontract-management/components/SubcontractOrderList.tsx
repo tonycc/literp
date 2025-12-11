@@ -25,7 +25,7 @@ const SubcontractOrderList: React.FC = () => {
   React.useEffect(() => {
     void (async () => {
       try {
-        const ops = await operationService.getOptions({ _isActive: true })
+        const ops = await operationService.getOptions({ isActive: true })
         const map: Record<string, string> = {}
         for (const o of ops.data || []) { if (o.value && o.label) map[o.value] = o.label }
         setOpNameMap(map)
@@ -41,6 +41,7 @@ const SubcontractOrderList: React.FC = () => {
 
   const columns: ProColumns<SubcontractOrder>[] = useMemo(() => ([
     { title: '委外订单号', dataIndex: 'orderNo', width: 160 },
+    { title: '状态', dataIndex: 'status', width: 100, valueEnum: SUBCONTRACT_ORDER_STATUS_VALUE_ENUM_PRO },
     { title: '供应商', dataIndex: 'supplierName', width: 160 },
     { title: '交期', dataIndex: 'expectedDeliveryDate', width: 140, render: (_, r) => (r.expectedDeliveryDate ? new Date(r.expectedDeliveryDate).toLocaleDateString() : '-') },
     { title: '工单', dataIndex: 'firstWorkOrderId', width: 180, render: (_, r) => r.firstWorkOrderNo ?? r.firstWorkOrderId ?? '-' },
@@ -67,7 +68,7 @@ const SubcontractOrderList: React.FC = () => {
                 const resp = await subcontractOrderService.delete(record.id)
                 if (resp.success) {
                   message.success('删除成功')
-                  actionRef.current?.reload?.()
+                  void actionRef.current?.reload?.()
                 } else {
                   message.error(resp.message || '删除失败')
                 }
@@ -85,7 +86,7 @@ const SubcontractOrderList: React.FC = () => {
     <>
       <ProTable<SubcontractOrder>
         actionRef={actionRef}
-        rowKey={(r) => r.id}
+        rowKey="id"
         search={{ labelWidth: 'auto' }}
         columns={columns}
         request={async (params: Record<string, unknown>) => {

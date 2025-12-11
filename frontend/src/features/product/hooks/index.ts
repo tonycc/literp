@@ -1,2 +1,3 @@
-export { default as useProduct } from './useProduct'
-export { default as useProductCategory } from './useProductCategory'
+export * from './useProduct'
+export * from './useProductCategory'
+

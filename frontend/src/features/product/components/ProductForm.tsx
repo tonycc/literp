@@ -16,7 +16,7 @@ import {
   SaveOutlined,
   CloseOutlined,
 } from '@ant-design/icons';
-import { ProductType, ProductStatus } from '@zyerp/shared';
+import { ProductType, ProductStatus, AcquisitionMethod } from '@zyerp/shared';
 import { PRODUCT_TYPE_OPTIONS, ACQUISITION_METHOD_OPTIONS } from '@/shared/constants/product';
 import type { ProductInfo, ProductFormData, ProductCategoryOption } from '@zyerp/shared';
 import { productCategoryService } from '../services/productCategory.service';
@@ -27,7 +27,35 @@ import { useMessage } from '@/shared/hooks';
 import ProductImageUpload from './ProductImageUpload';
 import { AttributesService } from '../../attributes/services/attributes.service';
 
-const { Option } = Select;
+
+interface LocalFormInstance<T = unknown> {
+  getFieldValue: (name: string | string[]) => unknown;
+  setFieldsValue: (values: Partial<T>) => void;
+  resetFields: (fields?: string[]) => void;
+  validateFields: () => Promise<T>;
+  submit: () => void;
+}
+
+/**
+ * 本地表单状态接口
+ * 继承 Shared 中的 ProductFormData 以保持字段定义一致
+ * 但根据 UI 交互需求进行部分扩展和类型调整：
+ * 1. 使用 Partial 使所有字段可选（表单编辑过程中的中间状态）
+ * 2. 重写 images 为 unknown[] 以避免 strict 模式下的 any 错误
+ * 3. 添加 categoryCode 等 UI 辅助字段
+ */
+interface LocalProductFormValues extends Partial<Omit<ProductFormData, 'images'>> {
+  // UI 交互字段 (API DTO 中使用 categoryId)
+  categoryCode?: string;
+  
+  // 类型安全重写
+  images?: unknown[];
+  
+  // 动态属性编辑字段 (UI 临时状态)
+  singleAttributeId?: string;
+  singleAttributeName?: string;
+  singleAttributeValue?: string;
+}
 
 interface ProductFormProps {
   product?: ProductInfo;
@@ -44,8 +72,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
   onCancel,
   loading = false,
 }) => {
-  const [form] = Form.useForm();
-  const singleAttrId = Form.useWatch('singleAttributeId', form) as string;
+  const [form] = (Form as unknown as { useForm: <T>() => [LocalFormInstance<T>] }).useForm<LocalProductFormValues>();
+  const singleAttrId = (Form as unknown as { useWatch: (name: string, form: LocalFormInstance) => unknown }).useWatch('singleAttributeId', form) as string;
   const message = useMessage();
 
   const [codeGenerated, setCodeGenerated] = useState(false);
@@ -136,14 +164,14 @@ const ProductForm: React.FC<ProductFormProps> = ({
           type: product.type,
           categoryCode: product.category?.code || product.categoryId,
           unitId: product.unitId,
-          defaultWarehouseId: product.warehouse?.id,
+          defaultWarehouseId: product.warehouse?.id || product.defaultWarehouseId,
           model: product.model,
           barcode: product.barcode,
           qrCode: product.qrCode,
           acquisitionMethod: product.acquisitionMethod,
-          standardCost: product.standardCost,
-          averageCost: product.averageCost,
-          latestCost: product.latestCost,
+          standardPrice: product.standardCost,
+          salePrice: undefined, // ProductInfo usually doesn't carry sales price directly
+          purchasePrice: undefined,
           safetyStock: product.safetyStock,
           safetyStockMin: product.safetyStockMin,
           safetyStockMax: product.safetyStockMax,
@@ -153,6 +181,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
           status: product.status,
           description: product.description,
           remark: product.remark,
+          specification: product.specification,
         });
         setCodeGenerated(true);
       } else {
@@ -161,7 +190,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
         form.setFieldsValue({
           type: ProductType.RAW_MATERIAL,
           status: ProductStatus.ACTIVE,
-          acquisitionMethod: 'purchase',  // 设置获取方式的默认值为"采购"
+          acquisitionMethod: AcquisitionMethod.PURCHASE,  // 设置获取方式的默认值为"采购"
         });
         setCodeGenerated(false);
       }
@@ -189,10 +218,11 @@ const ProductForm: React.FC<ProductFormProps> = ({
   // 表单提交
   const handleSubmit = async () => {
     try {
-      const values = await form.validateFields() as ProductFormData;
+      const values = await form.validateFields();
       const formData: ProductFormData = {
         ...values,
-      };
+        categoryId: values.categoryCode!,
+      } as unknown as ProductFormData;
       await onSave(formData);
     } catch (error) {
       console.error('表单验证失败:', error);
@@ -280,7 +310,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
       destroyOnHidden
     >
       <Form
-        form={form}
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+        form={form as unknown as any}
         layout="vertical"
         onFinish={() => void handleSubmit()}
       >
@@ -351,13 +382,10 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 name="type"
                 rules={[{ required: true, message: '请选择产品属性' }]}
               >
-                <Select placeholder="选择产品属性">
-                  {productTypeOptions.map(option => (
-                    <Option key={option.value} value={option.value}>
-                      {option.label}
-                    </Option>
-                  ))}
-                </Select>
+                <Select 
+                  placeholder="选择产品属性"
+                  options={productTypeOptions.map(option => ({ label: option.label, value: option.value }))}
+                />
               </Form.Item>
             </Col>
               <Col span={8}>
@@ -366,13 +394,14 @@ const ProductForm: React.FC<ProductFormProps> = ({
               name="categoryCode"
               rules={[{ required: true, message: '请选择产品类目' }]}
             >
-              <Select placeholder="选择产品类目">
-                  {productCategoryOptions.map((option, index) => (
-                    <Option key={option.value || `category-${index}`} value={option.value}>
-                      {option.label}
-                    </Option>
-                  ))}
-                </Select>
+              <Select 
+                placeholder="选择产品类目"
+                options={productCategoryOptions.map((option, index) => ({
+                  label: option.label,
+                  value: option.value,
+                  key: option.value || `category-${index}`
+                }))}
+              />
               </Form.Item>
             </Col>
             <Col span={8}>
@@ -400,13 +429,15 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 name="defaultWarehouseId"
                 rules={[{ required: true, message: '请选择默认仓库' }]}
               >
-                <Select placeholder="选择默认仓库" showSearch>
-                  {warehouseOptions.map((warehouse, index) => (
-                    <Option key={warehouse.value || `warehouse-${index}`} value={warehouse.value}>
-                      {warehouse.label}
-                    </Option>
-                  ))}
-                </Select>
+                <Select 
+                  placeholder="选择默认仓库" 
+                  showSearch
+                  options={warehouseOptions.map((warehouse, index) => ({
+                    label: warehouse.label,
+                    value: warehouse.value,
+                    key: warehouse.value || `warehouse-${index}`
+                  }))}
+                />
               </Form.Item>
             </Col>
              <Col span={8}>
@@ -415,13 +446,10 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 name="acquisitionMethod"
                 rules={[{ required: true, message: '请选择获取方式' }]}
               >
-                <Select placeholder="选择获取方式">
-                  {acquisitionMethodOptions.map(option => (
-                    <Option key={option.value} value={option.value}>
-                      {option.label}
-                    </Option>
-                  ))}
-                </Select>
+                <Select 
+                  placeholder="选择获取方式"
+                  options={acquisitionMethodOptions.map(option => ({ label: option.label, value: option.value }))}
+                />
               </Form.Item>
             </Col>
              <Col span={8}>
@@ -430,13 +458,15 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 name="unitId"
                 rules={[{ required: true, message: '请选择计量单位' }]}
               >
-                <Select placeholder="选择计量单位" showSearch>
-                  {unitOptions.map((unit, index) => (
-                    <Option key={unit.value || `unit-${index}`} value={unit.value}>
-                      {unit.label}
-                    </Option>
-                  ))}
-                </Select>
+                <Select 
+                  placeholder="选择计量单位" 
+                  showSearch
+                  options={unitOptions.map((unit, index) => ({
+                    label: unit.label,
+                    value: unit.value,
+                    key: unit.value || `unit-${index}`
+                  }))}
+                />
               </Form.Item>
             </Col>
              

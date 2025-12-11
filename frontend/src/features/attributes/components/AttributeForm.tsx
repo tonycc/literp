@@ -2,6 +2,7 @@ import React, { useRef } from 'react'
 import { ProForm, ProFormText, ProFormDigit, ProFormSwitch, ProFormList } from '@ant-design/pro-components'
 import type { ProFormInstance } from '@ant-design/pro-components'
 import { Row, Col, Space, Button } from 'antd'
+import type { FormListFieldData, FormListOperation } from 'antd/es/form/FormList'
 import { PlusOutlined, CloseOutlined } from '@ant-design/icons'
 import type { AttributeInfo, AttributeValueInfo } from '../services/attributes.service'
 
@@ -24,7 +25,7 @@ export const AttributeForm: React.FC<{
       labelCol={{ span: 4 }}
       wrapperCol={{ span: 20 }}
       submitter={{
-        render: (props, doms) => {
+        render: (_props, doms) => {
           return (
             <Row justify="end">
               <Space>{doms}</Space>
@@ -65,7 +66,7 @@ export const AttributeForm: React.FC<{
           style: { width: 'fit-content', paddingLeft: 0 }
         }}
         deleteIconProps={false}
-        actionRender={(field, action) => [
+        actionRender={(field: FormListFieldData, action: FormListOperation) => [
             <Button
               key="delete"
               type="text"

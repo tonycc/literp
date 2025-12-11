@@ -32,7 +32,7 @@ export const useProductVariants = (productId: string) => {
   const getVariants = useCallback(async () => {
     setLoading(true);
     try {
-      const params: PaginationParams = { page: 1, pageSize: 10 };
+      const params: PaginationParams & Record<string, unknown> = { page: 1, pageSize: 10 };
       const response = await ProductVariantsService.getVariants(productId, params);
       if (response.success) {
         setVariants(response.data);

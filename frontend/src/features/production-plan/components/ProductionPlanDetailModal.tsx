@@ -104,10 +104,10 @@ const ProductionPlanDetailModal: React.FC<ProductionPlanDetailModalProps> = ({ v
               loading={loading}
               search={false}
               options={false}
-              rowKey={(r) => r.id}
+              rowKey="id"
               columns={[
                 { title: '制造订单号', dataIndex: 'orderNo', width: 160 },
-                { title: '产品', dataIndex: 'productName', width: 200, render: (_, r) => r.productName ?? r.productCode ?? r.productId },
+                { title: '产品', dataIndex: 'productName', width: 200, render: (_, r: ManufacturingOrder) => r.productName ?? r.productCode ?? r.productId },
                 { title: '数量', dataIndex: 'quantity', valueType: 'digit', width: 100 },
                 { title: '状态', dataIndex: 'status', width: 120 },
                 { title: '计划开始', dataIndex: 'plannedStart', valueType: 'date', width: 140 },
@@ -127,10 +127,10 @@ const ProductionPlanDetailModal: React.FC<ProductionPlanDetailModalProps> = ({ v
               loading={loading}
               search={false}
               options={false}
-              rowKey={(r) => r.id}
+              rowKey="id"
               columns={[
                 { title: '工单号', dataIndex: 'orderNo', width: 140 },
-                { title: '工序', dataIndex: 'operationsLabel', width: 220, ellipsis: true, render: (_, r) => r.operationsLabel ?? r.operationId },
+                { title: '工序', dataIndex: 'operationsLabel', width: 220, ellipsis: true, render: (_, r: WorkOrder) => r.operationsLabel ?? r.operationId },
                 { title: '数量', dataIndex: 'quantity', valueType: 'digit', width: 100 },
                 { title: '状态', dataIndex: 'status', width: 120 },
                 { title: '计划开始', dataIndex: 'plannedStart', valueType: 'date', width: 140 },
@@ -148,12 +148,12 @@ const ProductionPlanDetailModal: React.FC<ProductionPlanDetailModalProps> = ({ v
               loading={loading}
               search={false}
               options={false}
-              rowKey={(r) => r.id}
+              rowKey="id"
               columns={[
                 { title: '委外订单号', dataIndex: 'orderNo', width: 160 },
                 { title: '供应商', dataIndex: 'supplierName', width: 180 },
-                { title: '工单', dataIndex: 'firstWorkOrderNo', width: 160, render: (_, r) => r.firstWorkOrderNo ?? r.firstWorkOrderId ?? '-' },
-                { title: '工序', dataIndex: 'firstOperationName', width: 160, render: (_, r) => r.firstOperationName ?? r.firstOperationId ?? '-' },
+                { title: '工单', dataIndex: 'firstWorkOrderNo', width: 160, render: (_, r: SubcontractOrder) => r.firstWorkOrderNo ?? r.firstWorkOrderId ?? '-' },
+                { title: '工序', dataIndex: 'firstOperationName', width: 160, render: (_, r: SubcontractOrder) => r.firstOperationName ?? r.firstOperationId ?? '-' },
                 { title: '状态', dataIndex: 'status', width: 120 },
               ]}
               dataSource={sos}

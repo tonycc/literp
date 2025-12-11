@@ -120,7 +120,7 @@ export interface OperationApi {
    * 获取工序选项（用于下拉选择）
    */
   getOptions(_params?: { 
-    _isActive?: boolean 
+    isActive?: boolean 
   }): Promise<ApiResponse<OperationOption[]>>;
 
   /**

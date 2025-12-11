@@ -12,9 +12,9 @@ import { operationService } from '../services/operation.service';
 import { useMessage } from '@/shared/hooks';
 
 interface OperationFormProps {
-  form: FormInstance;
+  form: FormInstance<OperationFormData>;
   initialValues?: Partial<OperationInfo>;
-  onSubmit?: (values: OperationFormData) => void;
+  onSubmit?: (values: OperationFormData) => Promise<void> | void;
   onCancel?: () => void;
 }
 
@@ -96,17 +96,21 @@ const OperationForm: React.FC<OperationFormProps> = ({
 
   return (
     <ProForm<OperationFormData>
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       form={form}
-      initialValues={initialValues}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+      initialValues={initialValues as any}
       onFinish={handleSubmit}
       layout="vertical"
       submitter={{
-        render: (_, dom) => (
+        render: (_, dom: React.ReactNode[]) => (
           <Row justify="end" gutter={16}>
             <Col>
               <a onClick={onCancel}>取消</a>
             </Col>
-            <Col>{dom[1]}</Col> {/* 提交按钮 */}
+            <Col>
+              {dom[1]}
+            </Col> {/* 提交按钮 */}
           </Row>
         ),
       }}

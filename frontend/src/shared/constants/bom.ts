@@ -50,6 +50,12 @@ export const BOM_TYPE_VALUE_ENUM_PRO = {
   [BOM_TYPE.SALES]: { text: '销售BOM', status: 'Success' },
 };
 
+export const BOM_TYPE_MAP: Record<string, { text: string; color: string }> = {
+  [BOM_TYPE.PRODUCTION]: { text: '生产BOM', color: 'blue' },
+  [BOM_TYPE.ENGINEERING]: { text: '工程BOM', color: 'orange' },
+  [BOM_TYPE.SALES]: { text: '销售BOM', color: 'green' },
+};
+
 /**
  * 物料需求类型
  */

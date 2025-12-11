@@ -17,6 +17,7 @@ export const DepartmentManagement: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<Department | undefined>();
   const [refreshKey, setRefreshKey] = useState(0);
+  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
   const formRef = useRef<ProFormInstance<DepartmentFormValues> | undefined>(undefined);
 
   const { createDepartment, updateDepartment, loading } = useDepartmentActions();

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, InputNumber, Select, Button, Space } from 'antd';
+import { Form, Modal, InputNumber, Select, Button, Space } from 'antd';
+import { ProForm } from '@ant-design/pro-components';
 import type { BomItem, ProductInfo, VariantInfo, UnitInfo } from '@zyerp/shared';
 import { useMessage } from '@/shared/hooks';
 
@@ -10,11 +11,18 @@ interface BomItemEditorProps {
   products: ProductInfo[];
   getVariantsByProduct: (productId: string) => Promise<VariantInfo[]>;
   units: UnitInfo[];
-  initial?: Partial<BomItem>;
+  initial?: Partial<BomItem> & { materialVariantId?: string };
+}
+
+interface BomItemFormValues extends Partial<BomItem> {
+  materialId?: string;
+  materialVariantId?: string;
+  quantity?: number;
+  unitId?: string;
 }
 
 const BomItemEditor: React.FC<BomItemEditorProps> = ({ visible, onClose, onSubmit, products, getVariantsByProduct, units, initial }) => {
-  const [form] = Form.useForm();
+  const [form] = ProForm.useForm<BomItemFormValues>();
   const [useVariant, setUseVariant] = useState<boolean>(!!initial?.materialVariantId);
   const [variants, setVariants] = useState<VariantInfo[]>([]);
   const message = useMessage();
@@ -22,28 +30,39 @@ const BomItemEditor: React.FC<BomItemEditorProps> = ({ visible, onClose, onSubmi
   useEffect(() => {
     if (visible) {
       form.resetFields();
-      form.setFieldsValue(initial);
+      form.setFieldsValue(initial || {});
       setUseVariant(!!initial?.materialVariantId);
     }
   }, [visible, initial, form]);
 
-  const handleProductChange = async (pid: string) => {
-    try {
-      const list = await getVariantsByProduct(pid);
-      setVariants(list || []);
-      form.setFieldsValue({ materialVariantId: undefined });
-    } catch {
-      message.error('加载变体失败');
-    }
+  const handleProductChange = (pid: string) => {
+    const loadVariants = async () => {
+      try {
+        const list = await getVariantsByProduct(pid);
+        setVariants(list || []);
+        form.setFieldsValue({ materialVariantId: undefined });
+      } catch {
+        message.error('加载变体失败');
+      }
+    };
+    void loadVariants();
   };
 
-  const submit = async () => {
-    const values = await form.validateFields();
-    if (!values.materialId && !values.materialVariantId) {
-      message.error('请至少选择产品或变体作为物料');
-      return;
-    }
-    await onSubmit(values);
+  const submit = () => {
+    const doSubmit = async () => {
+      try {
+        const values = await form.validateFields();
+        if (!values.materialId && !values.materialVariantId) {
+          message.error('请至少选择产品或变体作为物料');
+          return;
+        }
+        await onSubmit(values);
+      } catch (error) {
+        // Form validation error or submit error
+        console.error(error);
+      }
+    };
+    void doSubmit();
   };
 
   return (

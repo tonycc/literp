@@ -77,7 +77,7 @@ const DepartmentMemberList: React.FC<DepartmentMemberListProps> = ({ departmentI
         <Button key="add" type="primary" icon={<PlusOutlined />} onClick={() => { message.info('添加成员功能待实现') }}>新增</Button>,
         <Button key="refresh" onClick={() => { void actionRef.current?.reload?.() }}>刷新</Button>,
       ]}
-      pagination={{ showSizeChanger: true, showQuickJumper: true, showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条/总共 ${total} 条` }}
+      pagination={{ showSizeChanger: true, showQuickJumper: true, showTotal: (total: number, range: number[]) => `第 ${range[0]}-${range[1]} 条/总共 ${total} 条` }}
       scroll={{ x: 'max-content' }}
     />
   );

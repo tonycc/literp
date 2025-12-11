@@ -3,6 +3,7 @@
  */
 
 import apiClient from '@/shared/services/api';
+import type { ApiResponse } from '@zyerp/shared';
 
 export interface UploadedFile {
   id: string;
@@ -37,12 +38,15 @@ export class UploadService {
     const formData = new FormData();
     formData.append('avatar', file);
 
-    const response = await apiClient.post('/uploads/avatar', formData, {
+    const response = await apiClient.post<ApiResponse<FileUploadResult>>('/uploads/avatar', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
 
+    if (!response.data.data) {
+      throw new Error('Upload failed: No data received');
+    }
     return response.data.data;
   }
 
@@ -55,12 +59,15 @@ export class UploadService {
       formData.append('documents', file);
     });
 
-    const response = await apiClient.post('/uploads/documents', formData, {
+    const response = await apiClient.post<ApiResponse<FileUploadResult[]>>('/uploads/documents', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
 
+    if (!response.data.data) {
+      throw new Error('Upload failed: No data received');
+    }
     return response.data.data;
   }
 
@@ -73,12 +80,15 @@ export class UploadService {
       formData.append('images', file);
     });
 
-    const response = await apiClient.post('/uploads/product-images', formData, {
+    const response = await apiClient.post<ApiResponse<ProductImageUploadResult[]>>('/uploads/product-images', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
 
+    if (!response.data.data) {
+      throw new Error('Upload failed: No data received');
+    }
     return response.data.data;
   }
 
@@ -100,7 +110,10 @@ export class UploadService {
    * 获取文件信息
    */
   async getFileInfo(filename: string, type: 'avatar' | 'document'): Promise<UploadedFile> {
-    const response = await apiClient.get(`/uploads/info/${type}/${filename}`);
+    const response = await apiClient.get<ApiResponse<UploadedFile>>(`/uploads/info/${type}/${filename}`);
+    if (!response.data.data) {
+      throw new Error('Failed to get file info: No data received');
+    }
     return response.data.data;
   }
 
@@ -108,7 +121,7 @@ export class UploadService {
    * 获取文件URL
    */
   getFileUrl(filename: string, type: 'avatar' | 'document' | 'product-image'): string {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+    const baseUrl = (import.meta.env.VITE_API_BASE_URL as string) || 'http://localhost:3000/api/v1';
     const typeMap = {
       'avatar': 'avatars',
       'document': 'documents',

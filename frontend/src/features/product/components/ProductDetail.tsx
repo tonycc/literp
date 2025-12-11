@@ -57,7 +57,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 
   useEffect(() => {
     if (visible && productId) {
-      fetchProductDetail();
+      void fetchProductDetail();
     }
   }, [visible, productId]);
 

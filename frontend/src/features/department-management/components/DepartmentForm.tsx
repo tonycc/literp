@@ -23,6 +23,7 @@ interface DepartmentFormProps {
   onSubmit: (data: CreateDepartmentData | UpdateDepartmentData) => Promise<void>;
   onCancel: (_onCancel: () => void) => void;
   loading?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
   formRef?: React.MutableRefObject<ProFormInstance<DepartmentFormValues> | undefined>;
 }
 
@@ -76,7 +77,7 @@ export const DepartmentForm: React.FC<DepartmentFormProps> = ({ department, onSu
           isActive: department ? department.isActive : true,
           managerId: department?.managerId ? String(department.managerId) : undefined,
         }}
-        onFinish={async (v) => { await handleSubmit(v) }}
+        onFinish={async (v: DepartmentFormValues) => { await handleSubmit(v) }}
         layout="vertical"
       >
         <Row gutter={16}>
@@ -105,7 +106,7 @@ export const DepartmentForm: React.FC<DepartmentFormProps> = ({ department, onSu
               placeholder="请选择部门负责人"
               fieldProps={{
                 showSearch: true,
-                filterOption: (input, option) => {
+                filterOption: (input: string, option: unknown) => {
                   let label = '';
                   if (typeof option === 'object' && option) {
                     const opt = option as { label?: unknown };

@@ -19,7 +19,6 @@ import {
 } from '../constants/productCategory';
 
 const { TextArea } = Input;
-const { Option } = Select;
 
 interface ProductCategoryFormProps {
   initialValues?: ProductCategoryInfo;
@@ -29,6 +28,11 @@ interface ProductCategoryFormProps {
   mode?: 'create' | 'edit';
 }
 
+interface LocalFormInstance {
+  setFieldsValue: (values: Partial<ProductCategoryFormData>) => void;
+  resetFields: () => void;
+}
+
 const ProductCategoryForm: React.FC<ProductCategoryFormProps> = ({
   initialValues,
   onSubmit,
@@ -36,7 +40,7 @@ const ProductCategoryForm: React.FC<ProductCategoryFormProps> = ({
   loading = false,
   mode = 'create'
 }) => {
-  const [form] = Form.useForm();
+  const [form] = (Form as unknown as { useForm: () => [LocalFormInstance] }).useForm();
   const [categoryOptions, setCategoryOptions] = useState<Array<{value: string, label: string}>>([]);
   
   const { 
@@ -55,7 +59,7 @@ const ProductCategoryForm: React.FC<ProductCategoryFormProps> = ({
     }
     
     // 加载类别选项
-    loadCategoryOptions();
+    void loadCategoryOptions();
   }, [initialValues, form]);
 
   const loadCategoryOptions = async () => {
@@ -72,7 +76,7 @@ const ProductCategoryForm: React.FC<ProductCategoryFormProps> = ({
 
 
 
-  const handleSubmit = async (values: ProductCategoryFormData) => {
+  const handleSubmit = (values: ProductCategoryFormData) => {
     try {
       // 只调用onSubmit回调，由父组件处理创建/更新逻辑
       onSubmit?.(values);
@@ -102,7 +106,8 @@ const ProductCategoryForm: React.FC<ProductCategoryFormProps> = ({
   return (
     <Card>
       <Form
-        form={form}
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+        {...{ form: form as any }}
         layout="vertical"
         onFinish={handleSubmit}
         initialValues={{
@@ -122,16 +127,11 @@ const ProductCategoryForm: React.FC<ProductCategoryFormProps> = ({
                 placeholder="请选择上级类别（可选）"
                 allowClear
                 showSearch
-                filterOption={(input, option) =>
-                  (option?.children?.toString() ?? '').toLowerCase().includes(input.toLowerCase())
+                options={categoryOptions}
+                filterOption={(input: string, option: unknown) =>
+                  ((option as { label: string } | undefined)?.label ?? '').toLowerCase().includes(input.toLowerCase())
                 }
-              >
-                {categoryOptions.map(option => (
-                  <Option key={option.value} value={option.value}>
-                    {option.label}
-                  </Option>
-                ))}
-              </Select>
+              />
             </Form.Item>
           </Col>
           <Col span={12}>

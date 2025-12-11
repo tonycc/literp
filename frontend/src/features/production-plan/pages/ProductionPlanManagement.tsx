@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {ProTable, ProForm, ProFormSwitch, ProFormSelect, ProFormText, ProFormDatePicker } from '@ant-design/pro-components';
-import type { ProFormInstance } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { Tabs, Drawer, Button, Alert, Tree, Row, Col, Card } from 'antd';
 import { useMessage } from '@/shared/hooks';
@@ -11,18 +10,33 @@ import { BomService } from '@/features/bom/services/bom.service';
 import type { ProductionPlanProductPlan } from '@zyerp/shared';
 import type { RoutingWorkcenterInfo } from '@zyerp/shared';
 import type { SalesOrder } from '@zyerp/shared';
-import type { SalesOrderItem, BomTreeNode } from '@zyerp/shared';
+import type { SalesOrderItem, BomTreeNode, MaterialRequirement } from '@zyerp/shared';
 import { MaterialRequirementList } from '../components/MaterialRequirementList';
 import { warehouseService } from '@/shared/services/warehouse.service';
 import { getUsers } from '@/shared/services';
 import dayjs from 'dayjs';
 import { productionPlanService } from '../services/production-plan.service';
 
+interface ProductionPlanFormValues {
+  salesOrderId?: string;
+  includeRouting?: boolean;
+  includeChildProducts?: boolean;
+  expandMaterialsRecursively?: boolean;
+  warehouseId?: string;
+  selectedItemIds?: string;
+  name?: string;
+  plannedStart?: string;
+  plannedFinish?: string;
+  finishedWarehouseId?: string;
+  issueWarehouseId?: string;
+  ownerId?: string;
+}
+
 export const ProductionPlanManagement: React.FC = () => {
   const message = useMessage();
   const modal = useModal();
   const { previewResult, selectedItems, loading, handleRefresh } = useProductionPlan();
-  const formRef = useRef<ProFormInstance<{ salesOrderId?: string; includeRouting?: boolean; includeChildProducts?: boolean; expandMaterialsRecursively?: boolean; warehouseId?: string; selectedItemIds?: string; name?: string; plannedStart?: string; plannedFinish?: string; finishedWarehouseId?: string; issueWarehouseId?: string; ownerId?: string }> | undefined>(undefined);
+  const [form] = ProForm.useForm<ProductionPlanFormValues>();
   const [selectedOrderId, setSelectedOrderId] = useState<string | undefined>(undefined);
   const [includeRouting, setIncludeRouting] = useState<boolean>(true);
   const [includeChildProducts, setIncludeChildProducts] = useState<boolean>(true);
@@ -122,7 +136,7 @@ export const ProductionPlanManagement: React.FC = () => {
     const loadOrderItems = async () => {
       setOrderItems([]);
       setSelectedItemRowKeys([]);
-      formRef.current?.setFieldsValue?.({ selectedItemIds: undefined });
+      form.setFieldsValue({ selectedItemIds: undefined });
       if (!selectedOrderId) { return; }
       try {
         const resp = await salesOrderService.getItems(selectedOrderId);
@@ -130,15 +144,15 @@ export const ProductionPlanManagement: React.FC = () => {
       } catch { message.error('加载订单产品失败'); }
     };
     void loadOrderItems();
-  }, [selectedOrderId, message, formRef]);
+  }, [selectedOrderId, message, form]);
 
   return (
     <>
-      <ProForm<{ salesOrderId?: string; includeRouting?: boolean; includeChildProducts?: boolean; expandMaterialsRecursively?: boolean; warehouseId?: string; selectedItemIds?: string; name?: string; plannedStart?: string; plannedFinish?: string; finishedWarehouseId?: string; issueWarehouseId?: string; ownerId?: string }>
+      <ProForm<ProductionPlanFormValues>
         layout="vertical"
         submitter={false}
-        formRef={formRef}
-        onFinish={async (values) => {
+        form={form}
+        onFinish={async (values: ProductionPlanFormValues) => {
           const resp = await productionPlanService.create({
             salesOrderId: String(values.salesOrderId),
             warehouseId: values.warehouseId ? String(values.warehouseId) : undefined,
@@ -180,7 +194,7 @@ export const ProductionPlanManagement: React.FC = () => {
                       onChange: (val: string) => {
                         setSelectedOrderId(val);
                         setSelectedItemRowKeys([]);
-                        formRef.current?.setFieldsValue?.({ selectedItemIds: undefined });
+                        form.setFieldsValue({ selectedItemIds: undefined });
                       }
                     }}
               />
@@ -338,7 +352,7 @@ export const ProductionPlanManagement: React.FC = () => {
                 <Button
                   type="primary"
                   onClick={() => {
-                    formRef.current?.submit?.()
+                    form.submit()
                   }}
                 >
                   保存生产计划
@@ -378,7 +392,9 @@ export const ProductionPlanManagement: React.FC = () => {
                   return Array.from(parents.values());
                 })(previewResult?.products || [])}
                 pagination={false}
-                rowKey={(r) => r.productId + (r.parentProductId ? `:${r.parentProductId}` : '')}
+                rowKey={(r: ProductionPlanProductPlan) => {
+                  return r.productId + (r.parentProductId ? `:${r.parentProductId}` : '');
+                }}
                 expandable={{ defaultExpandAllRows: true }}
               />
             ),
@@ -415,14 +431,14 @@ export const ProductionPlanManagement: React.FC = () => {
                     data={filteredMaterials}
                     loading={loading}
                     localeEmptyText={previewResult?.notes || '暂无物料需求，请为相关产品设置默认BOM并添加物料项'}
-                    onPurchaseSuggestion={(record) => {
+                    onPurchaseSuggestion={(record: MaterialRequirement) => {
                       modal.confirm({
                         title: '创建采购建议',
                         content: `为物料 ${record.materialCode} 创建采购建议（缺口：${record.shortageQuantity}）？`,
                         onOk: () => message.success('已添加到采购建议清单'),
                       });
                     }}
-                    onOutsourceSuggestion={(record) => {
+                    onOutsourceSuggestion={(record: MaterialRequirement) => {
                       modal.confirm({
                         title: '创建外协建议',
                         content: `为物料 ${record.materialCode} 创建外协建议（缺口：${record.shortageQuantity}）？`,
@@ -443,7 +459,7 @@ export const ProductionPlanManagement: React.FC = () => {
         width={720}
       >
         <ProTable<RoutingWorkcenterInfo>
-          rowKey={(r) => r.id}
+          rowKey={(r: RoutingWorkcenterInfo) => String(r.id)}
           search={false}
           pagination={false}
           toolBarRender={false}
@@ -453,7 +469,7 @@ export const ProductionPlanManagement: React.FC = () => {
             { title: '工序名称', dataIndex: 'name', ellipsis: true },
             { title: '时间模式', dataIndex: 'timeMode', width: 120 },
             { title: '周期(手动)', dataIndex: 'timeCycleManual', valueType: 'digit', width: 120 },
-            { title: '批次', dataIndex: 'batch', width: 80, render: (_, r) => (r.batch ? '是' : '否') },
+            { title: '批次', dataIndex: 'batch', width: 80, render: (_, r: RoutingWorkcenterInfo) => (r.batch ? '是' : '否') },
             { title: '批次容量', dataIndex: 'batchSize', valueType: 'digit', width: 100 },
             { title: '工资率', dataIndex: 'wageRate', valueType: 'digit', width: 100 },
           ]}

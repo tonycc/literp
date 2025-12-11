@@ -72,7 +72,7 @@ export const useCustomerPriceList = (reload?: () => void) => {
     });
   }, [modal, message, handleRefresh]);
 
-  const handleBatchDelete = useCallback(async (ids: string[]) => {
+  const handleBatchDelete = useCallback((ids: string[]) => {
     modal.confirm({
       title: '确定要删除选中的价格表吗？',
       content: `将删除 ${ids.length} 条记录，删除后无法恢复，请确认操作。`,

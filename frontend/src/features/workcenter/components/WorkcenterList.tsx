@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns, ActionType, ProTableProps } from '@ant-design/pro-components';
 import { Button, Space, Tag, Popconfirm } from 'antd';
@@ -233,7 +234,7 @@ const WorkcenterList: React.FC<WorkcenterListProps> = ({ actionRef, onEdit, onAd
       }}
       rowSelection={{
         selectedRowKeys: selectedRowKeys ?? internalSelectedKeys,
-        onChange: (keys, rows) => {
+        onChange: (keys: React.Key[], rows: WorkcenterInfo[]) => {
           if (onSelectChange) {
             onSelectChange(keys, rows);
           } else {
@@ -244,8 +245,8 @@ const WorkcenterList: React.FC<WorkcenterListProps> = ({ actionRef, onEdit, onAd
       scroll={{ x: 'max-content' }}
       dateFormatter="string"
       headerTitle={type === 'TEAM' ? '车间管理' : '工作中心管理'}
-      toolBarRender={(action, rowsArg) => {
-        const items: React.ReactNode[] = [];
+      toolBarRender={(_action, rowsArg: { selectedRowKeys?: React.Key[]; selectedRows?: WorkcenterInfo[] }) => {
+        const items: ReactNode[] = [];
         const selectedCount = Array.isArray(rowsArg?.selectedRowKeys)
           ? rowsArg.selectedRowKeys.length
           : (selectedRowKeys ?? internalSelectedKeys).length;
@@ -288,11 +289,12 @@ const WorkcenterList: React.FC<WorkcenterListProps> = ({ actionRef, onEdit, onAd
             type="primary"
             onClick={() => onAdd?.(type)}
           >
-            新建{type === 'TEAM' ? '车间' : '工作中心'}
+            新增
           </Button>
         );
 
-        return items;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
+        return items as any;
       }}
     />
   );

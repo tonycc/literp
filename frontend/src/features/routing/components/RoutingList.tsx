@@ -1,7 +1,7 @@
 import React from 'react';
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns, ProTableProps } from '@ant-design/pro-components';
-import type { ActionType } from '@ant-design/pro-table';
+import type { ActionType } from '@ant-design/pro-components';
 import { Button, Space, Tag, Popconfirm } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { RoutingInfo, RoutingWorkcenterInfo, WorkcenterOption } from '@zyerp/shared';
@@ -28,13 +28,13 @@ const RoutingList = React.forwardRef<RoutingListRef, RoutingListProps>(({ onEdit
   // 暴露给父组件用于触发表格刷新
   React.useImperativeHandle(ref, () => ({
     reload: () => {
-      actionRef.current?.reload();
+      void actionRef.current?.reload();
     }
   }));
 
   // 加载工作中心选项，用于在工序子列表中显示工作中心名称
   React.useEffect(() => {
-    (async () => {
+    void (async () => {
       try {
         const res = await routingService.getWorkcenterOptions({ _active: true });
         setWorkcenterOptions(res.data || []);
@@ -47,9 +47,9 @@ const RoutingList = React.forwardRef<RoutingListRef, RoutingListProps>(({ onEdit
 
   // 加载工序选项，用于在工序子列表中统一映射编码与名称
   React.useEffect(() => {
-    (async () => {
+    void (async () => {
       try {
-        const res = await operationService.getOptions({ _isActive: true });
+        const res = await operationService.getOptions({ isActive: true });
         setOperationOptions(res.data || []);
       } catch (error) {
         console.error('加载工序选项失败:', error);
@@ -64,7 +64,7 @@ const RoutingList = React.forwardRef<RoutingListRef, RoutingListProps>(({ onEdit
       const response = await routingService.delete(id);
       if (response.success) {
         messageApi.success('删除成功');
-        actionRef.current?.reload();
+        void actionRef.current?.reload();
       } else {
         messageApi.error(response.message || '删除失败');
       }
@@ -132,7 +132,7 @@ const RoutingList = React.forwardRef<RoutingListRef, RoutingListProps>(({ onEdit
           <Popconfirm
             title="确认删除"
             description="确定要删除这个工艺路线吗？"
-            onConfirm={() => handleDelete(record.id)}
+            onConfirm={() => { void handleDelete(record.id); }}
             okText="确认"
             cancelText="取消"
           >
@@ -201,7 +201,7 @@ const RoutingList = React.forwardRef<RoutingListRef, RoutingListProps>(({ onEdit
         </Button>,
       ]}
       expandable={{
-        expandedRowRender: (record) => {
+        expandedRowRender: (record: RoutingInfo) => {
           const opColumns: ProColumns<RoutingWorkcenterInfo>[] = [
             {
               title: '序号',

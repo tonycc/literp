@@ -411,6 +411,8 @@ export class UserService extends BaseService {
         description: rp.permission.description ?? undefined,
         resource: rp.permission.resource,
         action: rp.permission.action,
+        createdAt: rp.permission.createdAt,
+        updatedAt: rp.permission.updatedAt,
       })) || [],
       createdAt: ur.role.createdAt,
       updatedAt: ur.role.updatedAt,

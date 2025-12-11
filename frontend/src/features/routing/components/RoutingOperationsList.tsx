@@ -29,7 +29,7 @@ const RoutingOperationsList: React.FC<RoutingOperationsListProps> = ({
   const messageApi = useMessage();
 
   // 删除工艺路线作业
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     try {
       onDelete?.(id);
       messageApi.success('删除成功');
@@ -67,7 +67,7 @@ const RoutingOperationsList: React.FC<RoutingOperationsListProps> = ({
             label: `${opt.label}`,
             value: opt.value,
           }))}
-          onChange={(val) => onChangeWorkcenter?.(record.id, val)}
+          onChange={(val: string) => onChangeWorkcenter?.(record.id, val)}
         />
       )
     },
@@ -129,8 +129,8 @@ const RoutingOperationsList: React.FC<RoutingOperationsListProps> = ({
         dataSource={dataSource}
         rowKey="id"
         dragSortKey="sort"
-        onDragSortEnd={(oldIndex, newIndex, newData) => {
-          onSort?.(newData as RoutingWorkcenterInfo[]);
+        onDragSortEnd={(_oldIndex, _newIndex, newData: RoutingWorkcenterInfo[]) => {
+          onSort?.(newData);
         }}
         pagination={false}
         search={false}

@@ -4,7 +4,7 @@ import type { ProColumns, ActionType } from '@ant-design/pro-components'
 import type { SubcontractOrder, SubcontractOrderItem } from '@zyerp/shared'
 import { subcontractOrderService } from '../services/subcontract-order.service'
 import { useMessage } from '@/shared/hooks'
-import { SUBCONTRACT_ORDER_ITEM_STATUS_VALUE_ENUM_PRO, SUBCONTRACT_ORDER_STATUS_VALUE_ENUM_PRO } from '@/shared/constants/subcontract'
+import { SUBCONTRACT_ORDER_ITEM_STATUS_VALUE_ENUM_PRO } from '@/shared/constants/subcontract'
 import { Card, Row, Col } from 'antd'
 import { supplierService } from '@/features/supplier-management/services/supplier.service'
 
@@ -14,7 +14,7 @@ export interface SubcontractOrderDetailProps {
   onClose?: () => void
 }
 
-const SubcontractOrderDetail: React.FC<SubcontractOrderDetailProps> = ({ orderId, visible, onClose }) => {
+const SubcontractOrderDetail: React.FC<SubcontractOrderDetailProps> = ({ orderId, visible }) => {
   const [detail, setDetail] = useState<(SubcontractOrder & { items: SubcontractOrderItem[] }) | null>(null)
   const message = useMessage()
   const actionRef = useRef<ActionType | undefined>(undefined)
@@ -83,7 +83,7 @@ const SubcontractOrderDetail: React.FC<SubcontractOrderDetailProps> = ({ orderId
           actionRef={actionRef}
           search={false}
           options={false}
-          rowKey={(r) => r.id}
+          rowKey="id"
           columns={columns}
           dataSource={Array.isArray(detail?.items) ? detail?.items : []}
         />

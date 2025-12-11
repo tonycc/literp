@@ -3,7 +3,7 @@
  */
 
 import type { BomStatus, BomType, MaterialRequirementType, BomItem } from '@zyerp/shared';
-import { BOM_STATUS_MAP, BOM_TYPE_MAP, MATERIAL_REQUIREMENT_TYPE_MAP } from '../constants';
+import { BOM_STATUS_MAP, BOM_TYPE_MAP, MATERIAL_REQUIREMENT_TYPE_MAP } from '@/shared/constants/bom';
 
 /**
  * 格式化BOM状态显示

@@ -95,7 +95,7 @@ const RoutingOperationsForm: React.FC<RoutingOperationsFormProps> = ({
             name="workcenterId"
             label="工作中心"
             placeholder="请选择工作中心"
-            options={workcenterOptions.map(option => ({
+            options={workcenterOptions.map((option: any) => ({
               label: `${option.code} - ${option.label}${option.type ? ` (${option.type === 'TEAM' ? '车间' : option.type === 'EQUIPMENT' ? '设备' : '生产线'})` : ''}`,
               value: option.value
             }))}

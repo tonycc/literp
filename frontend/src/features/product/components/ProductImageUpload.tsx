@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Upload, Modal, message } from 'antd';
-import type { UploadFile, UploadProps } from 'antd';
-import type { UploadRequestOption } from 'rc-upload/lib/interface';
+import { Upload, Modal } from 'antd';
+import type { UploadFile, UploadProps, RcFile } from 'antd/es/upload';
 import { PlusOutlined } from '@ant-design/icons';
 import { uploadService, type ProductImageUploadResult } from '../../../features/file-management/services/upload.service';
+import { useMessage } from '@/shared/hooks/useMessage';
 
 interface ProductImageUploadProps {
   value?: UploadFile[];
@@ -16,10 +16,11 @@ const ProductImageUpload: React.FC<ProductImageUploadProps> = ({
   onChange,
   maxCount = 5
 }) => {
+  const message = useMessage();
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewImage, setPreviewImage] = useState('');
   const [previewTitle, setPreviewTitle] = useState('');
-  const [setUploading] = useState(false);
+  const [_uploading, setUploading] = useState(false);
 
   // 处理预览
   const handlePreview = async (file: UploadFile) => {
@@ -33,43 +34,47 @@ const ProductImageUpload: React.FC<ProductImageUploadProps> = ({
   };
 
   // 处理文件变化
-  const handleChange: UploadProps['onChange'] = async ({ fileList: newFileList }) => {
-    // 过滤掉被删除的文件
-    const filteredList = newFileList.filter(file => file.status !== 'removed');
+  const handleChange: UploadProps['onChange'] = ({ fileList: newFileList }) => {
+    const processUpload = async () => {
+      // 过滤掉被删除的文件
+      const filteredList = newFileList.filter(file => file.status !== 'removed');
 
-    // 处理新上传的文件
-    const newFiles = newFileList.filter(file => file.originFileObj && file.status === 'uploading');
+      // 处理新上传的文件
+      const newFiles = newFileList.filter(file => file.originFileObj && file.status === 'uploading');
 
-    if (newFiles.length > 0) {
-      setUploading(true);
-      try {
-        const filesToUpload = newFiles.map(f => f.originFileObj as File);
-        const uploadResults = await uploadService.uploadProductImages(filesToUpload);
+      if (newFiles.length > 0) {
+        setUploading(true);
+        try {
+          const filesToUpload = newFiles.map(f => f.originFileObj as File);
+          const uploadResults = await uploadService.uploadProductImages(filesToUpload);
 
-        // 将上传结果转换为UploadFile格式
-        const uploadedFileList: UploadFile[] = uploadResults.map((result) => ({
-          uid: result.id,
-          name: result.name,
-          status: 'done' as const,
-          url: result.url,
-          response: result,
-          size: result.size,
-          type: result.type
-        }));
+          // 将上传结果转换为UploadFile格式
+          const uploadedFileList: UploadFile[] = uploadResults.map((result) => ({
+            uid: result.id,
+            name: result.name,
+            status: 'done' as const,
+            url: result.url,
+            response: result,
+            size: result.size,
+            type: result.type
+          }));
 
-        // 合并已存在的文件和新增的文件
-        const allFiles = [...filteredList.filter(f => f.status !== 'uploading'), ...uploadedFileList];
-        onChange?.(allFiles);
-      } catch (error) {
-        console.error('图片上传失败:', error);
-        message.error('图片上传失败，请重试');
+          // 合并已存在的文件和新增的文件
+          const allFiles = [...filteredList.filter(f => f.status !== 'uploading'), ...uploadedFileList];
+          onChange?.(allFiles);
+        } catch (error) {
+          console.error('图片上传失败:', error);
+          message.error('图片上传失败，请重试');
+          onChange?.(filteredList);
+        } finally {
+          setUploading(false);
+        }
+      } else {
         onChange?.(filteredList);
-      } finally {
-        setUploading(false);
       }
-    } else {
-      onChange?.(filteredList);
-    }
+    };
+
+    void processUpload();
   };
 
   // 删除图片
@@ -89,7 +94,7 @@ const ProductImageUpload: React.FC<ProductImageUploadProps> = ({
   };
 
   // 自定义上传请求
-  const customUploadRequest = async (options: UploadRequestOption) => {
+  const customUploadRequest: UploadProps['customRequest'] = (options) => {
     const { file, onSuccess, onError } = options;
 
     try {
@@ -103,9 +108,9 @@ const ProductImageUpload: React.FC<ProductImageUploadProps> = ({
       }
 
       // 直接返回，不在这里上传，在onChange中处理
-      onSuccess({}, file);
+      onSuccess?.({}, file as RcFile);
     } catch (error) {
-      onError(error);
+      onError?.(error as Error);
     }
   };
 
@@ -115,7 +120,7 @@ const ProductImageUpload: React.FC<ProductImageUploadProps> = ({
         listType="picture-card"
         fileList={value}
         onChange={handleChange}
-        onPreview={handlePreview}
+        onPreview={(file: UploadFile) => { void handlePreview(file); }}
         onRemove={handleRemove}
         customRequest={customUploadRequest}
         multiple
@@ -153,7 +158,7 @@ const getBase64 = (file: File): Promise<string> =>
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = () => resolve(reader.result as string);
-    reader.onerror = error => reject(error);
+    reader.onerror = () => reject(new Error('Failed to read file'));
   });
 
 export default ProductImageUpload;

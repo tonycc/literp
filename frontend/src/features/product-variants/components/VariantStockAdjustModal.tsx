@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Select, InputNumber, Button } from 'antd';
+import { ModalForm, ProFormSelect, ProFormDigit, ProForm } from '@ant-design/pro-components';
 import { useMessage } from '@/shared/hooks';
 import { ProductVariantsService } from '../services/product-variants.service';
 import { warehouseService } from '@/shared/services/warehouse.service';
@@ -13,8 +13,15 @@ interface VariantStockAdjustModalProps {
   onUpdated?: () => void;
 }
 
+interface VariantStockAdjustFormValues {
+  type: 'inbound' | 'outbound' | 'reserve' | 'release';
+  delta: number;
+  warehouseId: string;
+  unitId: string;
+}
+
 const VariantStockAdjustModal: React.FC<VariantStockAdjustModalProps> = ({ productId, variantId, visible, onClose, onUpdated }) => {
-  const [form] = Form.useForm();
+  const [form] = ProForm.useForm<VariantStockAdjustFormValues>();
   const message = useMessage();
   const [warehouses, setWarehouses] = useState<Array<{ label: string; value: string }>>([]);
   const [units, setUnits] = useState<Array<{ label: string; value: string }>>([]);
@@ -32,13 +39,12 @@ const VariantStockAdjustModal: React.FC<VariantStockAdjustModalProps> = ({ produ
     };
     if (visible) {
       form.resetFields();
-      fetchOptions();
+      void fetchOptions();
     }
   }, [visible, form, message]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (values: VariantStockAdjustFormValues) => {
     try {
-      const values = await form.validateFields();
       const resp = await ProductVariantsService.adjustVariantStock(productId, variantId, {
         type: values.type,
         delta: Number(values.delta),
@@ -48,44 +54,61 @@ const VariantStockAdjustModal: React.FC<VariantStockAdjustModalProps> = ({ produ
       if (resp.success) {
         message.success('库存调整成功');
         onUpdated?.();
-        onClose();
+        return true;
       } else {
         message.error(resp.message || '库存调整失败');
+        return false;
       }
     } catch {
       message.error('提交失败，请重试');
+      return false;
     }
   };
 
   return (
-    <Modal title="库存调整" open={visible} onCancel={onClose} footer={null} destroyOnHidden>
-      <Form form={form} layout="vertical" onFinish={handleSubmit}>
-        <Form.Item label="操作类型" name="type" rules={[{ required: true, message: '请选择操作类型' }]}>
-          <Select
-            placeholder="选择类型"
-            options={[
-              { label: '入库', value: 'inbound' },
-              { label: '出库', value: 'outbound' },
-              { label: '锁定', value: 'reserve' },
-              { label: '释放锁定', value: 'release' },
-            ]}
-          />
-        </Form.Item>
-        <Form.Item label="数量" name="delta" rules={[{ required: true, message: '请输入数量' }]}>
-          <InputNumber style={{ width: '100%' }} min={1} precision={0} />
-        </Form.Item>
-        <Form.Item label="仓库" name="warehouseId" rules={[{ required: true, message: '请选择仓库' }]}>
-          <Select placeholder="选择仓库" options={warehouses} showSearch />
-        </Form.Item>
-        <Form.Item label="计量单位" name="unitId" rules={[{ required: true, message: '请选择计量单位' }]}>
-          <Select placeholder="选择单位" options={units} showSearch />
-        </Form.Item>
-        <div style={{ textAlign: 'right' }}>
-          <Button onClick={onClose} style={{ marginRight: 8 }}>取消</Button>
-          <Button type="primary" htmlType="submit">确认</Button>
-        </div>
-      </Form>
-    </Modal>
+    <ModalForm<VariantStockAdjustFormValues>
+      title="库存调整"
+      open={visible}
+      onOpenChange={(open) => !open && onClose()}
+      form={form}
+      onFinish={handleSubmit}
+      layout="vertical"
+      width={500}
+      modalProps={{ destroyOnClose: true }}
+    >
+      <ProFormSelect
+        name="type"
+        label="操作类型"
+        rules={[{ required: true, message: '请选择操作类型' }]}
+        options={[
+          { label: '入库', value: 'inbound' },
+          { label: '出库', value: 'outbound' },
+          { label: '锁定', value: 'reserve' },
+          { label: '释放锁定', value: 'release' },
+        ]}
+      />
+      <ProFormDigit
+        name="delta"
+        label="数量"
+        rules={[{ required: true, message: '请输入数量' }]}
+        min={1}
+        fieldProps={{ precision: 0, style: { width: '100%' } }}
+      />
+      <ProFormSelect
+        name="warehouseId"
+        label="仓库"
+        rules={[{ required: true, message: '请选择仓库' }]}
+        options={warehouses}
+        fieldProps={{ showSearch: true }}
+      />
+      <ProFormSelect
+        name="unitId"
+        label="计量单位"
+        rules={[{ required: true, message: '请选择计量单位' }]}
+        options={units}
+        fieldProps={{ showSearch: true }}
+      />
+    </ModalForm>
   );
 };
 

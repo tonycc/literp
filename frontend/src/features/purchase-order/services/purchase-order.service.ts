@@ -7,13 +7,11 @@ export class PurchaseOrderService {
   async getList(params?: PurchaseOrderListParams): Promise<PaginatedResponse<PurchaseOrder>> {
     const response = await apiClient.get<
       ApiResponse<{
-        data: {
-          data: PurchaseOrder[];
-          total: number;
-          page: number;
-          pageSize: number;
-          totalPages?: number;
-        };
+        data: PurchaseOrder[];
+        total: number;
+        page: number;
+        pageSize: number;
+        totalPages?: number;
       }>
     >(this.baseUrl, { params });
 
@@ -22,10 +20,10 @@ export class PurchaseOrderService {
       throw new Error('后端返回的数据结构异常：缺少data字段');
     }
 
-    const list: PurchaseOrder[] = backendData?.data || [];
-    const total: number = backendData?.total ?? backendData?.pagination?.total ?? 0;
-    const page: number = backendData?.page ?? backendData?.pagination?.page ?? 1;
-    const pageSize: number = backendData?.pageSize ?? backendData?.pagination?.pageSize ?? 10;
+    const list: PurchaseOrder[] = backendData.data || [];
+    const total: number = backendData.total ?? 0;
+    const page: number = backendData.page ?? 1;
+    const pageSize: number = backendData.pageSize ?? 10;
 
     return {
       success: response.data.success,

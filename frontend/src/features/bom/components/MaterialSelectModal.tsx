@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Modal, Button } from 'antd';
 import { ProTable } from '@ant-design/pro-components';
-import type { ProColumns, ProFormInstance } from '@ant-design/pro-components';
+import type { ProColumns } from '@ant-design/pro-components';
 import type { ProductInfo } from '@zyerp/shared';
 import type { ProductQueryParams } from '@zyerp/shared';
 import { ProductStatus } from '@zyerp/shared';
@@ -26,7 +26,11 @@ const MaterialSelectModal: React.FC<MaterialSelectModalProps> = ({
 }) => {
   const message = useMessage();
   type ProductTableParams = ProductQueryParams & { current?: number; pageSize?: number };
-  const formRef = useRef<ProFormInstance<ProductTableParams> | undefined>(undefined);
+  // 使用自定义接口避免 FormInstance 解析为 any 的问题
+  interface LocalFormInstance {
+    resetFields: () => void;
+  }
+  const formRef = useRef<LocalFormInstance | undefined>(undefined);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<Record<string, { text: string }>>({});
   const typeValueEnum = Object.fromEntries(Object.entries(PRODUCT_TYPE_MAP).map(([value, cfg]) => [value, { text: cfg.label }])) as Record<string, { text: string }>;
@@ -157,7 +161,8 @@ const MaterialSelectModal: React.FC<MaterialSelectModalProps> = ({
     >
       <ProTable<ProductInfo, ProductTableParams>
         columns={columns}
-        formRef={formRef}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+        formRef={formRef as any}
         request={async (params: ProductTableParams) => {
           try {
             const queryParams: ProductQueryParams = {
@@ -213,13 +218,13 @@ const MaterialSelectModal: React.FC<MaterialSelectModalProps> = ({
         pagination={{
           showSizeChanger: true,
           showQuickJumper: true,
-          showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条/总共 ${total} 条`,
+          showTotal: (total: number, range: [number, number]) => `第 ${range[0]}-${range[1]} 条/总共 ${total} 条`,
           defaultPageSize: 10,
         }}
         rowSelection={{
           selectedRowKeys,
           onChange: handleSelectChange,
-          getCheckboxProps: (record) => ({
+          getCheckboxProps: (record: ProductInfo) => ({
             disabled: excludeProductIds.includes(record.id),
           }),
         }}

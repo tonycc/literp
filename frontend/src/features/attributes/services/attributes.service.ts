@@ -70,6 +70,15 @@ export class AttributesService {
     }
   }
 
+  static async createAttributeValues(attributeId: string, values: Array<Partial<AttributeValueInfo>>): Promise<boolean> {
+    try {
+      const resp = await apiClient.post<ApiResponse<boolean>>(`${this.baseUrl}/${attributeId}/values`, values)
+      return !!resp.data?.success
+    } catch {
+      return false
+    }
+  }
+
   static async getAttributeValues(attributeId: string): Promise<{ success: boolean; data: AttributeValueInfo[] }> {
     try {
       const resp = await apiClient.get<ApiResponse<AttributeValueInfo[]>>(`${this.baseUrl}/${attributeId}/values`)

@@ -46,7 +46,8 @@ export class InventoryService {
 
     // 统一响应包裹：res.data => { success, data: { data:[], total, page, pageSize, totalPages } | { data:[], pagination }, message, timestamp }
     const raw = res.data?.data as ProductStockBackendData | undefined;
-    const list: ProductStockInfo[] = Array.isArray(raw?.data) ? raw!.data : [];
+    const rawData = raw?.data;
+    const list: ProductStockInfo[] = Array.isArray(rawData) ? rawData : [];
     // 兼容两种分页结构：直接字段或 pagination 对象
     const hasPagination = (
       d: ProductStockBackendData | undefined

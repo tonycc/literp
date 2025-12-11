@@ -1,7 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, Avatar, Image, Row, Col } from 'antd';
 import { ProForm, ProFormText, ProFormSelect, ProCard, ProFormDigit } from '@ant-design/pro-components';
-import type { ProFormInstance } from '@ant-design/pro-components';
 import type { VariantInfo, ProductInfo } from '@zyerp/shared';
 import { ProductStatus } from '@zyerp/shared';
 import { useMessage } from '@/shared/hooks';
@@ -46,7 +45,7 @@ const VariantForm: React.FC<VariantFormProps> = ({ productId, variant, visible, 
   
   const { attributes: attributeLinesRaw } = useProductAttributeLines(effectiveProductId);
   const attributeLines: Array<{ attributeName: string; values: string[]; source?: 'product' | 'global' }> = (attributeLinesRaw || []) as Array<{ attributeName: string; values: string[]; source?: 'product' | 'global' }>;
-  const formRef = useRef<ProFormInstance<VariantFormValues> | undefined>(undefined);
+  const [form] = ProForm.useForm<VariantFormValues>();
 
   // Reset internal ID when visible changes or prop changes
   useEffect(() => {
@@ -110,11 +109,11 @@ const VariantForm: React.FC<VariantFormProps> = ({ productId, variant, visible, 
   
   // Update form values when effectiveProductId changes (for initial load mainly)
   useEffect(() => {
-     if (formRef.current && !variant?.id) {
+     if (form && !variant?.id) {
          // When switching product in create mode, we might want to clear attributes
-         formRef.current.setFieldsValue({ attributes: {} });
+         form.setFieldsValue({ attributes: {} });
      }
-  }, [effectiveProductId, variant]);
+  }, [effectiveProductId, variant, form]);
 
   // Helper to generate cartesian product
   const generateCombinations = (attrs: Record<string, string[]>): Array<Array<{name: string, value: string}>> => {
@@ -291,13 +290,13 @@ const VariantForm: React.FC<VariantFormProps> = ({ productId, variant, visible, 
     
     // 当产品信息加载后，如果名称是空的，自动填充
     const defaultName = headerName && headerName !== '-' ? headerName : undefined;
-    const current = formRef.current?.getFieldValue?.('name') as string | undefined;
+    const current = form.getFieldValue?.('name') as string | undefined;
     
     // 只有当还没有输入时才自动填充
     if ((!current || current === '-') && defaultName) {
-      formRef.current?.setFieldsValue?.({ name: defaultName });
+      form.setFieldsValue?.({ name: defaultName });
     }
-  }, [visible, variant, headerName]);
+  }, [visible, variant, headerName, form]);
 
   return (
     <Modal 
@@ -310,7 +309,7 @@ const VariantForm: React.FC<VariantFormProps> = ({ productId, variant, visible, 
     >
       <ProForm<VariantFormValues>
         key={variant?.id || 'new'}
-        formRef={formRef}
+        form={form}
         layout="vertical" 
         initialValues={initialValues} 
         submitter={{ searchConfig: { submitText: '保存' } }} 

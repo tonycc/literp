@@ -698,7 +698,7 @@ const ProductionOrderList: React.FC<ProductionOrderListProps> = ({ className }) 
     onChange: (page, pageSize) => {
       setQueryParams(prev => ({ ...prev, page, pageSize }));
     },
-    onShowSizeChange: (current, size) => {
+    onShowSizeChange: (_current, size) => {
       setQueryParams(prev => ({ ...prev, page: 1, pageSize: size }));
     }
   };

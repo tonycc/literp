@@ -131,22 +131,23 @@ const InventoryDetails: React.FC<InventoryDetailsProps> = ({ productId, onBack }
   ];
 
   useEffect(() => {
-    fetchInventoryDetails();
-  }, [productId]);
+    const fetchInventoryDetails = async () => {
+      setLoading(true);
+      try {
+        // 模拟API调用
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setInventoryData(mockInventoryData);
+        setTransactions(mockTransactions);
+      } catch {
+        // 处理错误
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const fetchInventoryDetails = async () => {
-    setLoading(true);
-    try {
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setInventoryData(mockInventoryData);
-      setTransactions(mockTransactions);
-    } catch {
-      // 处理错误
-    } finally {
-      setLoading(false);
-    }
-  };
+    void fetchInventoryDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productId]);
 
   const getStockStatus = (current: number, min: number, max: number, safety: number) => {
     if (current <= min) {

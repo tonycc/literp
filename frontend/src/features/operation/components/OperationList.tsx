@@ -17,7 +17,7 @@ import {
 import type { OperationInfo, OperationQueryParams } from '@zyerp/shared';
 import operationService from '../services/operation.service';
 import { useMessage, useModal } from '@/shared/hooks';
-import { normalizeTableParams } from '@/shared/utils/normalizeTableParams';
+import { normalizeTableParams, type TableParams } from '@/shared/utils/normalizeTableParams';
 
 interface OperationListProps {
   operations: OperationInfo[];
@@ -175,12 +175,13 @@ const OperationList: React.FC<OperationListProps> = ({
   // 处理表格请求
   const handleRequest: ProTableProps<OperationInfo, OperationQueryParams>['request'] = async (params) => {
     try {
-      const base = normalizeTableParams(params as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const base = normalizeTableParams(params as TableParams);
       const queryParams: OperationQueryParams = {
         page: base.page,
-        pageSize: base.pageSize || 20,
-        keyword: (params as any).keyword,
-        isActive: (params as any).isActive,
+        pageSize: base.pageSize,
+        keyword: params.keyword,
+        isActive: params.isActive,
       };
 
       // 清理空值参数
@@ -236,7 +237,7 @@ const OperationList: React.FC<OperationListProps> = ({
         total: total,
         showSizeChanger: true,
         showQuickJumper: true,
-        showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条/总共 ${total} 条`,
+        showTotal: (total: number, range: [number, number]) => `第 ${range[0]}-${range[1]} 条/总共 ${total} 条`,
         onChange: onPageChange
       }}
       search={{

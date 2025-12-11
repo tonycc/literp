@@ -1,4 +1,5 @@
 import React from 'react';
+import type { ProductStockInfo } from '@zyerp/shared';
 import InventoryList from '../components/InventoryList';
 import { useInventory } from '../hooks/useInventory';
 import { useModal } from '@/shared/hooks/useModal';
@@ -13,13 +14,13 @@ const InventoryManagementPage: React.FC = () => {
 
   return (
         <InventoryList
-          onAdd={() => modal.info({ title: '新增库存', content: '功能待实现' })}
-          onEdit={(item) => modal.info({ title: '编辑库存', content: `编辑 ${item.productName} 功能待实现` })}
-          onView={(item) => modal.info({ title: '查看详情', content: `查看 ${item.productName} 功能待实现` })}
+          onAdd={() => { modal.info({ title: '新增库存', content: '功能待实现' }); }}
+          onEdit={(item: ProductStockInfo) => { modal.info({ title: '编辑库存', content: `编辑 ${item.productName} 功能待实现` }); }}
+          onView={(item: ProductStockInfo) => { modal.info({ title: '查看详情', content: `查看 ${item.productName} 功能待实现` }); }}
           onDelete={async () => Promise.resolve()}
-          onRefresh={handleRefresh}
+          onRefresh={() => { void handleRefresh(); }}
           selectedRowKeys={selectedItems.map((i) => i.id)}
-          onSelectChange={(_keys, rows) => setSelectedItems(rows)}
+          onSelectChange={(_keys, rows: ProductStockInfo[]) => setSelectedItems(rows)}
         />
   );
 };

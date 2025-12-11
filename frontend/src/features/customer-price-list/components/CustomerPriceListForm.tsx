@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button, Row, Col, Space } from 'antd';
 import { ProForm, ProFormText, ProFormSelect, ProFormDatePicker, ProFormDigit, ProCard } from '@ant-design/pro-components';
-import type { ProFormInstance } from '@ant-design/pro-components';
 import dayjs from 'dayjs';
 import type { CreateCustomerPriceListData, UpdateCustomerPriceListData } from '../types';
 import { VATRate, PriceListStatus, Unit } from '../types';
@@ -29,7 +28,15 @@ const CustomerPriceListForm: React.FC<CustomerPriceListFormProps> = ({
   loading = false,
 }) => {
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
-  const formRef = useRef<ProFormInstance<CustomerPriceListFormValues> | undefined>(undefined);
+  
+  // 使用自定义接口避免 ProFormInstance 解析为 any 导致的 unsafe call 错误
+  interface LocalFormInstance {
+    getFieldValue: (name: string) => unknown;
+    setFieldsValue: (values: Partial<CustomerPriceListFormValues>) => void;
+    resetFields: () => void;
+    submit: () => void;
+  }
+  const formRef = useRef<LocalFormInstance | undefined>(undefined);
 
   const vatRateOptions = VAT_RATE_OPTIONS;
   const unitOptions = UNIT_OPTIONS;
@@ -98,7 +105,8 @@ const CustomerPriceListForm: React.FC<CustomerPriceListFormProps> = ({
 
   return (
     <ProForm<CustomerPriceListFormValues>
-      formRef={formRef}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+      formRef={formRef as any}
       onFinish={handleSubmit}
       layout="vertical"
       submitter={{ render: () => null }}

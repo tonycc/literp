@@ -273,7 +273,7 @@ const CustomerList: React.FC<CustomerListProps> = ({
       pagination={{
         showSizeChanger: true,
         showQuickJumper: true,
-        showTotal: (total, range) =>
+        showTotal: (total: number, range: number[]) =>
           `第 ${range[0]}-${range[1]} 条/共 ${total} 条`,
       }}
       search={{

@@ -3,7 +3,7 @@ import { Button } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
-import type { ProductStockInfo } from '@zyerp/shared';
+import type { ProductStockInfo, ProductStockQueryParams } from '@zyerp/shared';
 import { inventoryService } from '../services/inventory.service';
 import { normalizeTableParams } from '@/shared/utils/normalizeTableParams';
 
@@ -94,7 +94,7 @@ const InventoryList: React.FC<InventoryListProps> = ({
         <Button key="edit" type="link" onClick={() => onEdit?.(record)}>
           编辑
         </Button>,
-        <Button key="delete" type="link" danger onClick={() => onDelete?.(record.id)}>
+        <Button key="delete" type="link" danger onClick={() => { void onDelete?.(record.id); }}>
           删除
         </Button>,
       ],
@@ -105,8 +105,14 @@ const InventoryList: React.FC<InventoryListProps> = ({
     <ProTable<ProductStockInfo>
       columns={columns}
       request={async (params) => {
-        const base = normalizeTableParams(params as any)
-        const response = await inventoryService.getList({ current: base.page, pageSize: base.pageSize, ...(params as any) });
+        const base = normalizeTableParams(params as Record<string, unknown>);
+        const queryParams = {
+          ...params,
+          current: base.page,
+          pageSize: base.pageSize,
+        } as unknown as { current?: number; pageSize?: number } & Partial<ProductStockQueryParams>;
+        
+        const response = await inventoryService.getList(queryParams);
         return {
           data: response.data,
           success: response.success,
@@ -132,7 +138,7 @@ const InventoryList: React.FC<InventoryListProps> = ({
       pagination={{
         showSizeChanger: true,
         showQuickJumper: true,
-        showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条/总共 ${total} 条`,
+        showTotal: (total: number, range: [number, number]) => `第 ${range[0]}-${range[1]} 条/总共 ${total} 条`,
       }}
     />
   );

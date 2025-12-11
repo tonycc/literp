@@ -11,7 +11,7 @@ export const useManufacturingOrder = () => {
     setLoading(true)
     try {
       const res = await manufacturingOrderService.getList(params)
-      setRows(res.data)
+      setRows(res.data || [])
       setTotal(res.pagination.total || 0)
     } finally {
       setLoading(false)

@@ -3,7 +3,7 @@
  */
 
 import apiClient from '@/shared/services/api';
-import type { LoginRequest, LoginResponse, User } from '@zyerp/shared';
+import type { LoginRequest, LoginResponse, User, ApiResponse } from '@zyerp/shared';
 
 export interface RefreshTokenResponse {
   accessToken: string;
@@ -15,10 +15,14 @@ class AuthService {
    * 用户登录
    */
   async login(credentials: LoginRequest): Promise<LoginResponse> {
-    const response = await apiClient.post('/auth/login', credentials);
+    const response = await apiClient.post<ApiResponse<LoginResponse>>('/auth/login', credentials);
     
     // 后端返回的是 ApiResponse<LoginResponse> 格式
     const loginData = response.data.data;
+
+    if (!loginData) {
+      throw new Error('Login failed: No data received');
+    }
     
     // 保存 token 到本地存储
     if (loginData.accessToken) {
@@ -67,8 +71,11 @@ class AuthService {
    */
   async getCurrentUser(): Promise<User> {
     // 后端返回的是 ApiResponse<User> 格式，取 data 字段
-    const response = await apiClient.get('/auth/me');
-    return response.data.data as User;
+    const response = await apiClient.get<ApiResponse<User>>('/auth/me');
+    if (!response.data.data) {
+      throw new Error('Failed to get current user');
+    }
+    return response.data.data;
   }
 
   /**

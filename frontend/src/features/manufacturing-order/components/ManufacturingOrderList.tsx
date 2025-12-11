@@ -78,7 +78,7 @@ export const ManufacturingOrderList: React.FC<ManufacturingOrderListProps> = ({ 
         const total = Number(r.quantity || 0)
         const produced = typeof r.pendingQuantity === 'number' ? Math.max(0, total - Number(r.pendingQuantity || 0)) : Number(r.scheduledQuantity || 0)
         const percent = total > 0 ? Math.min(100, Math.round((produced / total) * 100)) : 0
-        const status = r.status === 'completed' ? 'success' : (r.status === 'cancelled' || r.status === 'paused') ? 'exception' : 'active'
+        const status = r.status === 'completed' ? 'success' : (r.status === 'cancelled') ? 'exception' : 'active'
         return <Progress percent={percent} status={status as any} size="small" />
       }
     },

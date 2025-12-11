@@ -23,10 +23,11 @@ export const useReceiptDicts = (orderId?: string): ReceiptDicts => {
       try {
         if (orderId) {
           const resp = await subcontractOrderService.getById(orderId)
-          if (resp.success && resp.data) {
-            setOrderMap({ [resp.data.id]: resp.data.orderNo })
-            if (resp.data.supplierId && resp.data.supplierName) setSupplierMap(prev => ({ ...prev, [resp.data.supplierId]: resp.data.supplierName! }))
-            if (resp.data.id && resp.data.supplierName) setOrderSupplierMap(prev => ({ ...prev, [resp.data.id]: resp.data.supplierName! }))
+          const data = resp.data
+          if (resp.success && data) {
+            setOrderMap({ [data.id]: data.orderNo })
+            if (data.supplierId && data.supplierName) setSupplierMap(prev => ({ ...prev, [data.supplierId]: data.supplierName! }))
+            if (data.id && data.supplierName) setOrderSupplierMap(prev => ({ ...prev, [data.id]: data.supplierName! }))
           }
         } else {
           const res = await subcontractOrderService.getList({ page: 1, pageSize: 500 })

@@ -116,13 +116,13 @@ export const MaterialRequirementList: React.FC<MaterialRequirementListProps> = (
       columns={finalColumns}
       dataSource={data}
       loading={loading}
-      rowKey={(row) => row.materialId}
+      rowKey="materialId"
       search={false}
       locale={localeEmptyText ? { emptyText: localeEmptyText } : undefined}
       pagination={{
         showSizeChanger: true,
         showQuickJumper: true,
-        showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条/总共 ${total} 条`,
+        showTotal: (total, range: [number, number]) => `第 ${range[0]}-${range[1]} 条/总共 ${total} 条`,
       }}
     />
   );

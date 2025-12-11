@@ -13,7 +13,6 @@ import {
   Col,
   Tooltip,
   Modal,
-  message,
   Descriptions,
   Typography,
   Popconfirm
@@ -26,6 +25,7 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
+import { useMessage } from '@/shared/hooks/useMessage';
 import type {
   BatchInventory,
   BatchInventoryQueryParams
@@ -35,7 +35,6 @@ import {
   BATCH_STATUS_CONFIG
 } from '../types';
 
-const { Option } = Select;
 const { RangePicker } = DatePicker;
 const { Text } = Typography;
 
@@ -59,6 +58,7 @@ const BatchInventoryTable: React.FC<BatchInventoryTableProps> = ({
   const [selectedBatch, setSelectedBatch] = useState<BatchInventory | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [form] = Form.useForm();
+  const message = useMessage();
 
   // 模拟批次库存数据
   const mockBatchData: BatchInventory[] = [
@@ -149,7 +149,8 @@ const BatchInventoryTable: React.FC<BatchInventoryTableProps> = ({
   ];
 
   useEffect(() => {
-    loadData();
+    void loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryParams]);
 
   const loadData = async () => {
@@ -196,10 +197,11 @@ const BatchInventoryTable: React.FC<BatchInventoryTableProps> = ({
 
     // 处理日期范围
     if (values.dateRange && Array.isArray(values.dateRange)) {
-      const [start, end] = values.dateRange;
+      const range = values.dateRange as unknown[];
+      const [start, end] = range;
       if (start && end) {
-        searchParams.receivedDateStart = dayjs(start).format('YYYY-MM-DD');
-        searchParams.receivedDateEnd = dayjs(end).format('YYYY-MM-DD');
+        searchParams.receivedDateStart = dayjs(start as string | number | Date | dayjs.Dayjs).format('YYYY-MM-DD');
+        searchParams.receivedDateEnd = dayjs(end as string | number | Date | dayjs.Dayjs).format('YYYY-MM-DD');
       }
     }
 
@@ -222,7 +224,7 @@ const BatchInventoryTable: React.FC<BatchInventoryTableProps> = ({
       // 模拟删除操作
       await new Promise(resolve => setTimeout(resolve, 500));
       message.success(`删除批次 ${record.batchNumber} 成功`);
-      loadData();
+      void loadData();
     } catch {
       message.error('删除失败');
     }
@@ -279,7 +281,7 @@ const BatchInventoryTable: React.FC<BatchInventoryTableProps> = ({
       key: 'unitCost',
       width: 80,
       align: 'right',
-      render: (value) => `¥${value.toFixed(2)}`
+      render: (value: number) => `¥${value.toFixed(2)}`
     },
     {
       title: '入库日期',
@@ -310,7 +312,7 @@ const BatchInventoryTable: React.FC<BatchInventoryTableProps> = ({
           </Tooltip>
           <Popconfirm
             title="确定要删除这个批次吗？"
-            onConfirm={() => handleDelete(record)}
+            onConfirm={() => { void handleDelete(record); }}
             okText="确定"
             cancelText="取消"
           >
@@ -347,9 +349,9 @@ const BatchInventoryTable: React.FC<BatchInventoryTableProps> = ({
               <Form.Item name="status" label="批次状态">
                 <Select placeholder="请选择状态" allowClear>
                   {Object.entries(BATCH_STATUS_CONFIG).map(([key, config]) => (
-                    <Option key={key} value={key}>
+                    <Select.Option key={key} value={key}>
                       {config.label}
-                    </Option>
+                    </Select.Option>
                   ))}
                 </Select>
               </Form.Item>
@@ -383,7 +385,7 @@ const BatchInventoryTable: React.FC<BatchInventoryTableProps> = ({
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total) => `共 ${total} 条记录`,
-            onChange: (page, pageSize) => {
+            onChange: (page: number, pageSize: number) => {
               setQueryParams(prev => ({ ...prev, page, pageSize }));
             }
           }}

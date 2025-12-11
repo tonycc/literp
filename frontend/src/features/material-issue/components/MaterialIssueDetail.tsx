@@ -3,7 +3,7 @@ import { ProCard, ProDescriptions, ProTable, ModalForm, ProFormDigit } from '@an
 import type { ActionType, ProColumns } from '@ant-design/pro-components'
 import type { MaterialIssueOrder, MaterialIssueOrderItem } from '@zyerp/shared'
 import { materialIssueService } from '../services/material-issue.service'
-import { useMessage, useModal } from '@/shared/hooks'
+import { useMessage } from '@/shared/hooks'
 
 interface MaterialIssueDetailProps {
   orderId: string
@@ -14,7 +14,6 @@ const MaterialIssueDetail: React.FC<MaterialIssueDetailProps> = ({ orderId }) =>
   const [currentItem, setCurrentItem] = useState<MaterialIssueOrderItem | null>(null)
   const actionRef = useRef<ActionType | undefined>(undefined)
   const message = useMessage()
-  const modal = useModal()
 
   const load = async () => {
     try {
@@ -52,18 +51,28 @@ const MaterialIssueDetail: React.FC<MaterialIssueDetailProps> = ({ orderId }) =>
   return (
     <ProCard split="horizontal">
       <ProCard title="订单信息">
-        <ProDescriptions dataSource={order ?? undefined} column={1} columns={[
-          { title: '订单编号', dataIndex: 'orderNo' },
-          { title: '工单编号', dataIndex: 'workOrderNo' },
-          { title: '制造订单编号', dataIndex: 'moOrderNo' },
-          { title: '状态', dataIndex: 'status' },
-          { title: '仓库编码', dataIndex: 'warehouseCode', render: (_, r) => r?.warehouseCode || r?.warehouseName || '-' },
-        ]} />
+        <ProDescriptions<MaterialIssueOrder>
+          dataSource={order ?? undefined}
+          column={1}
+          columns={[
+            { title: '订单编号', dataIndex: 'orderNo' },
+            { title: '工单编号', dataIndex: 'workOrderNo' },
+            { title: '制造订单编号', dataIndex: 'moOrderNo' },
+            { title: '状态', dataIndex: 'status' },
+            {
+              title: '仓库编码',
+              dataIndex: 'warehouseCode',
+              render: (_, r: MaterialIssueOrder) => {
+                return r?.warehouseCode || r?.warehouseName || '-'
+              },
+            },
+          ]}
+        />
       </ProCard>
       <ProCard title="物料明细">
         <ProTable<MaterialIssueOrderItem>
           actionRef={actionRef}
-          rowKey={(r) => r.id as string}
+          rowKey={(r: MaterialIssueOrderItem) => r.id as string}
           columns={columns}
           search={false}
           toolBarRender={false}
@@ -76,7 +85,7 @@ const MaterialIssueDetail: React.FC<MaterialIssueDetailProps> = ({ orderId }) =>
         title="部分领取"
         open={Boolean(currentItem)}
         modalProps={{ onCancel: () => setCurrentItem(null) }}
-        onFinish={async (vals) => {
+        onFinish={async (vals: { quantity: number }) => {
           if (!order || !currentItem) return false
           const qty = Number(vals.quantity || 0)
           if (!Number.isFinite(qty) || qty <= 0) {

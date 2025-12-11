@@ -16,13 +16,13 @@ import type {
   BatchOperationRequest,
   BatchOperationResponse,
   ProductCategoryStats
-} from '@/shared/src/interfaces/productCategory';
+} from '@zyerp/shared';
 import type {
   ProductCategoryInfo,
   ProductCategoryQueryParams,
   ProductCategoryImportResult,
   ProductCategoryExportParams
-} from '@/shared/src/types/productCategory';
+} from '@zyerp/shared';
 import type { ApiResponse, PaginatedResponse, ID } from '@zyerp/shared';
 
 /**
@@ -69,7 +69,7 @@ class ProductCategoryService implements ProductCategoryApi {
    * 获取产品类别树形结构
    */
   async getTree(params?: { isActive?: boolean }): Promise<ApiResponse<ProductCategoryTreeNode[]>> {
-    const response = await apiClient.get(`${this.baseUrl}/tree`, { params });
+    const response = await apiClient.get<ApiResponse<ProductCategoryTreeNode[]>>(`${this.baseUrl}/tree`, { params });
     return response.data;
   }
 
@@ -81,7 +81,7 @@ class ProductCategoryService implements ProductCategoryApi {
     parentCode?: string; 
     isActive?: boolean 
   }): Promise<ApiResponse<ProductCategoryOption[]>> {
-    const response = await apiClient.get(`${this.baseUrl}/options`, { params });
+    const response = await apiClient.get<ApiResponse<ProductCategoryOption[]>>(`${this.baseUrl}/options`, { params });
     return response.data;
   }
 
@@ -89,7 +89,7 @@ class ProductCategoryService implements ProductCategoryApi {
    * 根据ID获取产品类别详情
    */
   async getById(id: ID): Promise<ApiResponse<ProductCategoryInfo>> {
-    const response = await apiClient.get(`${this.baseUrl}/${id}`);
+    const response = await apiClient.get<ApiResponse<ProductCategoryInfo>>(`${this.baseUrl}/${id}`);
     return response.data;
   }
 
@@ -97,7 +97,7 @@ class ProductCategoryService implements ProductCategoryApi {
    * 根据编码获取产品类别详情
    */
   async getByCode(code: string): Promise<ApiResponse<ProductCategoryInfo>> {
-    const response = await apiClient.get(`${this.baseUrl}/code/${code}`);
+    const response = await apiClient.get<ApiResponse<ProductCategoryInfo>>(`${this.baseUrl}/code/${code}`);
     return response.data;
   }
 
@@ -105,7 +105,7 @@ class ProductCategoryService implements ProductCategoryApi {
    * 创建产品类别
    */
   async create(data: CreateProductCategoryRequest): Promise<ApiResponse<ProductCategoryInfo>> {
-    const response = await apiClient.post(this.baseUrl, data);
+    const response = await apiClient.post<ApiResponse<ProductCategoryInfo>>(this.baseUrl, data);
     return response.data;
   }
 
@@ -113,7 +113,7 @@ class ProductCategoryService implements ProductCategoryApi {
    * 更新产品类别
    */
   async update(id: ID, data: UpdateProductCategoryRequest): Promise<ApiResponse<ProductCategoryInfo>> {
-    const response = await apiClient.put(`${this.baseUrl}/${id}`, data);
+    const response = await apiClient.put<ApiResponse<ProductCategoryInfo>>(`${this.baseUrl}/${id}`, data);
     return response.data;
   }
 
@@ -121,7 +121,7 @@ class ProductCategoryService implements ProductCategoryApi {
    * 删除产品类别
    */
   async delete(id: ID): Promise<ApiResponse<void>> {
-    const response = await apiClient.delete(`${this.baseUrl}/${id}`);
+    const response = await apiClient.delete<ApiResponse<void>>(`${this.baseUrl}/${id}`);
     return response.data;
   }
 
@@ -129,7 +129,7 @@ class ProductCategoryService implements ProductCategoryApi {
    * 切换产品类别状态
    */
   async toggleStatus(id: ID, isActive: boolean): Promise<ApiResponse<void>> {
-    const response = await apiClient.patch(`${this.baseUrl}/${id}/status`, { isActive });
+    const response = await apiClient.patch<ApiResponse<void>>(`${this.baseUrl}/${id}/status`, { isActive });
     return response.data;
   }
 
@@ -137,7 +137,7 @@ class ProductCategoryService implements ProductCategoryApi {
    * 批量操作
    */
   async batchOperation(data: BatchOperationRequest): Promise<ApiResponse<BatchOperationResponse>> {
-    const response = await apiClient.post(`${this.baseUrl}/batch`, data);
+    const response = await apiClient.post<ApiResponse<BatchOperationResponse>>(`${this.baseUrl}/batch`, data);
     return response.data;
   }
 
@@ -145,7 +145,7 @@ class ProductCategoryService implements ProductCategoryApi {
    * 生成产品类别编码
    */
   async generateCode(data: GenerateCodeRequest): Promise<ApiResponse<GenerateCodeResponse>> {
-    const response = await apiClient.post(`${this.baseUrl}/generate-code`, data);
+    const response = await apiClient.post<ApiResponse<GenerateCodeResponse>>(`${this.baseUrl}/generate-code`, data);
     return response.data;
   }
 
@@ -153,7 +153,7 @@ class ProductCategoryService implements ProductCategoryApi {
    * 验证产品类别编码
    */
   async validateCode(data: ValidateCodeRequest): Promise<ApiResponse<ValidateCodeResponse>> {
-    const response = await apiClient.post(`${this.baseUrl}/validate-code`, data);
+    const response = await apiClient.post<ApiResponse<ValidateCodeResponse>>(`${this.baseUrl}/validate-code`, data);
     return response.data;
   }
 
@@ -161,7 +161,7 @@ class ProductCategoryService implements ProductCategoryApi {
    * 获取产品类别统计信息
    */
   async getStats(): Promise<ApiResponse<ProductCategoryStats>> {
-    const response = await apiClient.get(`${this.baseUrl}/stats`);
+    const response = await apiClient.get<ApiResponse<ProductCategoryStats>>(`${this.baseUrl}/stats`);
     return response.data;
   }
 
@@ -169,7 +169,7 @@ class ProductCategoryService implements ProductCategoryApi {
    * 调整排序
    */
   async updateSortOrder(data: Array<{ id: string; sortOrder: number }>): Promise<ApiResponse<void>> {
-    const response = await apiClient.patch(`${this.baseUrl}/sort-order`, { items: data });
+    const response = await apiClient.patch<ApiResponse<void>>(`${this.baseUrl}/sort-order`, { items: data });
     return response.data;
   }
 
@@ -177,7 +177,7 @@ class ProductCategoryService implements ProductCategoryApi {
    * 移动类别（更改父级）
    */
   async moveCategory(id: ID, newParentCode?: string): Promise<ApiResponse<ProductCategoryInfo>> {
-    const response = await apiClient.patch(`${this.baseUrl}/${id}/move`, { newParentCode });
+    const response = await apiClient.patch<ApiResponse<ProductCategoryInfo>>(`${this.baseUrl}/${id}/move`, { newParentCode });
     return response.data;
   }
 
@@ -188,7 +188,7 @@ class ProductCategoryService implements ProductCategoryApi {
     const formData = new FormData();
     formData.append('file', file);
     
-    const response = await apiClient.post(`${this.baseUrl}/import`, formData, {
+    const response = await apiClient.post<ApiResponse<ProductCategoryImportResult>>(`${this.baseUrl}/import`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -200,7 +200,7 @@ class ProductCategoryService implements ProductCategoryApi {
    * 导出产品类别
    */
   async exportCategories(params: ProductCategoryExportParams): Promise<Blob> {
-    const response = await apiClient.get(`${this.baseUrl}/export`, {
+    const response = await apiClient.get<Blob>(`${this.baseUrl}/export`, {
       params,
       responseType: 'blob',
     });
@@ -211,7 +211,7 @@ class ProductCategoryService implements ProductCategoryApi {
    * 获取产品类别层级路径
    */
   async getCategoryPath(code: string): Promise<ApiResponse<string[]>> {
-    const response = await apiClient.get(`${this.baseUrl}/${code}/path`);
+    const response = await apiClient.get<ApiResponse<string[]>>(`${this.baseUrl}/${code}/path`);
     return response.data;
   }
 
@@ -223,7 +223,11 @@ class ProductCategoryService implements ProductCategoryApi {
     reason?: string; 
     relatedCount?: number 
   }>> {
-    const response = await apiClient.get(`${this.baseUrl}/${id}/check-deletable`);
+    const response = await apiClient.get<ApiResponse<{ 
+      canDelete: boolean; 
+      reason?: string; 
+      relatedCount?: number 
+    }>>(`${this.baseUrl}/${id}/check-deletable`);
     return response.data;
   }
 
@@ -235,7 +239,7 @@ class ProductCategoryService implements ProductCategoryApi {
     parentCode?: string; 
     includeChildren?: boolean 
   }): Promise<ApiResponse<ProductCategoryInfo>> {
-    const response = await apiClient.post(`${this.baseUrl}/${id}/copy`, data);
+    const response = await apiClient.post<ApiResponse<ProductCategoryInfo>>(`${this.baseUrl}/${id}/copy`, data);
     return response.data;
   }
 }

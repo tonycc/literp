@@ -60,7 +60,7 @@ const ProductCategoryList: React.FC<ProductCategoryListProps> = ({
         parentCode: params.parentCode,
         level: params.level,
         sortBy: base.sortField || params.sortBy,
-        sortOrder: base.sortOrder || params.sortOrder
+        sortOrder: (base.sortOrder || params.sortOrder) as "asc" | "desc" | undefined
       };
       
       // 移除undefined的参数
@@ -150,7 +150,7 @@ const ProductCategoryList: React.FC<ProductCategoryListProps> = ({
       render: (_, record: ProductCategoryInfo) => (
         <Switch
           checked={record.isActive}
-          onChange={(checked) => handleToggleStatus(record.id, checked)}
+          onChange={(checked: boolean) => handleToggleStatus(record.id, checked)}
           checkedChildren="启用"
           unCheckedChildren="停用"
         />
@@ -216,7 +216,7 @@ const ProductCategoryList: React.FC<ProductCategoryListProps> = ({
         pagination={{
           showSizeChanger: true,
           showQuickJumper: true,
-          showTotal: (total, range) =>
+          showTotal: (total, range: [number, number]) =>
             `第 ${range[0]}-${range[1]} 条/共 ${total} 条`,
           defaultPageSize: 10
         }}

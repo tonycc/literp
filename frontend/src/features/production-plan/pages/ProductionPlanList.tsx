@@ -1,12 +1,12 @@
 import React from 'react'
 import { ProTable } from '@ant-design/pro-components'
 import type { ProColumns, ActionType } from '@ant-design/pro-components'
-import { Drawer, Row, Col, Alert, Modal } from 'antd'
+import { Drawer, Row, Col } from 'antd'
 import ProductionPlanDetailModal from '../components/ProductionPlanDetailModal'
 import { useMessage, useModal } from '@/shared/hooks'
 import { productionPlanService } from '../services/production-plan.service'
-import { MaterialRequirementList } from '../components/MaterialRequirementList'
-import type { ProductionPlan, ProductionPlanProductPlan } from '@zyerp/shared'
+
+import type { ProductionPlan } from '@zyerp/shared'
 import { PRODUCTION_PLAN_STATUS_VALUE_ENUM_PRO } from '@/shared/constants/production-plan'
 import { salesOrderService } from '@/features/sales-order/services/sales-order.service'
 import type { SalesOrder, SalesOrderItem } from '@zyerp/shared'
@@ -285,14 +285,14 @@ const ProductionPlanList: React.FC = () => {
         headerTitle="生产计划列表"
         columns={columns}
         actionRef={actionRef}
-        request={async (params) => {
+        request={async (params: Record<string, unknown> & { current?: number; pageSize?: number }) => {
           const resp = await productionPlanService.getList({
-            page: (params.current as number) ?? 1,
-            pageSize: (params.pageSize as number) ?? 10,
-            status: (params as Record<string, unknown>)?.status as string | undefined,
-            orderNo: (params as Record<string, unknown>)?.orderNo as string | undefined,
-            startDate: (params as Record<string, unknown>)?.startDate as string | undefined,
-            endDate: (params as Record<string, unknown>)?.endDate as string | undefined,
+            page: params.current ?? 1,
+            pageSize: params.pageSize ?? 10,
+            status: params.status as string | undefined,
+            orderNo: params.orderNo as string | undefined,
+            startDate: params.startDate as string | undefined,
+            endDate: params.endDate as string | undefined,
           })
           return {
             data: resp.data,
@@ -300,7 +300,7 @@ const ProductionPlanList: React.FC = () => {
             total: resp.pagination.total,
           }
         }}
-        rowKey={(r) => r.id}
+        rowKey={(r: ProductionPlan) => r.id}
         search={{ labelWidth: 'auto' }}
         scroll={{ x: 1200 }}
         toolBarRender={() => {
@@ -333,7 +333,7 @@ const ProductionPlanList: React.FC = () => {
         pagination={{
           showSizeChanger: true,
           showQuickJumper: true,
-          showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条/总共 ${total} 条`,
+          showTotal: (total, range: [number, number]) => `第 ${range[0]}-${range[1]} 条/总共 ${total} 条`,
         }}
       />
       <ProductionPlanDetailModal visible={detailVisible} plan={selected} onClose={() => setDetailVisible(false)} />
@@ -355,14 +355,14 @@ const ProductionPlanList: React.FC = () => {
             <ProTable<SalesOrderItem>
               headerTitle="订单产品明细"
               columns={[
-                { title: '产品', dataIndex: ['product','name'], width: 220, render: (_, r) => r.product?.name ?? '-' },
-                { title: '产品编码', dataIndex: ['product','code'], width: 140, render: (_, r) => r.product?.code ?? '-' },
+                { title: '产品', dataIndex: ['product','name'], width: 220, render: (_, r: SalesOrderItem) => r.product?.name ?? '-' },
+                { title: '产品编码', dataIndex: ['product','code'], width: 140, render: (_, r: SalesOrderItem) => r.product?.code ?? '-' },
                 { title: '数量', dataIndex: 'quantity', valueType: 'digit', width: 100 },
-                { title: '单位', dataIndex: ['unit','name'], width: 100, render: (_, r) => r.unit?.name ?? '-' },
-                { title: '仓库', dataIndex: ['warehouse','name'], width: 140, render: (_, r) => r.warehouse?.name ?? '-' },
+                { title: '单位', dataIndex: ['unit','name'], width: 100, render: (_, r: SalesOrderItem) => r.unit?.name ?? '-' },
+                { title: '仓库', dataIndex: ['warehouse','name'], width: 140, render: (_, r: SalesOrderItem) => r.warehouse?.name ?? '-' },
               ]}
               dataSource={salesOrderItems}
-              rowKey={(r) => String(r.id)}
+              rowKey={(r: SalesOrderItem) => String(r.id)}
               search={false}
               pagination={false}
               scroll={{ x: 900 }}
@@ -379,8 +379,8 @@ const ProductionPlanList: React.FC = () => {
         <ProTable<ProductMaterialsRow>
           headerTitle="物料明细（按产品展开）"
           columns={[
-            { title: '产品编码', dataIndex: 'productCode', width: 140, render: (_, r) => (r.productCode ? <strong>{r.productCode}</strong> : '-') },
-            { title: '产品名称', dataIndex: 'productName', width: 200, render: (_, r) => (r.productName ? <strong>{r.productName}</strong> : '-') },
+            { title: '产品编码', dataIndex: 'productCode', width: 140, render: (_, r: ProductMaterialsRow) => (r.productCode ? <strong>{r.productCode}</strong> : '-') },
+            { title: '产品名称', dataIndex: 'productName', width: 200, render: (_, r: ProductMaterialsRow) => (r.productName ? <strong>{r.productName}</strong> : '-') },
             { title: 'BOM版本', dataIndex: 'bomCode', width: 120 },
             { title: '物料编码', dataIndex: 'materialCode', width: 140 },
             { title: '物料名称', dataIndex: 'materialName' },
@@ -389,7 +389,7 @@ const ProductionPlanList: React.FC = () => {
             { title: '需求类型', dataIndex: 'requirementType', width: 120 },
           ]}
           dataSource={productMaterialsRows}
-          rowKey={(r) => r.key}
+          rowKey={(r: ProductMaterialsRow) => r.key}
           search={false}
           pagination={false}
           expandable={{ defaultExpandAllRows: true }}
@@ -414,7 +414,7 @@ const ProductionPlanList: React.FC = () => {
                 { title: '缺口', dataIndex: 'shortage', valueType: 'digit', width: 120 },
               ]}
               dataSource={mrpProduction}
-              rowKey={(r) => r.key}
+              rowKey={(r: MrpProductionSuggestion) => r.key}
               search={false}
               pagination={false}
               scroll={{ x: 800 }}
@@ -430,10 +430,10 @@ const ProductionPlanList: React.FC = () => {
                 { title: '需求量', dataIndex: 'requiredQuantity', valueType: 'digit', width: 120 },
                 { title: '可用库存', dataIndex: 'availableStock', valueType: 'digit', width: 120 },
                 { title: '缺口', dataIndex: 'shortage', valueType: 'digit', width: 120 },
-                { title: '建议', dataIndex: 'needOutsource', width: 100, render: (_, r) => (r.shortage > 0 ? (r.needOutsource ? '外协' : '采购') : '无需') },
+                { title: '建议', dataIndex: 'needOutsource', width: 100, render: (_, r: MrpPurchaseSuggestion) => (r.shortage > 0 ? (r.needOutsource ? '外协' : '采购') : '无需') },
               ]}
               dataSource={mrpPurchase}
-              rowKey={(r) => r.key}
+              rowKey={(r: MrpPurchaseSuggestion) => r.key}
               search={false}
               pagination={false}
               scroll={{ x: 1000 }}

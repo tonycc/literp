@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Form, 
   Button, 
   Space, 
   InputNumber,
+  Row, 
+  Col, 
+  Select
 } from 'antd';
 import { 
   ProForm,
@@ -15,7 +17,6 @@ import {
   ProCard
 } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
-import { Row, Col, Select } from 'antd';
 import type { BomFormData, ProductInfo, MaterialRequirementType, ProductBom, BomItem } from '@zyerp/shared';
 import type { RoutingOption } from '@zyerp/shared';
 import type { WorkcenterOption } from '@zyerp/shared';
@@ -25,7 +26,6 @@ import { BomService } from '../services/bom.service';
 import MaterialSelectModal from './MaterialSelectModal';
 import BomItemBatchModal from './BomItemBatchModal';
 import { useMessage } from '@/shared/hooks/useMessage';
-// import { useModal } from '@/shared/hooks/useModal';
 import { productService } from '../../product/services/product.service';
 import { routingService } from '../../routing/services/routing.service';
 import dayjs from 'dayjs';
@@ -38,7 +38,7 @@ interface BomCreatePageProps {
 }
 
 const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, editing }) => {
-  const [form] = Form.useForm();
+  const [form] = ProForm.useForm<BomFormData>();
   const message = useMessage();
   const { products, units, fetchSelectOptions } = useBom();
   const [routingOptions, setRoutingOptions] = useState<RoutingOption[]>([]);
@@ -70,7 +70,6 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, edit
   
   // 物料选择弹窗状态
   const [materialModalVisible, setMaterialModalVisible] = useState(false);
-  // const modal = useModal();
   const { syncBomItems, toSyncItems } = useBomItemsSync();
   
   // 获取下拉选项数据
@@ -268,53 +267,6 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, edit
   // 已移除行级弹窗绑定子BOM逻辑，保留内联选择
   // 批量自动绑定子BOM逻辑已由后端自动处理，前端代码保留但不再调用
 
-  // 批量自动绑定子BOM
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const autoBindChildBoms = async (bomId: string) => {
-    try {
-      const itemsRes = await BomService.getItems(bomId);
-      const items = itemsRes.data || [];
-      let successCount = 0;
-      let skipCount = 0;
-      let failCount = 0;
-
-      for (const item of items) {
-        // 已绑定或无法识别的情况跳过
-        if (!item.materialId || item.childBomId) {
-          skipCount++;
-          continue;
-        }
-        // 拉取该物料对应产品的启用子BOM候选
-        try {
-          const listRes = await BomService.getList({ page: 1, pageSize: 100 });
-          const options = (listRes.data || []).filter((b) => b.productId === item.materialId);
-          const target = options[0];
-
-          if (!target || target.id === bomId) {
-            // 无候选或自引用，跳过
-            skipCount++;
-            continue;
-          }
-
-          const upd = await BomService.updateItem(item.id, { childBomId: target.id } as Partial<BomItem>);
-          if (upd.success) {
-            successCount++;
-          } else {
-            failCount++;
-          }
-        } catch (e) {
-          console.error('自动绑定子BOM失败:', e);
-          failCount++;
-        }
-      }
-
-      message.success(`自动绑定完成：成功${successCount}，跳过${skipCount}，失败${failCount}`);
-    } catch (error) {
-      console.error('批量自动绑定子BOM整体流程失败:', error);
-      message.error('批量自动绑定失败');
-    }
-  };
-
   // BOM物料项表格列定义
   const handleChildBomChange = (rowKey: string, value?: string) => {
     setBomItemData(prev => prev.map(item => item.key === rowKey ? { ...item, childBomId: value } : item));
@@ -434,7 +386,7 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, edit
         <ChildBomSelectCell
           materialId={record.materialId}
           value={record.childBomId}
-          onChange={(v) => handleChildBomChange(record.key, v)}
+          onChange={(v: string | undefined) => handleChildBomChange(record.key, v)}
         />
       ),
     },
@@ -565,7 +517,7 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, edit
   const [processData, setProcessData] = useState<ProcessRow[]>([]);
 
   // 监听工艺路线选择变化并加载工序与工作中心
-  const selectedRoutingId: unknown = Form.useWatch('routingId', form);
+  const selectedRoutingId: unknown = ProForm.useWatch('routingId', form);
 
   useEffect(() => {
     const loadRoutingOperations = async (routingId?: string) => {
@@ -606,17 +558,17 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, edit
     <div style={{ padding: '16px' }}>
       <ProForm<BomFormData>
         form={form}
-        onFinish={(values) => { void onFinish(values) }}
+        onFinish={onFinish}
         layout="vertical"
         submitter={{
-          render: (props) => {
+          render: (_) => {
             return (
               <Row justify="center" style={{ marginTop: 24 }}>
                 <Space size="middle">
                   <Button onClick={onCancel}>
                     取消
                   </Button>
-                  <Button type="primary" onClick={() => props.form?.submit?.()}>
+                  <Button type="primary" onClick={() => form.submit()}>
                     {editing ? '保存' : '创建BOM'}
                   </Button>
                 </Space>
@@ -749,7 +701,7 @@ const BomCreatePage: React.FC<BomCreatePageProps> = ({ onSuccess, onCancel, edit
             scroll={{ x: 1000 }}
             rowSelection={{
               selectedRowKeys,
-              onChange: (keys) => setSelectedRowKeys(keys),
+              onChange: (keys) => setSelectedRowKeys(keys as React.Key[]),
             }}
           />
         </ProCard>

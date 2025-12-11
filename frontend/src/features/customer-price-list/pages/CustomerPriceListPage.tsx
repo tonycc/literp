@@ -59,11 +59,11 @@ const CustomerPriceListPage: React.FC = () => {
       <CustomerPriceListList
         actionRef={actionRef}
         onAdd={handleAdd}
-        onEdit={(id) => { void handleEdit(id); }}
+        onEdit={(id: string) => { void handleEdit(id); }}
         onDelete={handleDelete}
-        onBatchDelete={(ids) => { void handleBatchDelete(ids); }}
+        onBatchDelete={(ids: string[]) => { void handleBatchDelete(ids); }}
         selectedRowKeys={selectedRowKeys}
-        onSelectChange={(keys) => setSelectedRowKeys(keys)}
+        onSelectChange={(keys: React.Key[]) => setSelectedRowKeys(keys)}
       />
       <Modal
         title={currentId ? '编辑客户价格表' : '新增客户价格表'}

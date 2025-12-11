@@ -62,7 +62,7 @@ const MaterialIssueList: React.FC = () => {
     <>
     <ProTable<MaterialIssueOrder>
       actionRef={actionRef}
-      rowKey={(r) => r.workOrderId}
+      rowKey={(r: MaterialIssueOrder) => r.workOrderId}
       columns={columns}
       search={{ labelWidth: 'auto' }}
       request={async (params) => {
@@ -70,21 +70,21 @@ const MaterialIssueList: React.FC = () => {
         const res = await materialIssueService.getList({ page: base.page, pageSize: base.pageSize })
         return { data: res.data, success: res.success, total: res.pagination.total }
       }}
-      onDataSourceChange={(data) => {
-        const keys = (data || []).filter(r => Array.isArray(r.items) && r.items.length > 1).map(r => r.workOrderId)
+      onDataSourceChange={(data: MaterialIssueOrder[]) => {
+        const keys = (data || []).filter((r: MaterialIssueOrder) => Array.isArray(r.items) && r.items.length > 1).map((r: MaterialIssueOrder) => r.workOrderId)
         setExpandedRowKeys(keys)
       }}
       expandable={{
         expandedRowKeys,
         onExpandedRowsChange: (keys) => setExpandedRowKeys(keys as React.Key[]),
-        rowExpandable: (r) => Array.isArray(r.items) && r.items.length > 1,
-        expandedRowRender: (record) => (
+        rowExpandable: (r: MaterialIssueOrder) => Array.isArray(r.items) && r.items.length > 1,
+        expandedRowRender: (record: MaterialIssueOrder) => (
           <ProTable<MaterialIssueOrderItem>
             columns={itemColumns}
             dataSource={Array.isArray(record.items) ? record.items : []}
             search={false}
             pagination={false}
-            rowKey={(i) => i.id ?? `${i.materialCode ?? i.materialId}-${i.unitId}`}
+            rowKey={(i: MaterialIssueOrderItem) => i.id ?? `${i.materialCode ?? i.materialId}-${i.unitId}`}
             toolBarRender={false}
             size="small"
           />

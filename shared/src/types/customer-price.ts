@@ -1,4 +1,4 @@
-import { ApiResponse } from './common';
+import type { ApiResponse } from './common';
 
 // 价格表状态枚举
 export enum PriceListStatus {

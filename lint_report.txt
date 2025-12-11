@@ -1,0 +1,531 @@
+
+> @zyerp/frontend@1.0.0 lint
+> node ./node_modules/eslint/bin/eslint.js .
+
+
+/Users/max/projects/zyerp/frontend/src/features/auth/services/auth.service.ts
+  21:11  error  Unsafe assignment of an `any` value                                     @typescript-eslint/no-unsafe-assignment
+  21:37  error  Unsafe member access .data on an `any` value                            @typescript-eslint/no-unsafe-member-access
+  24:19  error  Unsafe member access .accessToken on an `any` value                     @typescript-eslint/no-unsafe-member-access
+  25:44  error  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  25:54  error  Unsafe member access .accessToken on an `any` value                     @typescript-eslint/no-unsafe-member-access
+  26:45  error  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  26:55  error  Unsafe member access .refreshToken on an `any` value                    @typescript-eslint/no-unsafe-member-access
+  29:5   error  Unsafe return of a value of type `any`                                  @typescript-eslint/no-unsafe-return
+  71:26  error  Unsafe member access .data on an `any` value                            @typescript-eslint/no-unsafe-member-access
+
+/Users/max/projects/zyerp/frontend/src/features/bom/components/BomCostCalculator.tsx
+  209:6  warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/max/projects/zyerp/frontend/src/features/bom/components/BomItemEditor.tsx
+  18:71  error  Unexpected any. Specify a different type                                                                                                                         @typescript-eslint/no-explicit-any
+  18:77  error  Unsafe member access .materialVariantId on an `any` value                                                                                                        @typescript-eslint/no-unsafe-member-access
+  26:35  error  Unexpected any. Specify a different type                                                                                                                         @typescript-eslint/no-explicit-any
+  26:41  error  Unsafe member access .materialVariantId on an `any` value                                                                                                        @typescript-eslint/no-unsafe-member-access
+  41:11  error  Unsafe assignment of an `any` value                                                                                                                              @typescript-eslint/no-unsafe-assignment
+  42:17  error  Unsafe member access .materialId on an `any` value                                                                                                               @typescript-eslint/no-unsafe-member-access
+  42:39  error  Unsafe member access .materialVariantId on an `any` value                                                                                                        @typescript-eslint/no-unsafe-member-access
+  46:20  error  Unsafe argument of type `any` assigned to a parameter of type `Partial<BomItem> & { materialId?: string | undefined; materialVariantId?: string | undefined; }`  @typescript-eslint/no-unsafe-argument
+  63:22  error  Promise-returning function provided to attribute where a void return was expected                                                                                @typescript-eslint/no-misused-promises
+  80:42  error  Promise-returning function provided to attribute where a void return was expected                                                                                @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/bom/components/BomVersionManager.tsx
+  205:6  warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/max/projects/zyerp/frontend/src/features/bom/hooks/useBomItemsSync.ts
+  32:24  error  This assertion is unnecessary since it does not change the type of the expression  @typescript-eslint/no-unnecessary-type-assertion
+
+/Users/max/projects/zyerp/frontend/src/features/customer-price-list/components/CustomerPriceListList.tsx
+   85:9   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-member-access')
+  120:9   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-member-access')
+  155:9   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-assignment')
+  157:9   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-assignment')
+  161:11  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-assignment')
+  165:11  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-member-access' or '@typescript-eslint/no-unsafe-assignment')
+  168:11  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-member-access' or '@typescript-eslint/no-unsafe-assignment')
+
+/Users/max/projects/zyerp/frontend/src/features/customer-price-list/hooks/useCustomerPriceList.ts
+  75:63  error  Async arrow function has no 'await' expression  @typescript-eslint/require-await
+
+/Users/max/projects/zyerp/frontend/src/features/customer-price-list/services/customer-price-list.service.ts
+  15:5  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-assignment' or '@typescript-eslint/no-unsafe-call')
+
+/Users/max/projects/zyerp/frontend/src/features/file-management/components/Upload/AvatarUpload.tsx
+  69:9  error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+/Users/max/projects/zyerp/frontend/src/features/file-management/components/Upload/DocumentUpload.tsx
+  154:9   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  222:27  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/file-management/services/upload.service.ts
+   46:5   error  Unsafe return of a value of type `any`        @typescript-eslint/no-unsafe-return
+   46:26  error  Unsafe member access .data on an `any` value  @typescript-eslint/no-unsafe-member-access
+   64:5   error  Unsafe return of a value of type `any`        @typescript-eslint/no-unsafe-return
+   64:26  error  Unsafe member access .data on an `any` value  @typescript-eslint/no-unsafe-member-access
+   82:5   error  Unsafe return of a value of type `any`        @typescript-eslint/no-unsafe-return
+   82:26  error  Unsafe member access .data on an `any` value  @typescript-eslint/no-unsafe-member-access
+  104:5   error  Unsafe return of a value of type `any`        @typescript-eslint/no-unsafe-return
+  104:26  error  Unsafe member access .data on an `any` value  @typescript-eslint/no-unsafe-member-access
+  111:11  error  Unsafe assignment of an `any` value           @typescript-eslint/no-unsafe-assignment
+
+/Users/max/projects/zyerp/frontend/src/features/inventory/components/BatchInventoryTable.tsx
+  152:5   error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  153:6   warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array                                                         react-hooks/exhaustive-deps
+  199:13  error    Unsafe array destructuring of an `any` array value                                                                                                                  @typescript-eslint/no-unsafe-assignment
+  201:48  error    Unsafe argument of type `any` assigned to a parameter of type `string | number | Dayjs | Date | null | undefined`                                                   @typescript-eslint/no-unsafe-argument
+  202:46  error    Unsafe argument of type `any` assigned to a parameter of type `string | number | Dayjs | Date | null | undefined`                                                   @typescript-eslint/no-unsafe-argument
+  225:7   error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  282:30  error    Unsafe call of a(n) `any` typed value                                                                                                                               @typescript-eslint/no-unsafe-call
+  282:36  error    Unsafe member access .toFixed on an `any` value                                                                                                                     @typescript-eslint/no-unsafe-member-access
+  313:23  error    Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/inventory/components/InventoryDetails.tsx
+  134:5  error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  135:6  warning  React Hook useEffect has a missing dependency: 'fetchInventoryDetails'. Either include it or remove the dependency array                                            react-hooks/exhaustive-deps
+
+/Users/max/projects/zyerp/frontend/src/features/inventory/components/InventoryList.tsx
+   97:57   error  Promise-returning function provided to attribute where a void return was expected                                                                                    @typescript-eslint/no-misused-promises
+  108:43   error  Unsafe argument of type `any` assigned to a parameter of type `TableParams | Record<string, unknown>`                                                                @typescript-eslint/no-unsafe-argument
+  108:53   error  Unexpected any. Specify a different type                                                                                                                             @typescript-eslint/no-explicit-any
+  109:57   error  Unsafe argument of type `any` assigned to a parameter of type `{ current?: number | undefined; pageSize?: number | undefined; } & Partial<ProductStockQueryParams>`  @typescript-eslint/no-unsafe-argument
+  109:118  error  Unexpected any. Specify a different type                                                                                                                             @typescript-eslint/no-explicit-any
+
+/Users/max/projects/zyerp/frontend/src/features/inventory/components/OutboundOrderList.tsx
+  231:5   error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  232:6   warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array                                                         react-hooks/exhaustive-deps
+  298:11  error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  316:11  error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  334:11  error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  665:20  error    Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  671:15  error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+/Users/max/projects/zyerp/frontend/src/features/inventory/hooks/useInventory.ts
+  16:14  error  'err' is defined but never used                 @typescript-eslint/no-unused-vars
+  23:45  error  Async arrow function has no 'await' expression  @typescript-eslint/require-await
+  27:68  error  Async arrow function has no 'await' expression  @typescript-eslint/require-await
+  31:56  error  Async arrow function has no 'await' expression  @typescript-eslint/require-await
+
+/Users/max/projects/zyerp/frontend/src/features/inventory/pages/InventoryManagement.tsx
+  16:17  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+  17:18  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+  18:18  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+  20:21  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/inventory/services/inventory.service.ts
+  49:65  error  This assertion is unnecessary since it does not change the type of the expression  @typescript-eslint/no-unnecessary-type-assertion
+
+/Users/max/projects/zyerp/frontend/src/features/log-management/components/Log/AuditLogTable.tsx
+   73:5   error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+   74:6   warning  React Hook useEffect has a missing dependency: 'loadLogs'. Either include it or remove the dependency array                                                         react-hooks/exhaustive-deps
+  281:19  error    Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  287:19  error    Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/log-management/components/Log/LogStats.tsx
+  52:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  57:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  74:11  error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+/Users/max/projects/zyerp/frontend/src/features/log-management/components/Log/SystemLogTable.tsx
+   71:5   error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+   72:6   warning  React Hook useEffect has a missing dependency: 'loadLogs'. Either include it or remove the dependency array                                                         react-hooks/exhaustive-deps
+  233:19  error    Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  239:19  error    Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/log-management/services/log.service.ts
+  145:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+  156:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+
+/Users/max/projects/zyerp/frontend/src/features/manufacturing-order/components/ManufacturingOrderDetail.tsx
+  32:53   error    Unexpected any. Specify a different type                                                                    @typescript-eslint/no-explicit-any
+  32:58   error    Unsafe member access .sourceRefId on an `any` value                                                         @typescript-eslint/no-unsafe-member-access
+  34:115  error    Unexpected any. Specify a different type                                                                    @typescript-eslint/no-explicit-any
+  34:120  error    Unsafe member access .sourceRefId on an `any` value                                                         @typescript-eslint/no-unsafe-member-access
+  36:19   error    Empty block statement                                                                                       no-empty
+  45:6    warning  React Hook useEffect has a missing dependency: 'message'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/max/projects/zyerp/frontend/src/features/manufacturing-order/components/ManufacturingOrderList.tsx
+  82:52  error  Unsafe assignment of an `any` value       @typescript-eslint/no-unsafe-assignment
+  82:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/max/projects/zyerp/frontend/src/features/material-issue/components/MaterialIssueDetail.tsx
+  27:36  warning  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/max/projects/zyerp/frontend/src/features/notification-management/components/AnnouncementManagement.tsx
+   48:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+   58:7   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+   74:7   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+   85:7   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+   96:7   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  168:20  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  200:23  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  251:20  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/notification-management/components/MessageManagement.tsx
+   77:7   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+   79:7   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+   91:9   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  103:7   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  115:9   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  117:9   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  180:21  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  188:23  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  195:23  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  261:21  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  267:23  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  365:20  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  376:24  error  'option?.children || ''' may use Object's default stringification format ('[object Object]') when stringified                                                       @typescript-eslint/no-base-to-string
+
+/Users/max/projects/zyerp/frontend/src/features/notification-management/components/NotificationButton.tsx
+  29:5  error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  42:5  error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  51:7  error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  58:6  warning  React Hook useEffect has a missing dependency: 'handleWebSocketNotification'. Either include it or remove the dependency array                                      react-hooks/exhaustive-deps
+
+/Users/max/projects/zyerp/frontend/src/features/notification-management/components/NotificationCenter.tsx
+  125:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  126:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  132:7   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  133:7   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  154:9   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  217:25  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  223:23  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  344:27  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/notification-management/services/websocket.service.ts
+  40:11  error  Unsafe assignment of an `any` value                                                 @typescript-eslint/no-unsafe-assignment
+  42:22  error  Unsafe argument of type `any` assigned to a parameter of type `string | undefined`  @typescript-eslint/no-unsafe-argument
+
+/Users/max/projects/zyerp/frontend/src/features/operation/components/OperationForm.tsx
+  90:7  error  Unexpected `await` of a non-Promise (non-"Thenable") value  @typescript-eslint/await-thenable
+
+/Users/max/projects/zyerp/frontend/src/features/operation/components/OperationList.tsx
+  178:41  error  Unsafe argument of type `any` assigned to a parameter of type `TableParams | Record<string, unknown>`  @typescript-eslint/no-unsafe-argument
+  178:51  error  Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  182:9   error  Unsafe assignment of an `any` value                                                                    @typescript-eslint/no-unsafe-assignment
+  182:29  error  Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  182:34  error  Unsafe member access .keyword on an `any` value                                                        @typescript-eslint/no-unsafe-member-access
+  183:9   error  Unsafe assignment of an `any` value                                                                    @typescript-eslint/no-unsafe-assignment
+  183:30  error  Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  183:35  error  Unsafe member access .isActive on an `any` value                                                       @typescript-eslint/no-unsafe-member-access
+
+/Users/max/projects/zyerp/frontend/src/features/operation/pages/OperationManagement.tsx
+   34:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+   51:64  error  Async arrow function 'handleViewOperation' has no 'await' expression                                                                                                @typescript-eslint/require-await
+   65:11  error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+   73:11  error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+   84:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+   89:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  102:16  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  123:20  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/product-variants/components/VariantImagePanel.tsx
+  34:18  error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  35:6   warning  React Hook useEffect has a missing dependency: 'loadImages'. Either include it or remove the dependency array                                                       react-hooks/exhaustive-deps
+  37:40  error    Unexpected any. Specify a different type                                                                                                                            @typescript-eslint/no-explicit-any
+  38:11  error    Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+  73:25  error    Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/product-variants/components/VariantStockAdjustModal.tsx
+  35:7   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  41:13  error  Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+  43:9   error  Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+  43:22  error  Unsafe member access .type on an `any` value                                                                                                                        @typescript-eslint/no-unsafe-member-access
+  44:30  error  Unsafe member access .delta on an `any` value                                                                                                                       @typescript-eslint/no-unsafe-member-access
+  45:9   error  Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+  45:29  error  Unsafe member access .warehouseId on an `any` value                                                                                                                 @typescript-eslint/no-unsafe-member-access
+  46:9   error  Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+  46:24  error  Unsafe member access .unitId on an `any` value                                                                                                                      @typescript-eslint/no-unsafe-member-access
+  62:52  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/product-variants/hooks/useProductVariants.ts
+  29:5  warning  React Hook useCallback has a missing dependency: 'getVariants'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/max/projects/zyerp/frontend/src/features/product/components/ProductCategoryForm.tsx
+   58:5   error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+   59:6   warning  React Hook useEffect has a missing dependency: 'loadCategoryOptions'. Either include it or remove the dependency array                                              react-hooks/exhaustive-deps
+   75:64  error    Async arrow function 'handleSubmit' has no 'await' expression                                                                                                       @typescript-eslint/require-await
+  107:18  error    Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  126:20  error    'option?.children' may use Object's default stringification format ('[object Object]') when stringified                                                             @typescript-eslint/no-base-to-string
+
+/Users/max/projects/zyerp/frontend/src/features/product/components/ProductDetail.tsx
+  60:7  error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  62:6  warning  React Hook useEffect has a missing dependency: 'fetchProductDetail'. Either include it or remove the dependency array                                               react-hooks/exhaustive-deps
+
+/Users/max/projects/zyerp/frontend/src/features/product/components/ProductImageUpload.tsx
+   35:49  error  Promise-returning function provided to variable where a void return was expected   @typescript-eslint/no-misused-promises
+   91:47  error  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   91:52  error  Async arrow function 'customUploadRequest' has no 'await' expression               @typescript-eslint/require-await
+   92:11  error  Unsafe assignment of an `any` value                                                @typescript-eslint/no-unsafe-assignment
+  105:7   error  Unsafe call of a(n) `any` typed value                                              @typescript-eslint/no-unsafe-call
+  107:7   error  Unsafe call of a(n) `any` typed value                                              @typescript-eslint/no-unsafe-call
+  117:19  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+  119:23  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+  155:31  error  Expected the Promise rejection reason to be an Error                               @typescript-eslint/prefer-promise-reject-errors
+
+/Users/max/projects/zyerp/frontend/src/features/product/hooks/useProductCategory.ts
+   40:6  warning  React Hook useCallback has a missing dependency: 'message'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   56:6  warning  React Hook useCallback has a missing dependency: 'message'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   72:6  warning  React Hook useCallback has a missing dependency: 'message'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   88:6  warning  React Hook useCallback has a missing dependency: 'message'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  104:6  warning  React Hook useCallback has a missing dependency: 'message'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  119:6  warning  React Hook useCallback has a missing dependency: 'message'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  139:6  warning  React Hook useCallback has a missing dependency: 'message'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  155:6  warning  React Hook useCallback has a missing dependency: 'message'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/max/projects/zyerp/frontend/src/features/product/pages/ProductCategoryManagement.tsx
+  82:18  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+  83:24  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+  84:19  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+  98:20  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/product/services/productCategory.service.ts
+   73:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+   85:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+   93:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+  101:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+  109:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+  117:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+  125:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+  133:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+  141:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+  149:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+  157:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+  165:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+  173:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+  181:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+  196:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+  207:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+  215:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+  227:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+  239:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+
+/Users/max/projects/zyerp/frontend/src/features/production-inbound/components/ProductionInboundForm.tsx
+  149:6   warning  React Hook useEffect has missing dependencies: 'mockEmployees', 'mockLocations', 'mockProductionOrders', and 'mockWarehouses'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  176:13  error    Unsafe assignment of an `any` value                                                                                                                                                @typescript-eslint/no-unsafe-assignment
+  185:13  error    Unsafe assignment of an `any` value                                                                                                                                                @typescript-eslint/no-unsafe-assignment
+  194:13  error    Unsafe assignment of an `any` value                                                                                                                                                @typescript-eslint/no-unsafe-assignment
+  214:51  error    Async arrow function 'handleSubmit' has no 'await' expression                                                                                                                      @typescript-eslint/require-await
+  236:18  error    Promise-returning function provided to attribute where a void return was expected                                                                                                  @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/production-inbound/components/ProductionInboundList.tsx
+  135:5   error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  136:6   warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array                                                        react-hooks/exhaustive-deps
+  258:32  error    Unsafe argument of type `any` assigned to a parameter of type `string | number | Dayjs | Date | null | undefined`                                                   @typescript-eslint/no-unsafe-argument
+
+/Users/max/projects/zyerp/frontend/src/features/production-inbound/components/ProductionInboundManagement.tsx
+  54:20  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/production-order/components/ProductionOrderForm.tsx
+  180:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  221:13  error  Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+  222:13  error  Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+  224:9   error  Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+  224:27  error  Unsafe call of a(n) `any` typed value                                                                                                                               @typescript-eslint/no-unsafe-call
+  224:34  error  Unsafe member access .plannedStartDate on an `any` value                                                                                                            @typescript-eslint/no-unsafe-member-access
+  225:9   error  Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+  225:25  error  Unsafe call of a(n) `any` typed value                                                                                                                               @typescript-eslint/no-unsafe-call
+  225:32  error  Unsafe member access .plannedEndDate on an `any` value                                                                                                              @typescript-eslint/no-unsafe-member-access
+  293:18  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  409:51  error  Unsafe call of a(n) `any` typed value                                                                                                                               @typescript-eslint/no-unsafe-call
+  409:57  error  Unsafe member access .toLocaleString on an `any` value                                                                                                              @typescript-eslint/no-unsafe-member-access
+  417:51  error  Unsafe call of a(n) `any` typed value                                                                                                                               @typescript-eslint/no-unsafe-call
+  417:57  error  Unsafe member access .toLocaleString on an `any` value                                                                                                              @typescript-eslint/no-unsafe-member-access
+  538:23  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/production-order/components/ProductionOrderList.tsx
+  362:11  error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  379:11  error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  396:11  error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  413:11  error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  430:11  error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  723:7   error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  731:5   error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  732:6   warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array                                                         react-hooks/exhaustive-deps
+  867:14  error    Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  873:20  error    Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/production-record/components/ProductionRecordForm.tsx
+  91:16  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/production-record/components/ProductionRecordList.tsx
+  199:5  error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  200:6  warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array                                                         react-hooks/exhaustive-deps
+
+/Users/max/projects/zyerp/frontend/src/features/production-report/components/ProductionReportList.tsx
+  46:21  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/purchase-order/hooks/usePurchaseOrder.ts
+  44:82  error  Async arrow function 'handleDelete' has no 'await' expression  @typescript-eslint/require-await
+
+/Users/max/projects/zyerp/frontend/src/features/purchase-order/services/purchase-order.service.ts
+  25:11  error  Unsafe assignment of an `any` value                 @typescript-eslint/no-unsafe-assignment
+  25:51  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  25:57  error  Unsafe member access .data on an `any` value        @typescript-eslint/no-unsafe-member-access
+  26:11  error  Unsafe assignment of an `any` value                 @typescript-eslint/no-unsafe-assignment
+  26:43  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  26:49  error  Unsafe member access .total on an `any` value       @typescript-eslint/no-unsafe-member-access
+  26:74  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  26:80  error  Unsafe member access .pagination on an `any` value  @typescript-eslint/no-unsafe-member-access
+  27:11  error  Unsafe assignment of an `any` value                 @typescript-eslint/no-unsafe-assignment
+  27:42  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  27:48  error  Unsafe member access .page on an `any` value        @typescript-eslint/no-unsafe-member-access
+  27:72  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  27:78  error  Unsafe member access .pagination on an `any` value  @typescript-eslint/no-unsafe-member-access
+  28:11  error  Unsafe assignment of an `any` value                 @typescript-eslint/no-unsafe-assignment
+  28:46  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  28:52  error  Unsafe member access .pageSize on an `any` value    @typescript-eslint/no-unsafe-member-access
+  28:80  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  28:86  error  Unsafe member access .pagination on an `any` value  @typescript-eslint/no-unsafe-member-access
+
+/Users/max/projects/zyerp/frontend/src/features/purchase-receipt/components/PurchaseReceiptForm.tsx
+  337:44  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/purchase-receipt/components/PurchaseReceiptManagement.tsx
+  383:6  warning  React Hook useEffect has a missing dependency: 'handleSearch'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/max/projects/zyerp/frontend/src/features/purchase-return/components/PurchaseReturnForm.tsx
+  103:16  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/purchase-return/components/PurchaseReturnManagement.tsx
+  206:25  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  286:43  error  Async arrow function 'handleDelete' has no 'await' expression                                                                                                       @typescript-eslint/require-await
+  291:7   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  305:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  310:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  366:25  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/role-management/hooks/useRoles.ts
+  77:7  error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+/Users/max/projects/zyerp/frontend/src/features/routing/components/RoutingList.tsx
+   31:7   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+   37:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+   50:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+   67:9   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  135:23  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/routing/components/RoutingOperationsForm.tsx
+   98:53   error  Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+   99:32   error  Unsafe member access .code on an `any` value   @typescript-eslint/no-unsafe-member-access
+   99:49   error  Unsafe member access .label on an `any` value  @typescript-eslint/no-unsafe-member-access
+   99:64   error  Unsafe member access .type on an `any` value   @typescript-eslint/no-unsafe-member-access
+   99:83   error  Unsafe member access .type on an `any` value   @typescript-eslint/no-unsafe-member-access
+   99:115  error  Unsafe member access .type on an `any` value   @typescript-eslint/no-unsafe-member-access
+  100:15   error  Unsafe assignment of an `any` value            @typescript-eslint/no-unsafe-assignment
+  100:29   error  Unsafe member access .value on an `any` value  @typescript-eslint/no-unsafe-member-access
+
+/Users/max/projects/zyerp/frontend/src/features/routing/components/RoutingOperationsList.tsx
+   32:43  error  Async arrow function 'handleDelete' has no 'await' expression                      @typescript-eslint/require-await
+   99:23  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+  133:20  error  This assertion is unnecessary since it does not change the type of the expression  @typescript-eslint/no-unnecessary-type-assertion
+
+/Users/max/projects/zyerp/frontend/src/features/routing/pages/RoutingManagement.tsx
+  158:39  error  Async arrow function 'handleAddOperation' has no 'await' expression                @typescript-eslint/require-await
+  171:97  error  Async arrow function 'handleSaveOperation' has no 'await' expression               @typescript-eslint/require-await
+  269:41  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+  269:63  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+  287:26  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+  288:27  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/sales-receipt/components/AddSalesReceiptModal.tsx
+  24:13  error  Unsafe assignment of an `any` value                                                @typescript-eslint/no-unsafe-assignment
+  32:13  error  Unsafe assignment of an `any` value                                                @typescript-eslint/no-unsafe-assignment
+  64:12  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/sales-receipt/components/SalesReceiptForm.tsx
+  145:24  error  'option?.children || ''' may use Object's default stringification format ('[object Object]') when stringified  @typescript-eslint/no-base-to-string
+  191:24  error  'option?.children || ''' may use Object's default stringification format ('[object Object]') when stringified  @typescript-eslint/no-base-to-string
+
+/Users/max/projects/zyerp/frontend/src/features/sales-receipt/components/SalesReceiptManagement.tsx
+  227:23  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  310:43  error  Async arrow function 'handleDelete' has no 'await' expression                                                                                                       @typescript-eslint/require-await
+  314:7   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  329:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  333:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+/Users/max/projects/zyerp/frontend/src/features/sales-return/components/AddSalesReturnModal.tsx
+  32:13  error  Unsafe assignment of an `any` value                                                @typescript-eslint/no-unsafe-assignment
+  35:21  error  Unsafe member access .originalSalesNumber on an `any` value                        @typescript-eslint/no-unsafe-member-access
+  41:21  error  Unsafe member access .products on an `any` value                                   @typescript-eslint/no-unsafe-member-access
+  41:42  error  Unsafe member access .products on an `any` value                                   @typescript-eslint/no-unsafe-member-access
+  47:13  error  Unsafe assignment of an `any` value                                                @typescript-eslint/no-unsafe-assignment
+  47:32  error  Unsafe call of a(n) `any` typed value                                              @typescript-eslint/no-unsafe-call
+  47:41  error  Unsafe member access .products on an `any` value                                   @typescript-eslint/no-unsafe-member-access
+  57:13  error  Unsafe assignment of an `any` value                                                @typescript-eslint/no-unsafe-assignment
+  61:9   error  Unsafe assignment of an `any` value                                                @typescript-eslint/no-unsafe-assignment
+  61:22  error  Unsafe call of a(n) `any` typed value                                              @typescript-eslint/no-unsafe-call
+  61:31  error  Unsafe member access .products on an `any` value                                   @typescript-eslint/no-unsafe-member-access
+  62:9   error  Unsafe assignment of an `any` value                                                @typescript-eslint/no-unsafe-assignment
+  62:19  error  Unsafe call of a(n) `any` typed value                                              @typescript-eslint/no-unsafe-call
+  62:28  error  Unsafe member access .products on an `any` value                                   @typescript-eslint/no-unsafe-member-access
+  96:12  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+
+/Users/max/projects/zyerp/frontend/src/features/sales-return/components/SalesReturnForm.tsx
+  327:11  error  Unsafe assignment of an `any` value                                                                            @typescript-eslint/no-unsafe-assignment
+  328:5   error  Unsafe return of a value of type `any`                                                                         @typescript-eslint/no-unsafe-return
+  330:7   error  Unsafe assignment of an `any` value                                                                            @typescript-eslint/no-unsafe-assignment
+  330:19  error  Unsafe call of a(n) `any` typed value                                                                          @typescript-eslint/no-unsafe-call
+  330:30  error  Unsafe member access .returnDate on an `any` value                                                             @typescript-eslint/no-unsafe-member-access
+  372:28  error  'option?.children || ''' may use Object's default stringification format ('[object Object]') when stringified  @typescript-eslint/no-base-to-string
+
+/Users/max/projects/zyerp/frontend/src/features/sales-return/components/SalesReturnManagement.tsx
+  294:27  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  327:23  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  362:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  371:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  541:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+/Users/max/projects/zyerp/frontend/src/features/subcontract-management/components/SubcontractOrderList.tsx
+  83:7  warning  React Hook useMemo has missing dependencies: 'message', 'modal', 'opNameMap', and 'userNameMap'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/max/projects/zyerp/frontend/src/features/supplier-management/components/SupplierPriceForm.tsx
+   88:17   error  Unsafe assignment of an `any` value                                                @typescript-eslint/no-unsafe-assignment
+   88:31   error  Unsafe member access .taxInclusivePrice on an `any` value                          @typescript-eslint/no-unsafe-member-access
+   89:17   error  Unsafe assignment of an `any` value                                                @typescript-eslint/no-unsafe-assignment
+   89:30   error  Unsafe member access .vatRate on an `any` value                                    @typescript-eslint/no-unsafe-member-access
+  106:17   error  Unsafe assignment of an `any` value                                                @typescript-eslint/no-unsafe-assignment
+  106:88   error  Unsafe call of a(n) `any` typed value                                              @typescript-eslint/no-unsafe-call
+  106:106  error  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  106:112  error  Unsafe member access .format on an `any` value                                     @typescript-eslint/no-unsafe-member-access
+  107:17   error  Unsafe assignment of an `any` value                                                @typescript-eslint/no-unsafe-assignment
+  107:79   error  Unsafe call of a(n) `any` typed value                                              @typescript-eslint/no-unsafe-call
+  107:94   error  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  107:100  error  Unsafe member access .format on an `any` value                                     @typescript-eslint/no-unsafe-member-access
+  115:13   error  Unsafe assignment of an `any` value                                                @typescript-eslint/no-unsafe-assignment
+  116:13   error  Unsafe assignment of an `any` value                                                @typescript-eslint/no-unsafe-assignment
+  145:33   error  This assertion is unnecessary since it does not change the type of the expression  @typescript-eslint/no-unnecessary-type-assertion
+  177:19   error  Promise-returning function provided to property where a void return was expected   @typescript-eslint/no-misused-promises
+  177:59   error  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  178:33   error  Unsafe member access .code on an `any` value                                       @typescript-eslint/no-unsafe-member-access
+  178:49   error  Unsafe member access .unitName on an `any` value                                   @typescript-eslint/no-unsafe-member-access
+  179:59   error  Unsafe assignment of an `any` value                                                @typescript-eslint/no-unsafe-assignment
+  179:80   error  Unsafe member access .label on an `any` value                                      @typescript-eslint/no-unsafe-member-access
+  179:87   error  Unsafe assignment of an `any` value                                                @typescript-eslint/no-unsafe-assignment
+  179:108  error  Unsafe member access .code on an `any` value                                       @typescript-eslint/no-unsafe-member-access
+  179:120  error  Unsafe assignment of an `any` value                                                @typescript-eslint/no-unsafe-assignment
+  179:134  error  Unsafe member access .unitName on an `any` value                                   @typescript-eslint/no-unsafe-member-access
+
+/Users/max/projects/zyerp/frontend/src/features/supplier-management/hooks/useSupplier.ts
+  37:43  error  Async arrow function 'handleDelete' has no 'await' expression  @typescript-eslint/require-await
+
+/Users/max/projects/zyerp/frontend/src/features/supplier-management/services/supplier-price.service.ts
+  24:18  error  This assertion is unnecessary since it does not change the type of the expression  @typescript-eslint/no-unnecessary-type-assertion
+
+/Users/max/projects/zyerp/frontend/src/features/supplier-management/services/supplier.service.ts
+  20:18  error  This assertion is unnecessary since it does not change the type of the expression  @typescript-eslint/no-unnecessary-type-assertion
+
+/Users/max/projects/zyerp/frontend/src/features/system-settings/components/Settings/index.tsx
+   43:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  100:20  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  169:25  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+
+✖ 370 problems (334 errors, 36 warnings)
+  6 errors and 8 warnings potentially fixable with the `--fix` option.
+
+npm error Lifecycle script `lint` failed with error:
+npm error code 1
+npm error path /Users/max/projects/zyerp/frontend
+npm error workspace @zyerp/frontend@1.0.0
+npm error location /Users/max/projects/zyerp/frontend
+npm error command failed
+npm error command sh -c node ./node_modules/eslint/bin/eslint.js .

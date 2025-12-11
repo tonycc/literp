@@ -2,12 +2,11 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Modal, Row, Col, Card } from 'antd'
 import { ProForm, ProFormText, ProFormSelect, ProFormDigit, ProFormDatePicker } from '@ant-design/pro-components'
 import type { ProFormInstance } from '@ant-design/pro-components'
-import type { SupplierPrice, CreateSupplierPriceData } from '@zyerp/shared'
+import type { CreateSupplierPriceData, SupplierPrice, User } from '@zyerp/shared'
 import { SUPPLIER_VAT_RATE_OPTIONS } from '@/shared/constants/supplier'
 import { supplierPriceService } from '../services/supplier-price.service'
 import { supplierService } from '../services/supplier.service'
 import { getUsers } from '@/shared/services/user.service'
-import type { User } from '@zyerp/shared'
 import { ProductService } from '@/features/product/services'
 
 interface SupplierPriceFormProps {
@@ -18,7 +17,7 @@ interface SupplierPriceFormProps {
 }
 
 const SupplierPriceForm: React.FC<SupplierPriceFormProps> = ({ visible, editingPrice, onCancel, onSubmit }) => {
-  const formRef = useRef<ProFormInstance<CreateSupplierPriceData> | undefined>(undefined)
+  const formRef = useRef<ProFormInstance<CreateSupplierPriceData>>(null)
 
   const [taxExclusive, setTaxExclusive] = useState<number>(0)
   const [taxAmount, setTaxAmount] = useState<number>(0)
@@ -48,7 +47,7 @@ const SupplierPriceForm: React.FC<SupplierPriceFormProps> = ({ visible, editingP
       destroyOnHidden
     >
       <ProForm<CreateSupplierPriceData>
-        formRef={formRef as unknown as React.MutableRefObject<ProFormInstance<CreateSupplierPriceData>>}
+        formRef={formRef}
         layout="vertical"
         request={async () => {
           if (editingPrice?.id) {
@@ -84,12 +83,13 @@ const SupplierPriceForm: React.FC<SupplierPriceFormProps> = ({ visible, editingP
           }
         }}
         params={{ id: editingPrice?.id ?? undefined }}
-        onValuesChange={(changed) => {
-          const inc = changed.taxInclusivePrice ?? formRef.current?.getFieldsValue?.()?.taxInclusivePrice
-          const vt = changed.vatRate ?? formRef.current?.getFieldsValue?.()?.vatRate
-          computeTax(inc as number, vt as number)
+        onValuesChange={(_changedValues, allValues) => {
+          const current = allValues as CreateSupplierPriceData
+          const inc = current.taxInclusivePrice
+          const vt = current.vatRate
+          computeTax(inc, vt)
         }}
-        onFinish={async (values) => {
+        onFinish={async (values: CreateSupplierPriceData) => {
           const {
             supplierId,
             productName,
@@ -103,8 +103,8 @@ const SupplierPriceForm: React.FC<SupplierPriceFormProps> = ({ visible, editingP
             purchaseManager,
             remark,
           } = values
-          const effectiveDateStr = typeof effectiveDate === 'string' ? effectiveDate : effectiveDate?.format?.('YYYY-MM-DD')
-          const expiryDateStr = typeof expiryDate === 'string' ? expiryDate : expiryDate?.format?.('YYYY-MM-DD')
+          const effectiveDateStr = typeof effectiveDate === 'string' ? effectiveDate : (effectiveDate as unknown as { format: (f: string) => string })?.format?.('YYYY-MM-DD')
+          const expiryDateStr = typeof expiryDate === 'string' ? expiryDate : (expiryDate as unknown as { format: (f: string) => string })?.format?.('YYYY-MM-DD')
           await onSubmit({
             supplierId,
             productName,
@@ -142,14 +142,14 @@ const SupplierPriceForm: React.FC<SupplierPriceFormProps> = ({ visible, editingP
                 label="采购负责人"
                 request={async () => {
                   const resp = await getUsers({ page: 1, pageSize: 200 })
-                  const users = (resp.data || []) as User[]
+                  const users = resp.data || []
                   const opts = users
                     .map((u: User) => ({
                       label: u.username ? (u.email ? `${u.username}（${u.email}）` : u.username) : '',
                       value: u.username || '',
                     }))
                     .filter((o) => !!o.label && !!o.value)
-                  if (opts.length > 0) return opts
+                  return opts
                 }}
                 fieldProps={{ optionFilterProp: 'label' }}
                 showSearch
@@ -174,14 +174,20 @@ const SupplierPriceForm: React.FC<SupplierPriceFormProps> = ({ visible, editingP
                 }}
                 fieldProps={{
                   optionFilterProp: 'label',
-                  onChange: async (value: string, option: { label?: string; code?: string; unitName?: string } | undefined) => {
-                    if (option?.code || option?.unitName) {
-                      formRef.current?.setFieldsValue?.({ productName: option?.label, productCode: option?.code ?? '', unit: option?.unitName ?? '' })
+                  onChange: async (value: string, option: unknown) => {
+                    const opt = option as { label: string; value: string; code?: string; unitName?: string }
+                    // Use a local type definition to avoid linter errors with imported types
+                    type LocalFormInstance = {
+                      setFieldsValue: (values: Partial<CreateSupplierPriceData>) => void
+                    }
+                    const instance = formRef.current as unknown as LocalFormInstance | undefined
+                    if (opt?.code || opt?.unitName) {
+                      instance?.setFieldsValue({ productName: opt?.label, productCode: opt?.code ?? '', unit: opt?.unitName ?? '' })
                     } else if (value) {
                       const ps = new ProductService()
                       const detail = await ps.getProductById(value)
                       const p = detail.data
-                      formRef.current?.setFieldsValue?.({ productName: p?.name ?? '', productCode: p?.code ?? '', unit: p?.unit?.name ?? '' })
+                      instance?.setFieldsValue({ productName: p?.name ?? '', productCode: p?.code ?? '', unit: p?.unit?.name ?? '' })
                     }
                   },
                 }}

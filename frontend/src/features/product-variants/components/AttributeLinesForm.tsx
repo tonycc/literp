@@ -19,7 +19,7 @@ export const AttributeLinesForm: React.FC<{ productId: string; onSaved?: () => v
       layout="horizontal"
       labelCol={{ span: 6 }}
       wrapperCol={{ span: 18 }}
-      onFinish={async (vals) => {
+      onFinish={async (vals: AttributeLinesFormValues) => {
         const ok = await save(vals.attributes || [])
         if (ok) {
           message.success('属性线已保存')

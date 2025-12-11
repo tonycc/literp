@@ -13,9 +13,8 @@ import {
   Typography,
   Tag
 } from 'antd';
+import type { FormInstance, TableColumnsType } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
-import type { FormInstance } from 'antd/es/form';
-import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import type { 
   SalesReturnFormData, 
@@ -28,11 +27,12 @@ import {
   RETURN_REASON_CONFIG 
 } from '../types';
 
-const { Option } = Select;
-const { TextArea } = Input;
+type SalesReturnFormValues = Omit<SalesReturnFormData, 'returnDate'> & {
+  returnDate?: dayjs.Dayjs;
+};
 
 interface SalesReturnFormProps {
-  form: FormInstance;
+  form: FormInstance<SalesReturnFormValues>;
   editData?: Partial<SalesReturnFormData>;
 }
 
@@ -176,7 +176,7 @@ const SalesReturnForm: React.FC<SalesReturnFormProps> = ({ form, editData }) => 
   };
 
   // 退货产品表格列定义
-  const productColumns: ColumnsType<Omit<ReturnProduct, 'id'>> = [
+  const productColumns: TableColumnsType<Omit<ReturnProduct, 'id'>> = [
     {
       title: '产品名称',
       dataIndex: 'productName',
@@ -225,7 +225,7 @@ const SalesReturnForm: React.FC<SalesReturnFormProps> = ({ form, editData }) => 
           min={0}
           max={record.originalQuantity}
           value={quantity}
-          onChange={(value) => handleReturnQuantityChange(index, value || 0)}
+          onChange={(value) => handleReturnQuantityChange(index, Number(value) || 0)}
           style={{ width: '100%' }}
         />
       )
@@ -255,19 +255,19 @@ const SalesReturnForm: React.FC<SalesReturnFormProps> = ({ form, editData }) => 
       dataIndex: 'reason',
       key: 'reason',
       width: 150,
-      render: (reason: ReturnReason, record, index) => (
+      render: (reason: ReturnReason, _record, index) => (
         <Select
           value={reason}
-          onChange={(value) => handleReasonChange(index, value)}
+          onChange={(value: ReturnReason) => handleReasonChange(index, value)}
           style={{ width: '100%' }}
           size="small"
         >
           {Object.entries(RETURN_REASON_CONFIG).map(([value, config]) => (
-            <Option key={value} value={value}>
+            <Select.Option key={value} value={value}>
               <Tag color={config.color} style={{ margin: 0 }}>
                 {config.label}
               </Tag>
-            </Option>
+            </Select.Option>
           ))}
         </Select>
       )
@@ -277,10 +277,10 @@ const SalesReturnForm: React.FC<SalesReturnFormProps> = ({ form, editData }) => 
       dataIndex: 'remark',
       key: 'remark',
       width: 150,
-      render: (remark: string, record, index) => (
+      render: (remark: string, _record, index) => (
         <Input
           value={remark}
-          onChange={(e) => handleRemarkChange(index, e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleRemarkChange(index, e.target.value)}
           placeholder="备注"
           size="small"
         />
@@ -291,7 +291,7 @@ const SalesReturnForm: React.FC<SalesReturnFormProps> = ({ form, editData }) => 
       key: 'action',
       width: 80,
       align: 'center',
-      render: (_, record, index) => (
+      render: (_, _record, index) => (
         <Button
           type="text"
           danger
@@ -324,7 +324,7 @@ const SalesReturnForm: React.FC<SalesReturnFormProps> = ({ form, editData }) => 
 
   // 获取表单数据（包含退货产品）
   const getFormData = (): SalesReturnFormData => {
-    const formValues = form.getFieldsValue();
+    const formValues = form.getFieldsValue() as Omit<SalesReturnFormData, 'returnDate' | 'products'> & { returnDate?: dayjs.Dayjs };
     return {
       ...formValues,
       returnDate: formValues.returnDate?.format('YYYY-MM-DD') || '',
@@ -368,14 +368,16 @@ const SalesReturnForm: React.FC<SalesReturnFormProps> = ({ form, editData }) => 
                   placeholder="请选择原销售单号"
                   onChange={handleSalesOrderChange}
                   showSearch
-                  filterOption={(input, option) =>
-                    String(option?.children || '').toLowerCase().includes(input.toLowerCase())
-                  }
+                  optionFilterProp="label"
                 >
                   {mockSalesOrders.map(order => (
-                    <Option key={order.id} value={order.salesNumber}>
+                    <Select.Option 
+                      key={order.id} 
+                      value={order.salesNumber}
+                      label={`${order.salesNumber} - ${order.customerName}`}
+                    >
                       {order.salesNumber} - {order.customerName}
-                    </Option>
+                    </Select.Option>
                   ))}
                 </Select>
               </Form.Item>
@@ -432,11 +434,11 @@ const SalesReturnForm: React.FC<SalesReturnFormProps> = ({ form, editData }) => 
               >
                 <Select placeholder="请选择退货原因">
                   {Object.entries(RETURN_REASON_CONFIG).map(([value, config]) => (
-                    <Option key={value} value={value}>
+                    <Select.Option key={value} value={value}>
                       <Tag color={config.color} style={{ margin: 0 }}>
                         {config.label}
                       </Tag>
-                    </Option>
+                    </Select.Option>
                   ))}
                 </Select>
               </Form.Item>
@@ -446,7 +448,7 @@ const SalesReturnForm: React.FC<SalesReturnFormProps> = ({ form, editData }) => 
                 label="退货说明"
                 name="description"
               >
-                <TextArea
+                <Input.TextArea
                   placeholder="请输入退货说明"
                   rows={3}
                   maxLength={500}
@@ -471,7 +473,7 @@ const SalesReturnForm: React.FC<SalesReturnFormProps> = ({ form, editData }) => 
             size="small" 
             style={{ marginBottom: 16 }}
           >
-            <Table
+            <Table<Omit<ReturnProduct, 'id'>>
               columns={productColumns}
               dataSource={returnProducts}
               rowKey="productId"
@@ -511,7 +513,7 @@ const SalesReturnForm: React.FC<SalesReturnFormProps> = ({ form, editData }) => 
                 label="备注"
                 name="remark"
               >
-                <TextArea
+                <Input.TextArea
                   placeholder="请输入备注信息"
                   rows={3}
                   maxLength={500}

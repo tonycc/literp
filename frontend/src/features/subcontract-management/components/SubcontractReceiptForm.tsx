@@ -1,5 +1,5 @@
 import React from 'react'
-import { ProForm, ProFormText, ProFormDatePicker, ProFormSelect } from '@ant-design/pro-components'
+import { ProForm, ProFormDatePicker, ProFormSelect } from '@ant-design/pro-components'
 import type { ProFormInstance } from '@ant-design/pro-components'
 import { subcontractReceiptService } from '../services/subcontract-receipt.service'
 import { useMessage } from '@/shared/hooks'
@@ -8,7 +8,7 @@ import { warehouseService } from '@/shared/services/warehouse.service'
 export interface SubcontractReceiptFormProps {
   orderId: string
   items: Array<{ orderItemId: string; receivedQuantity: number; warehouseId?: string | null }>
-  formRef?: React.MutableRefObject<ProFormInstance<Record<string, unknown>> | undefined>
+  formRef?: React.MutableRefObject<ProFormInstance<Record<string, unknown>>>
   onSubmitted?: () => void
 }
 
@@ -20,7 +20,7 @@ const SubcontractReceiptForm: React.FC<SubcontractReceiptFormProps> = ({ orderId
       layout="vertical"
       labelCol={{ span: 6 }}
       wrapperCol={{ span: 18 }}
-      onFinish={async (values) => {
+      onFinish={async (values: Record<string, unknown>) => {
         const receivedDate = typeof values['receivedDate'] === 'string' ? values['receivedDate'] : undefined
         const warehouseId = typeof values['warehouseId'] === 'string' ? values['warehouseId'] : undefined
         const resp = await subcontractReceiptService.create({ orderId, supplierId: undefined, receivedDate, warehouseId, items })

@@ -46,7 +46,7 @@ export const useRouting = () => {
   // 获取选项列表
   const fetchRoutingOptions = useCallback(async (params?: { isActive?: boolean }) => {
     try {
-      const response = await routingService.getOptions(params);
+      const response = await routingService.getOptions({ _active: params?.isActive });
       if (response.success) {
         return response.data || [];
       } else {

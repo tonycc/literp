@@ -112,7 +112,7 @@ export const DepartmentTree: React.FC<DepartmentTreeProps> = ({
           allowClear
           enterButton={<SearchOutlined />}
           onSearch={handleSearch}
-          onChange={(e) => !e.target.value && handleSearch('')}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => !e.target.value && handleSearch('')}
         />
       </div>
 

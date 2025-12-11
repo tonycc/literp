@@ -308,7 +308,9 @@ export class RoleService {
       code: rp.permission.code,
       description: rp.permission.description || undefined,
       resource: rp.permission.resource,
-      action: rp.permission.action
+      action: rp.permission.action,
+      createdAt: rp.permission.createdAt,
+      updatedAt: rp.permission.updatedAt
     }));
   }
 

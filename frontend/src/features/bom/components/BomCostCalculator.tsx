@@ -10,12 +10,12 @@ import {
   Progress,
   Tag,
   Modal,
-  Form,
   Select,
   InputNumber,
   DatePicker,
   Alert,
   Typography,
+  Form,
 } from 'antd';
 import { useMessage, useModal } from '@/shared/hooks';
 import { BOM_COST_TYPE, BOM_COST_TYPE_MAP } from '@/shared/constants/bom';
@@ -76,13 +76,129 @@ interface CostAnalysis {
 import { CalculatorOutlined, ExportOutlined, ReloadOutlined, SettingOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
-const { Option } = Select;
-const { Text } = Typography;
- 
+
+interface CalculationFormValues {
+  bomId: string;
+  version: string;
+  calculationDate: dayjs.Dayjs;
+  includeLabor?: boolean;
+  includeOverhead?: boolean;
+}
+
+interface SettingsFormValues {
+  includeLabor?: boolean;
+  includeOverhead?: boolean;
+  laborRate?: number;
+  overheadRate?: number;
+}
 
 /**
  * BOM成本计算组件
  */
+
+// 模拟数据
+const mockCostItems: BomCostItem[] = [
+  {
+    id: '1',
+    materialId: 'mat001',
+    materialCode: 'MAT001',
+    materialName: '优质钢材',
+    specification: 'Q235B',
+    unit: 'kg',
+    quantity: 10,
+    unitCost: 8.5,
+    totalCost: 85,
+    level: 1,
+    sequence: 10,
+    costType: BOM_COST_TYPE.MATERIAL,
+    supplier: '钢材供应商A',
+    lastUpdated: '2024-01-20'
+  },
+  {
+    id: '2',
+    materialId: 'mat002',
+    materialCode: 'MAT002',
+    materialName: '标准螺栓',
+    specification: 'M8×20',
+    unit: '个',
+    quantity: 20,
+    unitCost: 0.5,
+    totalCost: 10,
+    level: 1,
+    sequence: 20,
+    costType: BOM_COST_TYPE.MATERIAL,
+    supplier: '五金供应商B',
+    lastUpdated: '2024-01-20'
+  },
+  {
+    id: '3',
+    materialId: 'lab001',
+    materialCode: 'LAB001',
+    materialName: '装配工时',
+    specification: '高级技工',
+    unit: '小时',
+    quantity: 2,
+    unitCost: 50,
+    totalCost: 100,
+    level: 1,
+    sequence: 30,
+    costType: BOM_COST_TYPE.LABOR,
+    lastUpdated: '2024-01-20'
+  },
+  {
+    id: '4',
+    materialId: 'oh001',
+    materialCode: 'OH001',
+    materialName: '制造费用',
+    specification: '设备折旧、水电等',
+    unit: '项',
+    quantity: 1,
+    unitCost: 25,
+    totalCost: 25,
+    level: 1,
+    sequence: 40,
+    costType: BOM_COST_TYPE.OVERHEAD,
+    lastUpdated: '2024-01-20'
+  }
+];
+
+const mockCostSummary: BomCostSummary = {
+  bomId: 'bom001',
+  bomCode: 'BOM001',
+  bomName: '产品A BOM',
+  baseQuantity: 1,
+  totalMaterialCost: 95,
+  totalLaborCost: 100,
+  totalOverheadCost: 25,
+  totalCost: 220,
+  costPerUnit: 220,
+  profitMargin: 20,
+  sellingPrice: 264,
+  calculatedAt: new Date(),
+  calculatedBy: 'admin',
+  items: mockCostItems
+};
+
+const mockCostAnalysis: CostAnalysis = {
+  costByCategory: [
+    { category: '原材料', cost: 95, percentage: 43.2 },
+    { category: '人工费用', cost: 100, percentage: 45.5 },
+    { category: '制造费用', cost: 25, percentage: 11.4 }
+  ],
+  costTrend: [
+    { date: '2024-01-01', cost: 210 },
+    { date: '2024-01-05', cost: 215 },
+    { date: '2024-01-10', cost: 218 },
+    { date: '2024-01-15', cost: 220 },
+    { date: '2024-01-20', cost: 220 }
+  ],
+  topCostItems: [
+    { item: '装配工时', cost: 100, percentage: 45.5 },
+    { item: '优质钢材', cost: 85, percentage: 38.6 },
+    { item: '制造费用', cost: 25, percentage: 11.4 }
+  ]
+};
+
 const BomCostCalculator: React.FC = () => {
   const [costItems, setCostItems] = useState<BomCostItem[]>([]);
   const [costSummary, setCostSummary] = useState<BomCostSummary | null>(null);
@@ -94,134 +210,32 @@ const BomCostCalculator: React.FC = () => {
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   
   // 表单实例
-  const [calculationForm] = Form.useForm();
-  const [settingsForm] = Form.useForm();
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+  const [calculationForm] = Form.useForm<CalculationFormValues>();
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+  const [settingsForm] = Form.useForm<SettingsFormValues>();
   
   // 使用hooks
   const message = useMessage();
   const modal = useModal();
 
-  // 模拟数据
-  const mockCostItems: BomCostItem[] = [
-    {
-      id: '1',
-      materialId: 'mat001',
-      materialCode: 'MAT001',
-      materialName: '优质钢材',
-      specification: 'Q235B',
-      unit: 'kg',
-      quantity: 10,
-      unitCost: 8.5,
-      totalCost: 85,
-      level: 1,
-      sequence: 10,
-      costType: BOM_COST_TYPE.MATERIAL,
-      supplier: '钢材供应商A',
-      lastUpdated: '2024-01-20'
-    },
-    {
-      id: '2',
-      materialId: 'mat002',
-      materialCode: 'MAT002',
-      materialName: '标准螺栓',
-      specification: 'M8×20',
-      unit: '个',
-      quantity: 20,
-      unitCost: 0.5,
-      totalCost: 10,
-      level: 1,
-      sequence: 20,
-      costType: BOM_COST_TYPE.MATERIAL,
-      supplier: '五金供应商B',
-      lastUpdated: '2024-01-20'
-    },
-    {
-      id: '3',
-      materialId: 'lab001',
-      materialCode: 'LAB001',
-      materialName: '装配工时',
-      specification: '高级技工',
-      unit: '小时',
-      quantity: 2,
-      unitCost: 50,
-      totalCost: 100,
-      level: 1,
-      sequence: 30,
-      costType: BOM_COST_TYPE.LABOR,
-      lastUpdated: '2024-01-20'
-    },
-    {
-      id: '4',
-      materialId: 'oh001',
-      materialCode: 'OH001',
-      materialName: '制造费用',
-      specification: '设备折旧、水电等',
-      unit: '项',
-      quantity: 1,
-      unitCost: 25,
-      totalCost: 25,
-      level: 1,
-      sequence: 40,
-      costType: BOM_COST_TYPE.OVERHEAD,
-      lastUpdated: '2024-01-20'
-    }
-  ];
-
-  const mockCostSummary: BomCostSummary = {
-    bomId: 'bom001',
-    bomCode: 'BOM001',
-    bomName: '产品A BOM',
-    baseQuantity: 1,
-    totalMaterialCost: 95,
-    totalLaborCost: 100,
-    totalOverheadCost: 25,
-    totalCost: 220,
-    costPerUnit: 220,
-    profitMargin: 20,
-    sellingPrice: 264,
-    calculatedAt: new Date(),
-    calculatedBy: 'admin',
-    items: mockCostItems
-  };
-
-  const mockCostAnalysis: CostAnalysis = {
-    costByCategory: [
-      { category: '原材料', cost: 95, percentage: 43.2 },
-      { category: '人工费用', cost: 100, percentage: 45.5 },
-      { category: '制造费用', cost: 25, percentage: 11.4 }
-    ],
-    costTrend: [
-      { date: '2024-01-01', cost: 210 },
-      { date: '2024-01-05', cost: 215 },
-      { date: '2024-01-10', cost: 218 },
-      { date: '2024-01-15', cost: 220 },
-      { date: '2024-01-20', cost: 220 }
-    ],
-    topCostItems: [
-      { item: '装配工时', cost: 100, percentage: 45.5 },
-      { item: '优质钢材', cost: 85, percentage: 38.6 },
-      { item: '制造费用', cost: 25, percentage: 11.4 }
-    ]
-  };
-
   useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        // 模拟API调用
+        await new Promise(resolve => setTimeout(resolve, 500));
+        setCostItems(mockCostItems);
+        setCostSummary(mockCostSummary);
+        setCostAnalysis(mockCostAnalysis);
+      } catch {
+        message.error('加载数据失败');
+      } finally {
+        setLoading(false);
+      }
+    };
     void loadData();
-  }, []); // 空依赖数组是合理的，因为loadData函数在组件内部定义，不会改变
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setCostItems(mockCostItems);
-      setCostSummary(mockCostSummary);
-      setCostAnalysis(mockCostAnalysis);
-    } catch {
-      message.error('加载数据失败');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [message]);
 
   // 成本类型渲染
   const renderCostType = (type: string) => {
@@ -279,9 +293,9 @@ const BomCostCalculator: React.FC = () => {
       width: 120,
       align: 'right',
       render: (cost: number) => (
-        <Text strong style={{ color: '#1890ff' }}>
+        <Typography.Text strong style={{ color: '#1890ff' }}>
           ¥{cost.toFixed(2)}
-        </Text>
+        </Typography.Text>
       )
     },
     {
@@ -296,6 +310,7 @@ const BomCostCalculator: React.FC = () => {
   // 成本计算
   const handleCalculateCost = async () => {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       await calculationForm.validateFields();
       setCalculating(true);
       
@@ -356,6 +371,7 @@ const BomCostCalculator: React.FC = () => {
         }
       >
         <Form
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           form={calculationForm}
           layout="inline"
           initialValues={{
@@ -372,8 +388,8 @@ const BomCostCalculator: React.FC = () => {
             rules={[{ required: true, message: '请选择BOM' }]}
           >
             <Select style={{ width: 150 }} placeholder="选择BOM">
-              <Option value="BOM001">BOM001</Option>
-              <Option value="BOM002">BOM002</Option>
+              <Select.Option value="BOM001">BOM001</Select.Option>
+              <Select.Option value="BOM002">BOM002</Select.Option>
             </Select>
           </Form.Item>
 
@@ -383,8 +399,8 @@ const BomCostCalculator: React.FC = () => {
             rules={[{ required: true, message: '请选择版本' }]}
           >
             <Select style={{ width: 120 }} placeholder="选择版本">
-              <Option value="V1.0">V1.0</Option>
-              <Option value="V1.1">V1.1</Option>
+              <Select.Option value="V1.0">V1.0</Select.Option>
+              <Select.Option value="V1.1">V1.1</Select.Option>
             </Select>
           </Form.Item>
 
@@ -435,17 +451,17 @@ const BomCostCalculator: React.FC = () => {
           rowKey="id"
           loading={loading || calculating}
           pagination={false}
-          summary={(pageData) => {
+          summary={(pageData: readonly BomCostItem[]) => {
             const totalCost = pageData.reduce((sum, item) => sum + item.totalCost, 0);
             return (
               <Table.Summary.Row>
                 <Table.Summary.Cell index={0} colSpan={6}>
-                  <Text strong>合计</Text>
+                  <Typography.Text strong>合计</Typography.Text>
                 </Table.Summary.Cell>
                 <Table.Summary.Cell index={1}>
-                  <Text strong style={{ color: '#1890ff' }}>
+                  <Typography.Text strong style={{ color: '#1890ff' }}>
                     ¥{totalCost.toFixed(2)}
-                  </Text>
+                  </Typography.Text>
                 </Table.Summary.Cell>
                 <Table.Summary.Cell index={2} />
               </Table.Summary.Row>
@@ -497,13 +513,13 @@ const BomCostCalculator: React.FC = () => {
                 />
 
                 <div style={{ marginTop: 16 }}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
+                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                     利润率：{costSummary.profitMargin}%
-                  </Text>
+                  </Typography.Text>
                   <br />
-                  <Text type="secondary" style={{ fontSize: 12 }}>
+                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                     销售价格：¥{costSummary.sellingPrice}
-                  </Text>
+                  </Typography.Text>
                 </div>
               </Space>
             )}
@@ -517,8 +533,8 @@ const BomCostCalculator: React.FC = () => {
                 {costAnalysis.costByCategory.map((item) => (
                   <div key={item.category}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <Text>{item.category}</Text>
-                      <Text strong>{item.percentage.toFixed(1)}%</Text>
+                      <Typography.Text>{item.category}</Typography.Text>
+                      <Typography.Text strong>{item.percentage.toFixed(1)}%</Typography.Text>
                     </div>
                     <Progress
                       percent={item.percentage}
@@ -576,6 +592,7 @@ const BomCostCalculator: React.FC = () => {
         width={600}
       >
         <Form
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           form={settingsForm}
           layout="vertical"
           initialValues={{

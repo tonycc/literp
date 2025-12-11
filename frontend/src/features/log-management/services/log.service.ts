@@ -131,14 +131,14 @@ class LogService {
    * 清理过期日志
    */
   async cleanupLogs(days: number = 30): Promise<void> {
-    await apiClient.post('/logs/cleanup', { days });
+    await apiClient.post<ApiResponse<void>>('/logs/cleanup', { days });
   }
 
   /**
    * 导出系统日志
    */
   async exportSystemLogs(params?: LogQueryParams): Promise<Blob> {
-    const response = await apiClient.get('/logs/system/export', {
+    const response = await apiClient.get<Blob>('/logs/system/export', {
       params,
       responseType: 'blob',
     });
@@ -149,7 +149,7 @@ class LogService {
    * 导出审计日志
    */
   async exportAuditLogs(params?: LogQueryParams): Promise<Blob> {
-    const response = await apiClient.get('/logs/audit/export', {
+    const response = await apiClient.get<Blob>('/logs/audit/export', {
       params,
       responseType: 'blob',
     });

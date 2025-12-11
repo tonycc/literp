@@ -15,7 +15,7 @@ export { default as RoutingOperationsForm } from './components/RoutingOperations
 export { default as OperationSelectModal } from './components/OperationSelectModal'
 
 // Hooks
-export { default as useRouting } from './hooks/useRouting'
+export { useRouting } from './hooks/useRouting'
 
 // Services
 export { default as routingService } from './services/routing.service'

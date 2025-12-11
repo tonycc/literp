@@ -31,12 +31,13 @@ const VariantImagePanel: React.FC<VariantImagePanelProps> = ({ productId, varian
   };
 
   useEffect(() => {
-    if (visible) loadImages();
+    if (visible) void loadImages();
   }, [visible]);
 
-  const handleUpload = async ({ file }: { file: File }) => {
+  const handleUpload = async (options: { file: unknown }) => {
+    const { file } = options;
     try {
-      const resp = await ProductVariantsService.uploadVariantImage(productId, variantId, file);
+      const resp = await ProductVariantsService.uploadVariantImage(productId, variantId, file as File);
       if (resp.success) {
         message.success('上传成功');
         await loadImages();

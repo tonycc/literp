@@ -5,7 +5,6 @@ import {
   ProFormText,
   ProFormSelect,
 } from '@ant-design/pro-components';
-import type { ProFormInstance } from '@ant-design/pro-components';
 import {
   SaveOutlined,
   CloseOutlined,
@@ -34,7 +33,13 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
   onCancel,
   loading = false,
 }) => {
-  const formRef = useRef<ProFormInstance<CustomerFormValues> | undefined>(undefined);
+  // 使用自定义接口避免 ProFormInstance 解析为 any 导致的 unsafe call 错误
+  interface LocalFormInstance {
+    setFieldsValue: (values: Partial<CustomerFormValues>) => void;
+    resetFields: () => void;
+    submit: () => void;
+  }
+  const formRef = useRef<LocalFormInstance | undefined>(undefined);
   const isEdit = !!customer;
   const [categoryOptions, setCategoryOptions] = useState<Array<{ label: string; value: string }>>([])
   const [creditOptions, setCreditOptions] = useState<Array<{ label: string; value: string }>>([])
@@ -80,7 +85,8 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
 
   return (
       <ProForm<CustomerFormValues>
-        formRef={formRef}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+        formRef={formRef as any}
         initialValues={customer ? { ...customer } : undefined}
         onFinish={handleSubmit}
         layout="vertical"

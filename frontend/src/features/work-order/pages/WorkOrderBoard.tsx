@@ -22,7 +22,7 @@ export const WorkOrderBoard: React.FC = () => {
       setLoading(true)
       try {
         const resp = await workOrderService.getList({ page: 1, pageSize: 100 })
-        if (resp.success) setRows(resp.data)
+        if (resp.success) setRows(resp.data || [])
         else message.error(resp.message || '加载失败')
       } catch {
         message.error('加载失败')

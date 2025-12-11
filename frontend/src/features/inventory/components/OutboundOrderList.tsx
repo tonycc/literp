@@ -14,7 +14,6 @@ import {
   Row,
   Col,
   Divider,
-  message,
   Badge,
   Dropdown,
   Menu
@@ -32,6 +31,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import type { TablePaginationConfig } from 'antd/es/table';
 import dayjs from 'dayjs';
+import { useMessage, useModal } from '@/shared/hooks';
 import type {
   OutboundOrder,
   OutboundOrderQueryParams,
@@ -45,13 +45,15 @@ import {
 } from '../types';
 
 const { RangePicker } = DatePicker;
-const { Option } = Select;
 
 interface OutboundOrderListProps {
   className?: string;
 }
 
 const OutboundOrderList: React.FC<OutboundOrderListProps> = ({ className }) => {
+  const message = useMessage();
+  const modal = useModal();
+
   // 状态管理
   const [data, setData] = useState<OutboundOrder[]>([]);
   const [loading, setLoading] = useState(false);
@@ -228,7 +230,8 @@ const OutboundOrderList: React.FC<OutboundOrderListProps> = ({ className }) => {
 
   // 初始化加载
   useEffect(() => {
-    loadData();
+    void loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryParams]);
 
   // 搜索处理
@@ -287,7 +290,7 @@ const OutboundOrderList: React.FC<OutboundOrderListProps> = ({ className }) => {
 
   // 删除出库单
   const handleDelete = (record: OutboundOrder) => {
-    Modal.confirm({
+    modal.confirm({
       title: '确认删除',
       content: `确定要删除出库单 ${record.orderNumber} 吗？`,
       onOk: async () => {
@@ -295,7 +298,7 @@ const OutboundOrderList: React.FC<OutboundOrderListProps> = ({ className }) => {
           // 模拟API调用
           await new Promise(resolve => setTimeout(resolve, 500));
           message.success('删除成功');
-          loadData();
+          void loadData();
         } catch {
           message.error('删除失败');
         }
@@ -305,7 +308,7 @@ const OutboundOrderList: React.FC<OutboundOrderListProps> = ({ className }) => {
 
   // 审核出库单
   const handleApprove = (record: OutboundOrder) => {
-    Modal.confirm({
+    modal.confirm({
       title: '确认审核',
       content: `确定要审核通过出库单 ${record.orderNumber} 吗？`,
       onOk: async () => {
@@ -313,7 +316,7 @@ const OutboundOrderList: React.FC<OutboundOrderListProps> = ({ className }) => {
           // 模拟API调用
           await new Promise(resolve => setTimeout(resolve, 500));
           message.success('审核成功');
-          loadData();
+          void loadData();
         } catch {
           message.error('审核失败');
         }
@@ -323,7 +326,7 @@ const OutboundOrderList: React.FC<OutboundOrderListProps> = ({ className }) => {
 
   // 拒绝出库单
   const handleReject = (record: OutboundOrder) => {
-    Modal.confirm({
+    modal.confirm({
       title: '确认拒绝',
       content: `确定要拒绝出库单 ${record.orderNumber} 吗？`,
       onOk: async () => {
@@ -331,7 +334,7 @@ const OutboundOrderList: React.FC<OutboundOrderListProps> = ({ className }) => {
           // 模拟API调用
           await new Promise(resolve => setTimeout(resolve, 500));
           message.success('拒绝成功');
-          loadData();
+          void loadData();
         } catch {
           message.error('拒绝失败');
         }
@@ -531,8 +534,8 @@ const OutboundOrderList: React.FC<OutboundOrderListProps> = ({ className }) => {
     total: data.length,
     showSizeChanger: true,
     showQuickJumper: true,
-    showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`,
-    onChange: (page, pageSize) => {
+    showTotal: (total: number, range: [number, number]) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`,
+    onChange: (page: number, pageSize: number) => {
       setQueryParams(prev => ({ ...prev, page, pageSize }));
     }
   };
@@ -568,7 +571,7 @@ const OutboundOrderList: React.FC<OutboundOrderListProps> = ({ className }) => {
           <Form.Item name="outboundType" label="出库类型">
             <Select placeholder="请选择出库类型" style={{ width: 120 }} allowClear>
               {Object.entries(OUTBOUND_TYPE_CONFIG).map(([key, config]) => (
-                <Option key={key} value={key}>{config.label}</Option>
+                <Select.Option key={key} value={key}>{config.label}</Select.Option>
               ))}
             </Select>
           </Form.Item>
@@ -668,7 +671,7 @@ const OutboundOrderList: React.FC<OutboundOrderListProps> = ({ className }) => {
               await new Promise(resolve => setTimeout(resolve, 500));
               message.success('保存成功');
               setEditModalVisible(false);
-              loadData();
+              void loadData();
             } catch {
               message.error('保存失败');
             }
@@ -690,10 +693,10 @@ const OutboundOrderList: React.FC<OutboundOrderListProps> = ({ className }) => {
             <Col span={12}>
               <Form.Item name="priority" label="优先级" rules={[{ required: true }]}>
                 <Select>
-                  <Option value="low">低</Option>
-                  <Option value="normal">普通</Option>
-                  <Option value="high">高</Option>
-                  <Option value="urgent">紧急</Option>
+                  <Select.Option value="low">低</Select.Option>
+                  <Select.Option value="normal">普通</Select.Option>
+                  <Select.Option value="high">高</Select.Option>
+                  <Select.Option value="urgent">紧急</Select.Option>
                 </Select>
               </Form.Item>
             </Col>

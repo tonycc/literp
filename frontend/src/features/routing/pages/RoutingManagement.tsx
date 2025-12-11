@@ -46,7 +46,7 @@ const RoutingManagement: React.FC = () => {
     try {
       const [wcRes, opRes] = await Promise.all([
         routingService.getWorkcenterOptions({ _active: true }),
-        operationService.getOptions({ _isActive: true })
+        operationService.getOptions({ isActive: true })
       ]);
       setWorkcenterOptions(wcRes.data || []);
       setOperationOptions(opRes.data || []);

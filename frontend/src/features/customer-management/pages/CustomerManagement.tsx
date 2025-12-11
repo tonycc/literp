@@ -59,12 +59,12 @@ const CustomerManagement: React.FC = () => {
           setEditingCustomerId(null);
           setAddModalOpen(true);
         }}
-        onEdit={(id) => {
+        onEdit={(id: string) => {
           setEditingCustomerId(id);
           setAddModalOpen(true);
         }}
-        onView={(record) => void handleView(record)}
-        onDelete={(id) => void handleDelete(id)}
+        onView={(record: Customer) => void handleView(record)}
+        onDelete={(id: string) => void handleDelete(id)}
         onBatchDelete={() => void handleBatchDelete()}
         onExport={() => {
           message.info('导出功能开发中...');

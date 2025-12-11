@@ -166,9 +166,9 @@ export interface ProductCategoryApi {
    * 获取产品类别选项（用于下拉选择）
    */
   getOptions(_params?: { 
-    _level?: number; 
-    _parentCode?: string; 
-    _isActive?: boolean 
+    level?: number; 
+    parentCode?: string; 
+    isActive?: boolean 
   }): Promise<ApiResponse<ProductCategoryOption[]>>;
 
   /**

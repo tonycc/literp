@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { useMessage } from '@/shared/hooks'
 import { AttributesService, type AttributeInfo, type AttributeValueInfo } from '../services/attributes.service'
 

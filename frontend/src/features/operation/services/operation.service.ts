@@ -41,7 +41,7 @@ class OperationService implements OperationApi {
   }
 
   async getOptions(params?: { 
-    _isActive?: boolean 
+    isActive?: boolean 
   }): Promise<ApiResponse<OperationOption[]>> {
     const response = await apiClient.get<ApiResponse<OperationOption[]>>(`${this.baseUrl}/options`, { 
       params 

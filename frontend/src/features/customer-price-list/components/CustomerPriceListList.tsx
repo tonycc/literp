@@ -151,21 +151,16 @@ const CustomerPriceListList: React.FC<CustomerPriceListListProps> = ({
           </Button>
         ),
       ]}
-      request={async (params) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      request={async (params: CustomerPriceListParams & { current?: number }) => {
         const { current, pageSize, ...rest } = params;
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const res = await customerPriceListService.getList({
           page: current,
           pageSize: pageSize,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           ...rest,
         });
         return {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
           data: res.data?.data || [],
           success: true,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
           total: res.data?.total || 0,
         };
       }}

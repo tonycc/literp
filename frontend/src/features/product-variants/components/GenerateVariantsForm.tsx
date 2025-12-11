@@ -1,7 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { Button } from 'antd';
+import type { DefaultOptionType } from 'antd/es/select';
 import { ProForm, ProFormList, ProFormSelect, ProFormDependency } from '@ant-design/pro-components';
-import type { ProFormInstance } from '@ant-design/pro-components';
 import { useProductVariants } from '../hooks/useProductVariants';
 import { useProductAttributeOptions } from '../hooks/useProductAttributeOptions';
 import { useProductAttributeLines } from '../hooks/useProductAttributeLines';
@@ -46,20 +46,20 @@ const GenerateVariantsForm: React.FC<GenerateVariantsFormProps> = ({ productId }
     if (!saved) return;
     await generateVariants(normalizedAttributes as { attributeName: string; values: string[] }[]);
   };
-  const formRef = useRef<ProFormInstance<FormValues> | undefined>(undefined);
+  const [form] = ProForm.useForm<FormValues>();
 
   // 监听数据变化，动态更新表单值
   useEffect(() => {
-    if (existingLines && formRef.current) {
-      formRef.current.setFieldsValue({ attributes: existingLines });
+    if (existingLines) {
+      form.setFieldsValue({ attributes: existingLines });
     }
-  }, [existingLines]);
+  }, [existingLines, form]);
 
   return (
     <ProForm<FormValues>
-      formRef={formRef} // 绑定 ref
+      form={form} // 绑定 form 实例
       // initialValues={initialValues} // 移除不可靠的 initialValues
-      onFinish={async (values) => {
+      onFinish={async (values: FormValues) => {
         await onFinish(values);
         return true;
       }}
@@ -88,7 +88,7 @@ const GenerateVariantsForm: React.FC<GenerateVariantsFormProps> = ({ productId }
             mode: 'tags',
             maxTagCount: 1,
             showSearch: true,
-            filterOption: (input, option) => (option?.label as string)?.includes(input),
+            filterOption: (input: string, option: DefaultOptionType | undefined) => (option?.label as string)?.includes(input),
           }}
         />
         <ProFormDependency key="attributeValues" name={["attributeName"]}>

@@ -1,15 +1,14 @@
 import React, { useEffect } from 'react'
 import { ProTable } from '@ant-design/pro-components'
 import type { ProColumns, ActionType } from '@ant-design/pro-components'
-import type { ManufacturingOrder } from '@zyerp/shared'
+import type { ManufacturingOrder, ManufacturingOrderListParams } from '@zyerp/shared'
+import { normalizeTableParams } from '@/shared/utils/normalizeTableParams'
 import { MANUFACTURING_ORDER_STATUS_VALUE_ENUM_PRO } from '@/shared/constants/manufacturing-order'
 import { manufacturingOrderService } from '../services/manufacturing-order.service'
 import { useMessage } from '@/shared/hooks'
 import { useModal } from '@/shared/hooks'
 import { Drawer } from 'antd'
-import { useNavigate } from 'react-router-dom'
 import ManufacturingOrderDetail from '../components/ManufacturingOrderDetail'
-// import ManufacturingOrderList from '../components/ManufacturingOrderList'
 import GenerateWorkOrdersModal from '../components/GenerateWorkOrdersModal'
 import { BomService } from '@/features/bom/services/bom.service'
 import routingService from '@/features/routing/services/routing.service'
@@ -18,7 +17,6 @@ import type { BomItem, RoutingWorkcenterInfo, WorkcenterOption } from '@zyerp/sh
 export const ManufacturingOrderManagement: React.FC = () => {
   const message = useMessage()
   const modal = useModal()
-  const navigate = useNavigate()
   const actionRef = React.useRef<ActionType | undefined>(undefined)
   const [currentMo, setCurrentMo] = React.useState<ManufacturingOrder | null>(null)
   const [generateVisible, setGenerateVisible] = React.useState(false)
@@ -91,10 +89,6 @@ export const ManufacturingOrderManagement: React.FC = () => {
   const handleGenerate = (record: ManufacturingOrder) => {
     setCurrentMo(record)
     setGenerateVisible(true)
-  }
-
-  const handleSchedule = (record: ManufacturingOrder) => {
-    void navigate(`/work-order-scheduling?moId=${record.id}`)
   }
 
   const handleDelete = (record: ManufacturingOrder) => {
@@ -185,18 +179,21 @@ export const ManufacturingOrderManagement: React.FC = () => {
         headerTitle="制造订单列表"
         columns={columns}
         actionRef={actionRef}
-        request={async (params) => {
-          const resp = await manufacturingOrderService.getList({
-            page: (params.current as number) ?? 1,
-            pageSize: (params.pageSize as number) ?? 10,
-            status: (params as Record<string, unknown>)?.status as string | undefined,
-            orderNo: (params as Record<string, unknown>)?.orderNo as string | undefined,
-            productCode: (params as Record<string, unknown>)?.productCode as string | undefined,
-            sourceOrderNo: (params as Record<string, unknown>)?.sourceOrderNo as string | undefined,
-          })
+        request={async (params: Record<string, unknown>) => {
+          const base = normalizeTableParams(params)
+          const p = params
+          const query: ManufacturingOrderListParams = {
+            page: base.page,
+            pageSize: base.pageSize,
+            status: typeof p.status === 'string' ? p.status : undefined,
+            orderNo: typeof p.orderNo === 'string' ? p.orderNo : undefined,
+            productCode: typeof p.productCode === 'string' ? p.productCode : undefined,
+            sourceOrderNo: typeof p.sourceOrderNo === 'string' ? p.sourceOrderNo : undefined,
+          }
+          const resp = await manufacturingOrderService.getList(query)
           return { data: resp.data, success: true, total: resp.pagination.total }
         }}
-        rowKey={(r) => r.id}
+        rowKey={(r: ManufacturingOrder) => r.id}
         search={{ labelWidth: 'auto' }}
         scroll={{ x: 2400 }}
         pagination={{ showSizeChanger: true, showQuickJumper: true }}
@@ -206,7 +203,7 @@ export const ManufacturingOrderManagement: React.FC = () => {
           visible={generateVisible}
           mo={currentMo}
           onClose={() => setGenerateVisible(false)}
-          onSuccess={(created) => {
+          onSuccess={(_created) => {
             void actionRef.current?.reload?.()
           }}
         />
@@ -223,11 +220,11 @@ export const ManufacturingOrderManagement: React.FC = () => {
             { title: '物料编码', dataIndex: 'materialCode', width: 140 },
             { title: '物料名称', dataIndex: 'materialName' },
             { title: '用量', dataIndex: 'quantity', width: 100 },
-            { title: '单位', dataIndex: 'unitName', width: 100, render: (_, r) => r.unitName || '-' },
+            { title: '单位', dataIndex: 'unitName', width: 100, render: (_, r: BomItem) => r.unitName || '-' },
             { title: '需求类型', dataIndex: 'requirementType', width: 120 },
           ]}
           dataSource={bomItems}
-          rowKey={(r) => r.id}
+          rowKey={(r: BomItem) => r.id}
           search={false}
           pagination={false}
         />
@@ -242,14 +239,14 @@ export const ManufacturingOrderManagement: React.FC = () => {
           columns={[
             { title: '工序序号', dataIndex: 'sequence', width: 100 },
             { title: '工序名称', dataIndex: 'name' },
-            { title: '工作中心', dataIndex: 'workcenterId', width: 160, render: (_, r) => {
+            { title: '工作中心', dataIndex: 'workcenterId', width: 160, render: (_, r: RoutingWorkcenterInfo) => {
               const label = workcenterOptions.find((o) => o.value === r.workcenterId)?.label
               return label || r.workcenterId || '—'
             } },
-            { title: '标准工时', dataIndex: 'timeCycleManual', width: 120, render: (_, r) => `${r.timeCycleManual ?? 0} 分钟` },
+            { title: '标准工时', dataIndex: 'timeCycleManual', width: 120, render: (_, r: RoutingWorkcenterInfo) => `${r.timeCycleManual ?? 0} 分钟` },
           ]}
           dataSource={routingOps}
-          rowKey={(r) => r.id}
+          rowKey={(r: RoutingWorkcenterInfo) => r.id}
           search={false}
           pagination={false}
         />

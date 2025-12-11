@@ -29,7 +29,7 @@ export const useBomItemsSync = () => {
       quantity: r.quantity,
       unitId: r.unitId,
       sequence: r.sequence,
-      requirementType: (r.requirementType ?? 'fixed') as MaterialRequirementType,
+      requirementType: (r.requirementType ?? 'fixed') ,
       isKey: r.isKey,
       isPhantom: !!r.isPhantom,
       childBomId: r.childBomId,
