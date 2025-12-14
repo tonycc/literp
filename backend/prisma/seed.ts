@@ -14,6 +14,50 @@ async function main() {
   // 创建权限
   const permissions = await Promise.all([
     prisma.permission.upsert({
+      where: { code: 'defect:create' },
+      update: {},
+      create: {
+        name: '创建不良品项',
+        code: 'defect:create',
+        description: '创建不良品项',
+        resource: 'defect',
+        action: 'create',
+      },
+    }),
+    prisma.permission.upsert({
+      where: { code: 'defect:delete' },
+      update: {},
+      create: {
+        name: '删除不良品项',
+        code: 'defect:delete',
+        description: '删除不良品项',
+        resource: 'defect',
+        action: 'delete',
+      },
+    }),
+    prisma.permission.upsert({
+      where: { code: 'defect:read' },
+      update: {},
+      create: {
+        name: '查看不良品项',
+        code: 'defect:read',
+        description: '查看不良品项',
+        resource: 'defect',
+        action: 'read',
+      },
+    }),
+    prisma.permission.upsert({
+      where: { code: 'defect:update' },
+      update: {},
+      create: {
+        name: '更新不良品项',
+        code: 'defect:update',
+        description: '更新不良品项',
+        resource: 'defect',
+        action: 'update',
+      },
+    }),
+    prisma.permission.upsert({
       where: { code: 'dashboard:read' },
       update: {},
       create: {
@@ -520,6 +564,58 @@ async function main() {
       create: {
         role: { connect: { code: 'admin' } },
         permission: { connect: { code: 'role:update' } },
+      },
+    }),
+    prisma.rolePermission.upsert({
+      where: {
+        roleId_permissionId: {
+          roleId: (await prisma.role.findUnique({ where: { code: 'admin' } }))!.id,
+          permissionId: (await prisma.permission.findUnique({ where: { code: 'defect:create' } }))!.id,
+        }
+      },
+      update: {},
+      create: {
+        role: { connect: { code: 'admin' } },
+        permission: { connect: { code: 'defect:create' } },
+      },
+    }),
+    prisma.rolePermission.upsert({
+      where: {
+        roleId_permissionId: {
+          roleId: (await prisma.role.findUnique({ where: { code: 'admin' } }))!.id,
+          permissionId: (await prisma.permission.findUnique({ where: { code: 'defect:delete' } }))!.id,
+        }
+      },
+      update: {},
+      create: {
+        role: { connect: { code: 'admin' } },
+        permission: { connect: { code: 'defect:delete' } },
+      },
+    }),
+    prisma.rolePermission.upsert({
+      where: {
+        roleId_permissionId: {
+          roleId: (await prisma.role.findUnique({ where: { code: 'admin' } }))!.id,
+          permissionId: (await prisma.permission.findUnique({ where: { code: 'defect:read' } }))!.id,
+        }
+      },
+      update: {},
+      create: {
+        role: { connect: { code: 'admin' } },
+        permission: { connect: { code: 'defect:read' } },
+      },
+    }),
+    prisma.rolePermission.upsert({
+      where: {
+        roleId_permissionId: {
+          roleId: (await prisma.role.findUnique({ where: { code: 'admin' } }))!.id,
+          permissionId: (await prisma.permission.findUnique({ where: { code: 'defect:update' } }))!.id,
+        }
+      },
+      update: {},
+      create: {
+        role: { connect: { code: 'admin' } },
+        permission: { connect: { code: 'defect:update' } },
       },
     }),
     prisma.rolePermission.upsert({

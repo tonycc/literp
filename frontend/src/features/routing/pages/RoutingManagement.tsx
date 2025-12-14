@@ -155,9 +155,10 @@ const RoutingManagement: React.FC = () => {
   };
 
   // 处理添加工序：改造为批量选择流程
-  const handleAddOperation = async () => {
+  const handleAddOperation = () => {
     setEditingOperation(null);
     setIsOperationSelectVisible(true);
+    return Promise.resolve();
   };
 
   // 处理编辑工序
@@ -168,7 +169,7 @@ const RoutingManagement: React.FC = () => {
   };
 
   // 处理保存工序
-  const handleSaveOperation = async (values: Omit<CreateRoutingWorkcenterRequest, 'routingId'>) => {
+  const handleSaveOperation = (values: Omit<CreateRoutingWorkcenterRequest, 'routingId'>) => {
     try {
       if (editingOperation) {
         // 更新工序
@@ -180,7 +181,7 @@ const RoutingManagement: React.FC = () => {
         const newOperation: RoutingWorkcenterInfo = {
           id: `temp_${Date.now()}`,
           routingId: editingRecord?.id || '',
-          workcenterId: values.workcenterId,
+          workcenterId: values.workcenterId || '', // 确保 workcenterId 不为 undefined
           operationId: values.operationId,
           name: values.name,
           sequence: values.sequence,
@@ -191,7 +192,7 @@ const RoutingManagement: React.FC = () => {
           batchSize: values.batchSize,
           worksheetType: values.worksheetType,
           worksheetLink: values.worksheetLink,
-          description: values.description,
+          description: values.description || undefined, // 确保 description 为 undefined 而不是空字符串
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -200,9 +201,11 @@ const RoutingManagement: React.FC = () => {
       
       messageApi.success(editingOperation ? '更新成功' : '添加成功');
       setIsOperationsModalVisible(false);
+      return Promise.resolve();
     } catch (error) {
       console.error('保存工序失败:', error);
       messageApi.error(editingOperation ? '更新失败' : '添加失败');
+      return Promise.resolve();
     }
   };
 
@@ -215,6 +218,7 @@ const RoutingManagement: React.FC = () => {
   // 处理删除工序
   const handleDeleteOperation = (id: string) => {
     setOperations(prev => prev.filter(op => op.id !== id));
+    return Promise.resolve();
   };
 
   // 处理工序拖拽排序
@@ -224,6 +228,7 @@ const RoutingManagement: React.FC = () => {
       ...op,
       sequence: (idx + 1),
     })));
+    return Promise.resolve();
   };
 
   // 下拉选择工作中心（列表内就地修改）
@@ -311,6 +316,7 @@ const RoutingManagement: React.FC = () => {
           workcenterOptions={workcenterOptions}
           operationOptions={operationOptions}
         />
+
       </Modal>
 
       {/* 工序选择弹窗：用于“添加工序”批量选择 */}

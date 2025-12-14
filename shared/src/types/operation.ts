@@ -20,6 +20,12 @@ export interface OperationInfo {
   createdBy: string;
   updatedBy: string;
   version: number;
+  defectIds?: string[]; // 关联的不良品项ID列表
+  defects?: { // 关联的不良品项详情
+    id: string;
+    code: string;
+    name: string;
+  }[];
 }
 
 /**
@@ -34,6 +40,7 @@ export interface OperationFormData {
   costPerHour?: number; // 每小时成本
   unit?: string; // 工价单位
   isActive: boolean;
+  defectIds?: string[]; // 关联的不良品项ID列表
 }
 
 /**

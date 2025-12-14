@@ -20,6 +20,7 @@ export interface CreateOperationRequest {
   costPerHour?: number; // 每小时成本
   unit?: string; // 工价单位
   isActive: boolean;
+  defectIds?: string[]; // 关联的不良品项ID列表
 }
 
 /**
@@ -34,6 +35,7 @@ export interface UpdateOperationRequest {
   costPerHour?: number; // 每小时成本
   unit?: string; // 工价单位
   isActive?: boolean;
+  defectIds?: string[]; // 关联的不良品项ID列表
 }
 
 /**

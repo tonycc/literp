@@ -4,11 +4,13 @@ import {
   ProFormText,
   ProFormTextArea,
   ProFormDigit,
+  ProFormSelect,
 } from '@ant-design/pro-components';
 import { Row, Col } from 'antd';
 import type { FormInstance } from 'antd';
 import type { OperationFormData, OperationInfo } from '@zyerp/shared';
 import { operationService } from '../services/operation.service';
+import { DefectService } from '../../defect/services/defect.service';
 import { useMessage } from '@/shared/hooks';
 
 interface OperationFormProps {
@@ -103,7 +105,7 @@ const OperationForm: React.FC<OperationFormProps> = ({
       onFinish={handleSubmit}
       layout="vertical"
       submitter={{
-        render: (_, dom: React.ReactNode[]) => (
+        render: (_, dom) => (
           <Row justify="end" gutter={16}>
             <Col>
               <a onClick={onCancel}>取消</a>
@@ -179,6 +181,32 @@ const OperationForm: React.FC<OperationFormProps> = ({
         </Col>
       
       </Row>
+
+      <ProFormSelect
+        name="defectIds"
+        label="不良品项"
+        placeholder="请选择不良品项"
+        mode="multiple"
+        request={async () => {
+          try {
+            const response = await DefectService.getActiveList();
+            
+            if (response.success && response.data) {
+              return response.data.map(item => ({
+                label: `${item.code} - ${item.name}`,
+                value: item.id
+              }));
+            }
+            return [];
+          } catch (error) {
+            console.error('获取不良品项失败:', error);
+            return [];
+          }
+        }}
+        fieldProps={{
+          maxTagCount: 'responsive',
+        }}
+      />
 
       <ProFormTextArea
         name="description"

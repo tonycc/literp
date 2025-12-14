@@ -7,8 +7,7 @@ import {
   CreateOperationRequest, 
   UpdateOperationRequest,
   OperationQueryParams,
-  OperationListResponse,
-  OperationSortField
+  OperationListResponse
 } from '@zyerp/shared';
 import { AppError } from '../../../shared/middleware/error';
 import { BaseService } from '../../../shared/services/base.service';
@@ -18,7 +17,7 @@ export class OperationService extends BaseService {
    * 创建工序
    */
   async createOperation(data: CreateOperationRequest, createdBy: string): Promise<OperationInfo> {
-    const { name, code, description, standardTime, wageRate, costPerHour, unit, isActive } = data;
+    const { name, code, description, standardTime, wageRate, costPerHour, unit, isActive, defectIds } = data;
 
     // 检查工序名称是否已存在
     const existingOperationWithName = await this.prisma.operation.findUnique({
@@ -51,6 +50,12 @@ export class OperationService extends BaseService {
         isActive: isActive !== undefined ? isActive : true,
         createdBy,
         updatedBy: createdBy,
+        defects: defectIds?.length ? {
+          connect: defectIds.map(id => ({ id }))
+        } : undefined
+      },
+      include: {
+        defects: true
       }
     });
 
@@ -97,7 +102,10 @@ export class OperationService extends BaseService {
         where,
         orderBy,
         skip,
-        take
+        take,
+        include: {
+          defects: true
+        }
       }),
       this.prisma.operation.count({ where })
     ]);
@@ -118,7 +126,10 @@ export class OperationService extends BaseService {
    */
   async getOperationById(id: string): Promise<OperationInfo | null> {
     const operation = await this.prisma.operation.findUnique({
-      where: { id }
+      where: { id },
+      include: {
+        defects: true
+      }
     });
 
     if (!operation) {
@@ -133,7 +144,10 @@ export class OperationService extends BaseService {
    */
   async getOperationByCode(code: string): Promise<OperationInfo | null> {
     const operation = await this.prisma.operation.findUnique({
-      where: { code }
+      where: { code },
+      include: {
+        defects: true
+      }
     });
 
     if (!operation) {
@@ -147,7 +161,7 @@ export class OperationService extends BaseService {
    * 更新工序
    */
   async updateOperation(id: string, data: UpdateOperationRequest, updatedBy: string): Promise<OperationInfo> {
-    const { name, code, description, standardTime, wageRate, costPerHour, unit, isActive } = data;
+    const { name, code, description, standardTime, wageRate, costPerHour, unit, isActive, defectIds } = data;
 
     // 检查工序是否存在
     const existingOperation = await this.prisma.operation.findUnique({
@@ -193,7 +207,15 @@ export class OperationService extends BaseService {
         ...(unit !== undefined && { unit }),
         ...(isActive !== undefined && { isActive }),
         updatedBy,
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        ...(defectIds ? {
+          defects: {
+            set: defectIds.map(id => ({ id }))
+          }
+        } : {})
+      },
+      include: {
+        defects: true
       }
     });
 
@@ -250,6 +272,9 @@ export class OperationService extends BaseService {
         isActive: newStatus,
         updatedBy,
         updatedAt: new Date()
+      },
+      include: {
+        defects: true
       }
     });
 
@@ -358,7 +383,13 @@ export class OperationService extends BaseService {
       updatedAt: operation.updatedAt.toISOString(),
       createdBy: operation.createdBy,
       updatedBy: operation.updatedBy,
-      version: 1 // Prisma schema中没有version字段，这里设置默认值
+      version: 1,
+      defectIds: operation.defects?.map((d: any) => d.id) || [],
+      defects: operation.defects?.map((d: any) => ({
+        id: d.id,
+        code: d.code,
+        name: d.name
+      })) || []
     };
   }
 }

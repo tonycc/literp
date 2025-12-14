@@ -87,6 +87,25 @@ const OperationList: React.FC<OperationListProps> = ({
       search: false,
       render: (_, record) => record.wageRate ? record.wageRate.toFixed(2) : '0.0',
     },
+    {
+      title: '不良品项',
+      dataIndex: 'defects',
+      width: 200,
+      search: false,
+      render: (_, record: OperationInfo) => {
+        const defects = (record.defects || []) as { id: string; name: string }[];
+        return (
+          <>
+            {defects.slice(0, 3).map((defect) => (
+              <Tag key={defect.id}>{defect.name}</Tag>
+            ))}
+            {defects.length > 3 && (
+              <Tag>+{defects.length - 3}...</Tag>
+            )}
+          </>
+        );
+      },
+    },
     
     {
       title: '描述',
@@ -175,7 +194,6 @@ const OperationList: React.FC<OperationListProps> = ({
   // 处理表格请求
   const handleRequest: ProTableProps<OperationInfo, OperationQueryParams>['request'] = async (params) => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const base = normalizeTableParams(params as TableParams);
       const queryParams: OperationQueryParams = {
         page: base.page,

@@ -48,6 +48,18 @@ const ProductCategoryForm: React.FC<ProductCategoryFormProps> = ({
   } = useProductCategory();
 
   useEffect(() => {
+    const loadCategoryOptions = async () => {
+      try {
+        const options = await getCategoryOptions({ level: 1, isActive: true });
+        setCategoryOptions(options.map(opt => ({
+          value: opt.value,
+          label: opt.label
+        })));
+      } catch {
+        // 加载类别选项失败时的错误处理
+      }
+    };
+
     if (initialValues) {
       form.setFieldsValue({
         name: initialValues.name,
@@ -60,19 +72,7 @@ const ProductCategoryForm: React.FC<ProductCategoryFormProps> = ({
     
     // 加载类别选项
     void loadCategoryOptions();
-  }, [initialValues, form]);
-
-  const loadCategoryOptions = async () => {
-    try {
-      const options = await getCategoryOptions({ level: 1, isActive: true });
-      setCategoryOptions(options.map(opt => ({
-        value: opt.value,
-        label: opt.label
-      })));
-    } catch {
-      // 加载类别选项失败时的错误处理
-    }
-  };
+  }, [initialValues, form, getCategoryOptions]);
 
 
 

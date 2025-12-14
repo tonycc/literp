@@ -39,6 +39,7 @@ import materialIssueRoutes from '../features/business/material-issue/material-is
 import productionReportRoutes from '../features/business/production-report/production-report.routes';
 import subcontractOrderRoutes from '../features/business/subcontract-management/subcontract-order.routes';
 import subcontractReceiptRoutes from '../features/business/subcontract-management/subcontract-receipt.routes';
+import defectRoutes from '../features/business/defect/defect.routes';
 import dictionariesRouter from './dictionaries';
 
 
@@ -83,6 +84,7 @@ router.use('/customers', customerRoutes);
 router.use('/customer-price-lists', customerPriceListRoutes);
 router.use('/subcontract-orders', subcontractOrderRoutes);
 router.use('/subcontract-receipts', subcontractReceiptRoutes);
+router.use('/defects', defectRoutes);
 
 // 健康检查路由
 router.get('/health', (_req, res) => {

@@ -57,6 +57,7 @@ const Homepage = React.lazy(() => import('../../../features/homepage/components/
 const OperationManagement = React.lazy(() => import('../../../features/operation/pages/OperationManagement'));
 const RoutingManagement = React.lazy(() => import('../../../features/routing/pages/RoutingManagement'));
 const WorkcenterManagement = React.lazy(() => import('../../../features/workcenter/pages/WorkcenterManagement'));
+const DefectManagement = React.lazy(() => import('../../../features/defect/pages/DefectManagement'));
 const SubcontractOrderManagement = React.lazy(() => import('../../../features/subcontract-management/pages/SubcontractOrderManagement'));
 const SubcontractReceiptManagement = React.lazy(() => import('../../../features/subcontract-management/pages/SubcontractReceiptManagement'));
 
@@ -411,6 +412,7 @@ const DashboardLayout: React.FC = () => {
               <Route path="/operations" element={<OperationManagement />} />
               <Route path="/routings" element={<RoutingManagement />} />
               <Route path="/workcenters" element={<WorkcenterManagement />} />
+              <Route path="/defects" element={<DefectManagement />} />
               <Route path="/users" element={<UserManagement />} />
               <Route path="/departments" element={<DepartmentManagement />} />
               <Route path="/roles" element={<RoleManagement />} />

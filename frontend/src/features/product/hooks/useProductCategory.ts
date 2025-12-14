@@ -37,7 +37,7 @@ export const useProductCategory = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [message]);
 
   /**
    * 创建产品类别
@@ -53,7 +53,7 @@ export const useProductCategory = () => {
       message.error('创建产品类别失败');
       throw error;
     }
-  }, []);
+  }, [message]);
 
   /**
    * 更新产品类别
@@ -69,7 +69,7 @@ export const useProductCategory = () => {
       message.error('更新产品类别失败');
       throw error;
     }
-  }, []);
+  }, [message]);
 
   /**
    * 删除产品类别
@@ -85,7 +85,7 @@ export const useProductCategory = () => {
       message.error('删除产品类别失败');
       throw error;
     }
-  }, []);
+  }, [message]);
 
   /**
    * 切换产品类别状态
@@ -101,7 +101,7 @@ export const useProductCategory = () => {
       message.error('操作失败');
       throw error;
     }
-  }, []);
+  }, [message]);
 
   /**
    * 生成产品类别编码
@@ -116,7 +116,7 @@ export const useProductCategory = () => {
       message.error('生成编码失败');
       throw error;
     }
-  }, []);
+  }, [message]);
 
   /**
    * 获取产品类别选项（用于下拉选择）
@@ -136,7 +136,7 @@ export const useProductCategory = () => {
       message.error('获取类别选项失败');
       return [];
     }
-  }, []);
+  }, [message]);
 
   /**
    * 获取产品类别树形结构
@@ -152,7 +152,7 @@ export const useProductCategory = () => {
       message.error('获取类别树失败');
       return [];
     }
-  }, []);
+  }, [message]);
 
   return {
     // 状态

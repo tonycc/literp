@@ -228,6 +228,12 @@ export const allMenuData: MenuItemWithPermissions[] = [
         group: '生产工艺',
       },
       {
+        path: '/defects',
+        name: '不良品项管理',
+        icon: <ClusterOutlined />,
+        group: '生产工艺',
+      },
+      {
         path: '/suppliers',
         name: '供应商信息',
         icon: <ClusterOutlined />,

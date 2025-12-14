@@ -31,7 +31,7 @@ const OperationManagement: React.FC = () => {
 
   // 初始化加载数据
   useEffect(() => {
-    fetchOperations();
+    void fetchOperations();
   }, [fetchOperations]);
 
   // 处理新增工序
@@ -48,7 +48,7 @@ const OperationManagement: React.FC = () => {
   };
 
   // 处理查看工序详情
-  const handleViewOperation = async (operation: OperationInfo) => {
+  const handleViewOperation = (operation: OperationInfo) => {
     setViewingOperation(operation);
     setIsDetailVisible(true);
   };
@@ -62,7 +62,7 @@ const OperationManagement: React.FC = () => {
         if (result) {
           setIsModalVisible(false);
           form.resetFields();
-          fetchOperations();
+          void fetchOperations();
         }
       } else {
         // 创建工序
@@ -70,7 +70,7 @@ const OperationManagement: React.FC = () => {
         if (result) {
           setIsModalVisible(false);
           form.resetFields();
-          fetchOperations();
+          void fetchOperations();
         }
       }
     } catch (error) {
@@ -81,12 +81,12 @@ const OperationManagement: React.FC = () => {
   // 处理删除工序
   const handleDeleteOperation = async (id: string) => {
     await deleteOperation(id);
-    fetchOperations();
+    void fetchOperations();
   };
 
   // 处理刷新
   const handleRefresh = () => {
-    fetchOperations();
+    void fetchOperations();
   };
 
   return (

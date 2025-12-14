@@ -36,30 +36,30 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   const [loading, setLoading] = useState(true);
   const message = useMessage();
 
-  const fetchProductDetail = async () => {
-    if (!productId) return;
-    
-    setLoading(true);
-    try {
-      const response = await productService.getProductById(productId);
-      if (response.success) {
-        setProduct(response.data || null);
-      } else {
-        message.error(response.message || '获取产品详情失败');
-      }
-    } catch (error) {
-      console.error('获取产品详情失败:', error);
-      message.error('获取产品详情失败');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchProductDetail = async () => {
+      if (!productId) return;
+      
+      setLoading(true);
+      try {
+        const response = await productService.getProductById(productId);
+        if (response.success) {
+          setProduct(response.data || null);
+        } else {
+          message.error(response.message || '获取产品详情失败');
+        }
+      } catch (error) {
+        console.error('获取产品详情失败:', error);
+        message.error('获取产品详情失败');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     if (visible && productId) {
       void fetchProductDetail();
     }
-  }, [visible, productId]);
+  }, [visible, productId, message]);
 
   // 规格参数表格列
   const specColumns = [
