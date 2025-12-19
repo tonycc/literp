@@ -1,342 +1,370 @@
-import React, { useState } from 'react';
-import { Form, Input, Select, DatePicker, InputNumber, Row, Col } from 'antd';
-import type { FormInstance } from 'antd';
-import type { SalesReceiptFormData } from '../types';
-
-const { Option } = Select;
+import React, { useRef, useEffect, useState } from 'react';
+import {
+  ModalForm,
+  ProFormSelect,
+  ProFormText,
+  ProFormTextArea,
+  ProFormDatePicker,
+  ProFormDependency,
+  ProTable,
+} from '@ant-design/pro-components';
+import type { ProFormInstance, ProColumns } from '@ant-design/pro-components';
+import { Card, Row, Col, InputNumber, Select } from 'antd';
+import { salesReceiptService } from '../services/sales-receipt.service';
+import { salesOrderService } from '../../sales-order/services/sales-order.service';
+import { customerService } from '@/features/customer-management/services/customer.service';
+import authService from '@/features/auth/services/auth.service';
+import userService from '@/features/user-management/services/user.service';
+import type {
+  CreateSalesReceiptDto,
+  CreateSalesReceiptItemDto,
+  SalesOrderItem,
+} from '@zyerp/shared';
+import { useMessage } from '@/shared/hooks/useMessage';
+import { useWarehouseOptions } from '@/shared/hooks/useWarehouseOptions';
+import dayjs from 'dayjs';
 
 interface SalesReceiptFormProps {
-  form: FormInstance;
-  onValuesChange?: (changedValues: Partial<SalesReceiptFormData>, allValues: SalesReceiptFormData) => void;
+  visible: boolean;
+  onVisibleChange: (visible: boolean) => void;
+  onSuccess: () => void;
 }
 
-// 模拟数据
-const mockSalesOrders = [
-  { id: 'SO-2024-001', customerName: '北京科技有限公司', customerContact: '张经理' },
-  { id: 'SO-2024-002', customerName: '上海贸易公司', customerContact: '李总' },
-  { id: 'SO-2024-003', customerName: '深圳制造企业', customerContact: '王主管' },
-  { id: 'SO-2024-004', customerName: '广州商贸集团', customerContact: '陈经理' },
-];
+export const SalesReceiptForm: React.FC<SalesReceiptFormProps> = ({
+  visible,
+  onVisibleChange,
+  onSuccess,
+}) => {
+  const formRef = useRef<ProFormInstance<CreateSalesReceiptDto> | undefined>(undefined);
+  const message = useMessage();
+  const { options: warehouseOptions } = useWarehouseOptions({ isActive: true });
+  const [items, setItems] = useState<CreateSalesReceiptItemDto[]>([]);
 
-const mockProducts = [
-  {
-    id: 'P001',
-    name: '高精度传感器',
-    code: 'SENSOR-001',
-    specification: 'S7-1200',
-    unit: '个',
-    salesQuantity: 100,
-    price: 1200.00
-  },
-  {
-    id: 'P002',
-    name: '工业控制器',
-    code: 'CTRL-002',
-    specification: 'TM221CE16R',
-    unit: '台',
-    salesQuantity: 50,
-    price: 3500.00
-  },
-  {
-    id: 'P003',
-    name: '变频器',
-    code: 'VFD-003',
-    specification: 'ACS580-01-038A-4',
-    unit: '台',
-    salesQuantity: 30,
-    price: 8500.00
-  },
-  {
-    id: 'P004',
-    name: '伺服电机',
-    code: 'SERVO-004',
-    specification: 'MSMD012G1U',
-    unit: '台',
-    salesQuantity: 25,
-    price: 4200.00
-  },
-];
+  useEffect(() => {
+    if (!visible) {
+      formRef.current?.resetFields();
+      setItems([]);
+    } else {
+      const initHandler = async () => {
+        try {
+          const user = await authService.getCurrentUser();
+          if (user?.username) {
+            formRef.current?.setFieldsValue({ handler: user.username });
+          }
+        } catch (error) {
+          console.error('Failed to fetch current user', error);
+        }
+      };
+      void initHandler();
+    }
+  }, [visible]);
 
-const SalesReceiptForm: React.FC<SalesReceiptFormProps> = ({ form, onValuesChange }) => {
-  const [currentReceiptQuantity, setCurrentReceiptQuantity] = useState<number>(0);
-  const [totalReceiptQuantity, setTotalReceiptQuantity] = useState<number>(0);
-
-  // 处理销售订单选择
-  const handleSalesOrderChange = (value: string) => {
-    const order = mockSalesOrders.find(o => o.id === value);
-    if (order) {
-      form.setFieldsValue({
-        customerName: order.customerName,
-        customerContact: order.customerContact,
-      });
+  const handleOrderChange = async (orderId: string) => {
+    if (!orderId) {
+      setItems([]);
+      return;
+    }
+    try {
+      const response = await salesOrderService.getById(orderId);
+      if (response.success && response.data) {
+        const order = response.data;
+        const mappedItems: CreateSalesReceiptItemDto[] = (order.items || []).map((item: SalesOrderItem) => ({
+          salesOrderItemId: item.id,
+          productId: item.productId,
+          productName: item.product?.name || '',
+          productCode: item.product?.code || '',
+          quantity: item.quantity,
+          unitPrice: item.price || 0,
+          amount: (item.quantity || 0) * (item.price || 0),
+          warehouseId: item.warehouseId,
+          remarks: item.remark,
+        }));
+        formRef.current?.setFieldsValue({
+          customerName: order.customerName,
+          salesOrderNo: order.orderNo,
+        });
+        setItems(mappedItems);
+      }
+    } catch (error) {
+      console.error(error);
+      message.error('获取订单详情失败');
     }
   };
 
-  // 处理产品选择
-  const handleProductChange = (value: string) => {
-    const product = mockProducts.find(p => p.id === value);
-    if (product) {
-      form.setFieldsValue({
-        productName: product.name,
-        productCode: product.code,
-        specification: product.specification,
-        unit: product.unit,
-        salesQuantity: product.salesQuantity,
-        totalPrice: product.price * product.salesQuantity,
-      });
-    }
+  const handleQuantityChange = (rowId: string, value: number) => {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.salesOrderItemId === rowId ? { ...item, quantity: value } : item,
+      ),
+    );
   };
 
-  // 处理本次出库数量变化
-  const handleCurrentReceiptQuantityChange = (value: number | null) => {
-    const quantity = value || 0;
-    setCurrentReceiptQuantity(quantity);
-    
-    // 计算出库产品总数（假设之前已出库的数量）
-    const previousQuantity = totalReceiptQuantity - currentReceiptQuantity;
-    const newTotal = previousQuantity + quantity;
-    setTotalReceiptQuantity(newTotal);
-    
-    form.setFieldsValue({
-      totalReceiptQuantity: newTotal,
-    });
+  const handleWarehouseChange = (rowId: string, value?: string) => {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.salesOrderItemId === rowId ? { ...item, warehouseId: value } : item,
+      ),
+    );
   };
 
-  // 处理表单值变化
-  const handleValuesChange = (changedValues: Partial<SalesReceiptFormData>, allValues: SalesReceiptFormData) => {
-    if (onValuesChange) {
-      onValuesChange(changedValues, allValues);
-    }
-  };
+  const columns: ProColumns<CreateSalesReceiptItemDto>[] = [
+    {
+      title: '产品名称',
+      dataIndex: 'productName',
+      readonly: true,
+      width: '20%',
+    },
+    {
+      title: '产品编码',
+      dataIndex: 'productCode',
+      readonly: true,
+      width: '15%',
+    },
+    {
+      title: '本次出库数量',
+      dataIndex: 'quantity',
+      width: '15%',
+      render: (_, record) => (
+        <InputNumber
+          min={1}
+          precision={0}
+          value={record.quantity}
+          onChange={(value) =>
+            handleQuantityChange(
+              record.salesOrderItemId,
+              typeof value === 'number' ? value : record.quantity,
+            )
+          }
+          style={{ width: '100%' }}
+        />
+      ),
+    },
+    {
+      title: '单价',
+      dataIndex: 'unitPrice',
+      valueType: 'money',
+      readonly: true,
+      width: '15%',
+    },
+    {
+      title: '金额',
+      dataIndex: 'amount',
+      valueType: 'money',
+      readonly: true,
+      width: '15%',
+      render: (_, row) => {
+        const amount = (row.quantity || 0) * (row.unitPrice || 0);
+        return `¥${amount.toFixed(2)}`;
+      },
+      editable: false,
+    },
+    {
+      title: '仓库',
+      dataIndex: 'warehouseId',
+      width: '20%',
+      render: (_, record) => (
+        <Select
+          options={warehouseOptions}
+          value={record.warehouseId}
+          onChange={(value) => handleWarehouseChange(record.salesOrderItemId, value)}
+          style={{ width: '100%' }}
+          allowClear
+          placeholder="请选择仓库"
+        />
+      ),
+    },
+  ];
 
   return (
-    <Form
-      form={form}
-      layout="vertical"
-      onValuesChange={handleValuesChange}
+    <ModalForm<CreateSalesReceiptDto>
+      title="新建销售出库单"
+      open={visible}
+      onOpenChange={onVisibleChange}
+      formRef={formRef}
+      width={1200}
+      modalProps={{
+        destroyOnClose: true,
+        maskClosable: false,
+      }}
       initialValues={{
-        receiptDate: undefined,
-        receiptStatus: 'pending',
-        currentReceiptQuantity: 0,
-        totalReceiptQuantity: 0,
+        receiptDate: dayjs().format('YYYY-MM-DD'),
+      }}
+      onFinish={async (values: CreateSalesReceiptDto) => {
+        if (!items.length) {
+          message.error('请先选择出库明细');
+          return false;
+        }
+        for (const it of items) {
+          if (!it.quantity || it.quantity <= 0) {
+            message.error('请填写出库数量');
+            return false;
+          }
+          if (!it.warehouseId) {
+            message.error('请选择仓库');
+            return false;
+          }
+        }
+        const submitData: CreateSalesReceiptDto = {
+          salesOrderId: values.salesOrderId,
+          salesOrderNo: values.salesOrderNo || '',
+          customerName: values.customerName || '',
+          receiptDate: values.receiptDate,
+          handler: values.handler,
+          remarks: values.remarks,
+          items: items.map((item) => ({
+            salesOrderItemId: item.salesOrderItemId,
+            productId: item.productId,
+            productName: item.productName,
+            productCode: item.productCode,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            amount: item.quantity * item.unitPrice,
+            warehouseId: item.warehouseId,
+            remarks: item.remarks,
+          })),
+        };
+
+        try {
+          await salesReceiptService.create(submitData);
+          message.success('创建成功');
+          onSuccess();
+          return true;
+        } catch (error) {
+          console.error(error);
+          return false;
+        }
       }}
     >
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item
-            name="receiptNumber"
-            label="出库单编号"
-            rules={[{ required: true, message: '请输入出库单编号' }]}
-          >
-            <Input placeholder="请输入出库单编号" />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item
-            name="salesOrderNumber"
-            label="销售订单编号"
-            rules={[{ required: true, message: '请选择销售订单编号' }]}
-          >
-            <Select
-              placeholder="请选择销售订单编号"
-              onChange={handleSalesOrderChange}
+      <Card size="small" title="基础信息" style={{ marginBottom: 16 }}>
+        <Row gutter={16}>
+          <Col span={8}>
+            <ProFormSelect
+              name="customerName"
+              label="客户"
               showSearch
-              filterOption={(input, option) =>
-                String(option?.children || '').toLowerCase().includes(input.toLowerCase())
-              }
-            >
-              {mockSalesOrders.map(order => (
-                <Option key={order.id} value={order.id}>
-                  {order.id}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item
-            name="customerName"
-            label="客户名称"
-            rules={[{ required: true, message: '请输入客户名称' }]}
-          >
-            <Input placeholder="请输入客户名称" disabled />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item
-            name="customerContact"
-            label="客户联系人"
-            rules={[{ required: true, message: '请输入客户联系人' }]}
-          >
-            <Input placeholder="请输入客户联系人" disabled />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={8}>
-          <Form.Item
-            name="productId"
-            label="产品选择"
-            rules={[{ required: true, message: '请选择产品' }]}
-          >
-            <Select
-              placeholder="请选择产品"
-              onChange={handleProductChange}
+              rules={[{ required: true, message: '请选择客户' }]}
+              request={async (params) => {
+                const { keyWords } = params as { keyWords?: string };
+                const res = await customerService.getCustomerOptions({
+                  keyword: keyWords,
+                  activeOnly: true,
+                });
+                return (res.data || []).map((c) => ({
+                  label: c.name,
+                  value: c.name,
+                }));
+              }}
+              fieldProps={{
+                showSearch: true,
+                filterOption: (input, option) => {
+                  const label = (option as { label?: unknown } | undefined)?.label;
+                  return (
+                    typeof label === 'string' &&
+                    label.toLowerCase().includes(input.toLowerCase())
+                  );
+                },
+                onChange: () => {
+                  formRef.current?.setFieldsValue({
+                    salesOrderId: undefined,
+                    salesOrderNo: '',
+                  });
+                  setItems([]);
+                },
+              }}
+            />
+          </Col>
+          <Col span={8}>
+            <ProFormDependency name={['customerName']}>
+              {({ customerName }) => (
+                <ProFormSelect
+                  name="salesOrderId"
+                  label="销售订单"
+                  rules={[{ required: true }]}
+                  params={{ customerName }}
+                  disabled={!customerName}
+                  request={async (params) => {
+                    const { customerName: cName, keyWords } = params as {
+                      customerName?: string;
+                      keyWords?: string;
+                    };
+                    if (!cName) {
+                      return [];
+                    }
+                    const res = await salesOrderService.getSalesOrders({
+                      orderNumber: keyWords,
+                      customerName: cName,
+                      page: 1,
+                      pageSize: 20,
+                    });
+                    return (res.data || []).map((item) => ({
+                      label: `${item.orderNo} - ${item.customerName}`,
+                      value: item.id,
+                    }));
+                  }}
+                  fieldProps={{
+                    onChange: (val) => {
+                      const value = typeof val === 'string' ? val : undefined;
+                      formRef.current?.setFieldsValue({ salesOrderId: value });
+                      if (value) {
+                        void handleOrderChange(value);
+                      } else {
+                        setItems([]);
+                      }
+                    },
+                    showSearch: true,
+                  }}
+                />
+              )}
+            </ProFormDependency>
+            <ProFormText name="salesOrderNo" hidden />
+          </Col>
+           <Col span={4}>
+            <ProFormSelect
+              name="handler"
+              label="经办人"
               showSearch
-              filterOption={(input, option) =>
-                String(option?.children || '').toLowerCase().includes(input.toLowerCase())
-              }
-            >
-              {mockProducts.map(product => (
-                <Option key={product.id} value={product.id}>
-                  {product.name} ({product.code})
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item
-            name="productName"
-            label="产品名称"
-            rules={[{ required: true, message: '请输入产品名称' }]}
-          >
-            <Input placeholder="请输入产品名称" disabled />
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item
-            name="productCode"
-            label="产品编码"
-            rules={[{ required: true, message: '请输入产品编码' }]}
-          >
-            <Input placeholder="请输入产品编码" disabled />
-          </Form.Item>
-        </Col>
-      </Row>
+              request={async (params) => {
+                const { keyWords } = params as { keyWords?: string };
+                const res = await userService.getUsers({
+                  page: 1,
+                  limit: 50,
+                  search: keyWords,
+                });
+                return (res.data || []).map((u) => ({
+                  label: u.username,
+                  value: u.username,
+                }));
+              }}
+            />
+          </Col>
+          <Col span={4}>
+            <ProFormDatePicker
+              name="receiptDate"
+              label="出库日期"
+              rules={[{ required: true }]}
+              width="100%"
+            />
+          </Col>
+         
+        </Row>
+        <Row gutter={16}>
+          <Col span={24}>
+            <ProFormTextArea name="remarks" label="备注" />
+          </Col>
+        </Row>
+      </Card>
 
-      <Row gutter={16}>
-        <Col span={8}>
-          <Form.Item
-            name="specification"
-            label="规格型号"
-            rules={[{ required: true, message: '请输入规格型号' }]}
-          >
-            <Input placeholder="请输入规格型号" disabled />
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item
-            name="unit"
-            label="单位"
-            rules={[{ required: true, message: '请输入单位' }]}
-          >
-            <Input placeholder="请输入单位" disabled />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={8}>
-          <Form.Item
-            name="salesQuantity"
-            label="销售数量"
-            rules={[{ required: true, message: '请输入销售数量' }]}
-          >
-            <InputNumber
-              placeholder="请输入销售数量"
-              min={0}
-              style={{ width: '100%' }}
-              disabled
-            />
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item
-            name="currentReceiptQuantity"
-            label="本次出库数量"
-            rules={[
-              { required: true, message: '请输入本次出库数量' },
-              { type: 'number', min: 1, message: '本次出库数量必须大于0' }
-            ]}
-          >
-            <InputNumber
-              placeholder="请输入本次出库数量"
-              min={0}
-              style={{ width: '100%' }}
-              onChange={handleCurrentReceiptQuantityChange}
-            />
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item
-            name="totalReceiptQuantity"
-            label="出库产品总数"
-            rules={[{ required: true, message: '请输入出库产品总数' }]}
-          >
-            <InputNumber
-              placeholder="出库产品总数"
-              min={0}
-              style={{ width: '100%' }}
-              disabled
-            />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item
-            name="totalPrice"
-            label="产品合计售价"
-            rules={[{ required: true, message: '请输入产品合计售价' }]}
-          >
-            <InputNumber
-              placeholder="请输入产品合计售价"
-              min={0}
-              precision={2}
-              style={{ width: '100%' }}
-              addonBefore="¥"
-              disabled
-            />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item
-            name="receiptStatus"
-            label="收货状态"
-            rules={[{ required: true, message: '请选择收货状态' }]}
-          >
-            <Select placeholder="请选择收货状态">
-              <Option value="pending">待收货</Option>
-              <Option value="partial">部分收货</Option>
-              <Option value="completed">已收货</Option>
-            </Select>
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item
-            name="receiptDate"
-            label="收货确认时间"
-          >
-            <DatePicker
-              placeholder="请选择收货确认时间"
-              style={{ width: '100%' }}
-              showTime
-              format="YYYY-MM-DD HH:mm:ss"
-            />
-          </Form.Item>
-        </Col>
-      </Row>
-    </Form>
+      <Card size="small" title="出库明细">
+        <ProTable<CreateSalesReceiptItemDto>
+          columns={columns}
+          dataSource={items}
+          rowKey="salesOrderItemId"
+          search={false}
+          pagination={false}
+          toolBarRender={false}
+          size="small"
+        />
+      </Card>
+    </ModalForm>
   );
 };
-
-export default SalesReceiptForm;

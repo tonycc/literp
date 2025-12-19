@@ -781,6 +781,7 @@ model SalesOrder {
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
   items        SalesOrderItem[]
+  receipts     SalesReceipt[]
 
   @@index([status])
   @@index([orderDate])
@@ -809,6 +810,56 @@ model SalesOrderItem {
   @@index([orderId])
   @@index([productId])
   @@map("sales_order_items")
+}
+
+/// 销售出库单
+model SalesReceipt {
+  id            String   @id @default(cuid())
+  receiptNo     String   @unique // 出库单号
+  salesOrderId  String
+  salesOrderNo  String   // 冗余
+  customerName  String
+  status        String   @default("draft") // draft, confirmed, cancelled
+  receiptDate   DateTime @default(now())
+  handler       String?
+  remarks       String?
+  
+  createdBy     String
+  updatedBy     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  items         SalesReceiptItem[]
+  salesOrder    SalesOrder @relation(fields: [salesOrderId], references: [id])
+
+  @@map("sales_receipts")
+  @@index([receiptNo])
+  @@index([salesOrderId])
+  @@index([status])
+}
+
+/// 销售出库单明细
+model SalesReceiptItem {
+  id               String       @id @default(cuid())
+  receiptId        String
+  salesOrderItemId String
+  
+  productId        String
+  productName      String
+  productCode      String
+  
+  quantity         Float
+  unitPrice        Float
+  amount           Float
+  
+  warehouseId      String?
+  remarks          String?
+
+  receipt          SalesReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  
+  @@map("sales_receipt_items")
+  @@index([receiptId])
+  @@index([salesOrderItemId])
 }
 
 /// 采购订单

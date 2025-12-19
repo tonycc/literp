@@ -4,6 +4,8 @@ import { PlusOutlined } from '@ant-design/icons';
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import type { ProductStockInfo, ProductStockQueryParams } from '@zyerp/shared';
+import { PRODUCT_TYPE_VALUE_ENUM_PRO } from '@/shared/constants/product';
+import { INVENTORY_STATUS_VALUE_ENUM_PRO } from '@/shared/constants/inventory';
 import { inventoryService } from '../services/inventory.service';
 import { normalizeTableParams } from '@/shared/utils/normalizeTableParams';
 
@@ -32,6 +34,7 @@ const InventoryList: React.FC<InventoryListProps> = ({
       dataIndex: 'index',
       valueType: 'indexBorder',
       width: 48,
+      search: false,
     },
     {
       title: '产品编码',
@@ -47,42 +50,48 @@ const InventoryList: React.FC<InventoryListProps> = ({
       title: '产品属性',
       dataIndex: 'productType',
       valueType: 'select',
-      // valueEnum 可在后续接入字典
+      valueEnum: PRODUCT_TYPE_VALUE_ENUM_PRO,
     },
     {
       title: '仓库',
       dataIndex: 'warehouseName',
       ellipsis: true,
+      hideInSearch: true,
     },
     {
       title: '单位',
       dataIndex: 'unit',
       ellipsis: true,
       width: 80,
+      hideInSearch: true,
+      render: (_, record) => record.unit ?? '-',
     },
     {
       title: '现有库存',
       dataIndex: 'currentStock',
       valueType: 'digit',
       width: 120,
+      hideInSearch: true,
     },
     {
       title: '预留库存',
       dataIndex: 'reservedStock',
       valueType: 'digit',
       width: 120,
+      hideInSearch: true,
     },
     {
       title: '可用库存',
       dataIndex: 'availableStock',
       valueType: 'digit',
       width: 120,
+      hideInSearch: true,
     },
     {
       title: '状态',
       dataIndex: 'status',
       valueType: 'select',
-      // valueEnum 可在后续接入字典
+      valueEnum: INVENTORY_STATUS_VALUE_ENUM_PRO,
     },
     {
       title: '操作',

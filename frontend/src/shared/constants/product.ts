@@ -1,9 +1,9 @@
 import { ProductType, ProductStatus, AcquisitionMethod } from '@zyerp/shared';
 
-/**
- * 产品类型映射
- */
-export const PRODUCT_TYPE_MAP = {
+export const PRODUCT_TYPE_MAP: Record<
+  ProductType,
+  { label: string; color: string; tooltip: string }
+> = {
   [ProductType.RAW_MATERIAL]: { label: '原材料', color: 'blue', tooltip: '用于生产的原材料' },
   [ProductType.SEMI_FINISHED_PRODUCT]: { label: '半成品', color: 'orange', tooltip: '已部分加工的产品' },
   [ProductType.FINISHED_PRODUCT]: { label: '成品', color: 'green', tooltip: '已完成加工的产品' },

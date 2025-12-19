@@ -3,7 +3,6 @@
  */
 
 import { BaseService } from '../../../shared/services/base.service';
-import type { Prisma } from '@prisma/client';
 import type {
   ProductStockInfo,
   ProductStockQueryParams,
@@ -69,10 +68,10 @@ export class ProductStockService extends BaseService {
         productName: p.name,
         productType: p.type,
         specification: p.specification ?? null,
-        unit: p.unit?.symbol ?? p.unit?.name ?? null,
+        unit: p.unit?.name ?? p.unit?.symbol ?? null,
         unitId: p.unit?.id ?? null,
         warehouseId: warehouseId ?? p.defaultWarehouseId ?? null,
-        warehouseName: warehouseInfo?.name ?? null,
+        warehouseName: warehouseInfo?.name ?? (p as any).defaultWarehouse?.name ?? null,
         currentStock,
         reservedStock,
         availableStock,
@@ -88,7 +87,17 @@ export class ProductStockService extends BaseService {
       };
     });
 
-    const paginated = this.buildPaginatedResponse(formatted, total, currentPage, currentPageSize);
+    const targetStatus = status as InventoryStatus | undefined;
+    const filteredByStatus = targetStatus
+      ? formatted.filter((item) => item.status === targetStatus)
+      : formatted;
+
+    const paginated = this.buildPaginatedResponse(
+      filteredByStatus,
+      targetStatus ? filteredByStatus.length : total,
+      currentPage,
+      currentPageSize,
+    );
     return {
       success: true,
       data: {

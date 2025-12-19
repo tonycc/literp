@@ -39,10 +39,10 @@ import type {
 import {
   OutboundType,
   OutboundOrderStatus,
-  ProductType,
   OUTBOUND_TYPE_CONFIG,
   OUTBOUND_ORDER_STATUS_CONFIG
 } from '../types';
+import { ProductType } from '@zyerp/shared';
 
 const { RangePicker } = DatePicker;
 
@@ -170,7 +170,7 @@ const OutboundOrderList: React.FC<OutboundOrderListProps> = ({ className }) => {
       productId: 'P003',
       productCode: 'SEM001',
       productName: '电子元件',
-      productType: ProductType.SEMI_FINISHED,
+      productType: ProductType.SEMI_FINISHED_PRODUCT,
       specification: 'IC-74HC595',
       unit: '片',
       warehouseId: 'WH003',
@@ -225,6 +225,17 @@ const OutboundOrderList: React.FC<OutboundOrderListProps> = ({ className }) => {
       message.error('加载数据失败');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEditFinish = async () => {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      message.success('保存成功');
+      setEditModalVisible(false);
+      void loadData();
+    } catch {
+      message.error('保存失败');
     }
   };
 
@@ -665,16 +676,8 @@ const OutboundOrderList: React.FC<OutboundOrderListProps> = ({ className }) => {
         <Form
           form={editForm}
           layout="vertical"
-          onFinish={async () => {
-            try {
-              // 模拟API调用
-              await new Promise(resolve => setTimeout(resolve, 500));
-              message.success('保存成功');
-              setEditModalVisible(false);
-              void loadData();
-            } catch {
-              message.error('保存失败');
-            }
+          onFinish={() => {
+            void handleEditFinish();
           }}
         >
           <Row gutter={16}>

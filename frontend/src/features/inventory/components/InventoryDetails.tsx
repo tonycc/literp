@@ -26,14 +26,13 @@ import type {
   ProductInventory,
   InventoryTransaction
 } from '../types';
+import { ProductType, InventoryStatus } from '@zyerp/shared';
 import {
-  ProductType,
-  InventoryStatus,
   InventoryTransactionType,
-  PRODUCT_TYPE_CONFIG,
   INVENTORY_STATUS_CONFIG,
   INVENTORY_TRANSACTION_TYPE_CONFIG
 } from '../types';
+import { PRODUCT_TYPE_MAP } from '@/shared/constants/product';
 import BatchInventoryTable from './BatchInventoryTable';
 
 const { Title, Text } = Typography;
@@ -54,7 +53,7 @@ const InventoryDetails: React.FC<InventoryDetailsProps> = ({ productId, onBack }
     productId: productId,
     productCode: 'RAW001',
     productName: '优质钢材',
-    productType: ProductType.RAW_MATERIAL,
+    productType: 'raw_material' as ProductType,
     specification: '规格: 10mm*20mm*100mm',
     unit: '吨',
     currentStock: 150.5,
@@ -268,9 +267,14 @@ const InventoryDetails: React.FC<InventoryDetailsProps> = ({ productId, onBack }
               <Descriptions.Item label="产品编码">{inventoryData.productCode}</Descriptions.Item>
               <Descriptions.Item label="产品名称">{inventoryData.productName}</Descriptions.Item>
               <Descriptions.Item label="产品属性">
-                <Tag color={PRODUCT_TYPE_CONFIG[inventoryData.productType]?.color}>
-                  {PRODUCT_TYPE_CONFIG[inventoryData.productType]?.label}
-                </Tag>
+                {(() => {
+                  const config = PRODUCT_TYPE_MAP[inventoryData.productType];
+                  return (
+                    <Tag color={config?.color}>
+                      {config?.label}
+                    </Tag>
+                  );
+                })()}
               </Descriptions.Item>
               <Descriptions.Item label="规格型号">{inventoryData.specification}</Descriptions.Item>
               <Descriptions.Item label="计量单位">{inventoryData.unit}</Descriptions.Item>

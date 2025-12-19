@@ -15,10 +15,7 @@ export type {
 } from './types';
 
 export {
-  ProductType,
-  InventoryStatus,
   InventoryTransactionType,
-  PRODUCT_TYPE_CONFIG,
   INVENTORY_STATUS_CONFIG,
   INVENTORY_TRANSACTION_TYPE_CONFIG
 } from './types';

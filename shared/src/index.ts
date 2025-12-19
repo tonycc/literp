@@ -32,6 +32,7 @@ export * from './types/materialIssue';
 export * from './types/productionReport';
 export * from './types/subcontract-order';
 export * from './types/role';
+export * from './types/sales-receipt';
  
 
 // 导出接口定义

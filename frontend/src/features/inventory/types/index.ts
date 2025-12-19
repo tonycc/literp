@@ -1,23 +1,4 @@
-// 产品类目枚举
-export enum ProductType {
-  RAW_MATERIAL = 'raw_material',     // 原料
-  SEMI_FINISHED = 'semi_finished',   // 半成品
-  FINISHED_PRODUCT = 'finished_product', // 产成品
-  CONSUMABLE = 'consumable',         // 消耗品
-  TOOL = 'tool',                     // 工具
-  EQUIPMENT = 'equipment'            // 设备
-}
-
-// 库存状态枚举
-export enum InventoryStatus {
-  NORMAL = 'normal',           // 正常
-  LOW_STOCK = 'low_stock',     // 库存不足
-  OUT_OF_STOCK = 'out_of_stock', // 缺货
-  OVERSTOCKED = 'overstocked', // 库存过多
-  RESERVED = 'reserved',       // 已预留
-  DAMAGED = 'damaged',         // 损坏
-  EXPIRED = 'expired'          // 过期
-}
+import { ProductType, InventoryStatus } from '@zyerp/shared';
 
 // 库存变动类型枚举
 export enum InventoryTransactionType {
@@ -269,46 +250,6 @@ export interface BatchOperation {
   operationDate: string;       // 操作日期
   createdAt: string;
 }
-
-// 产品类目配置
-export const PRODUCT_TYPE_CONFIG = {
-  [ProductType.RAW_MATERIAL]: {
-    label: '原料',
-    color: 'blue',
-    bgColor: '#e6f7ff',
-    borderColor: '#91d5ff'
-  },
-  [ProductType.SEMI_FINISHED]: {
-    label: '半成品',
-    color: 'orange',
-    bgColor: '#fff7e6',
-    borderColor: '#ffd591'
-  },
-  [ProductType.FINISHED_PRODUCT]: {
-    label: '产成品',
-    color: 'green',
-    bgColor: '#f6ffed',
-    borderColor: '#b7eb8f'
-  },
-  [ProductType.CONSUMABLE]: {
-    label: '消耗品',
-    color: 'purple',
-    bgColor: '#f9f0ff',
-    borderColor: '#d3adf7'
-  },
-  [ProductType.TOOL]: {
-    label: '工具',
-    color: 'cyan',
-    bgColor: '#e6fffb',
-    borderColor: '#87e8de'
-  },
-  [ProductType.EQUIPMENT]: {
-    label: '设备',
-    color: 'magenta',
-    bgColor: '#fff0f6',
-    borderColor: '#ffadd2'
-  }
-} as const;
 
 // 出库类型枚举
 export enum OutboundType {
